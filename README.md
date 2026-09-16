@@ -4,7 +4,7 @@ Backend foundation for TideAlert: a FastAPI + PostGIS service for tracking
 flood-affected households, zones, and relief needs. This is the base
 scaffold only — models, schemas, basic CRUD routes, and a working database
 connection. No algorithm logic (silence scoring, risk calculation, etc.) is
-implemented yet; that will live in `backend/app/services/`.
+implemented yet; that will live in `backend/app/services/`
 
 ## Project layout
 

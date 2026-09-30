@@ -127,4 +127,7 @@ Method, current validated result and known limitations are in
 
 Models, Pydantic schemas, CRUD routes for households and zones, Alembic
 migrations, the docker-compose PostGIS setup (host port 5433), and the
-isolation engine (river driver only; the rain driver is not yet validated).
+isolation engine (river driver only; the rain driver is not yet validated),
+which opens Cases for confirmed-isolated zones, and the silence engine's
+per-household response baseline (statistics only, tested on synthetic data;
+see [docs/algorithms/silence-engine.md](docs/algorithms/silence-engine.md)).

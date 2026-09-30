@@ -75,7 +75,8 @@ CORROBORATION_MIN = 2
 DEPTH_ORDER = [DepthReported.ankle, DepthReported.knee, DepthReported.waist]
 DEPTH_RISK = {DepthReported.ankle: RiskLevel.elevated, DepthReported.knee: RiskLevel.extreme,
               DepthReported.waist: RiskLevel.extreme}
-RISK_ORDER = [RiskLevel.safe, RiskLevel.elevated, RiskLevel.extreme]
+SOURCE_NAME = "Listening: household replies"
+RISK_ORDER = [RiskLevel.unknown, RiskLevel.safe, RiskLevel.elevated, RiskLevel.extreme]
 SOURCE_BASE = {ProbeChannel.sms: 0.8, ProbeChannel.voice: 0.85, ProbeChannel.neighbor: 0.5}  # GUESSES
 DISAGREEMENT_STEP = 0.25  # GUESS
 
@@ -162,12 +163,17 @@ class ListeningEngine:
     def _source(self) -> uuid.UUID:
         if self._source_id is None:
             self._source_id = ensure_data_source(
-                self.db, name="Listening: household replies", category="survivor_report", cadence_seconds=0,
+                self.db, name=SOURCE_NAME, category="survivor_report", cadence_seconds=0,
                 stale_after_seconds=6 * 3600, type_default=SignalType.reported, url="n/a",
                 license="Household consent (registry)",
                 notes="Replies to TideAlert probes. Synthetic until a live registry exists.",
             ).id
         return self._source_id
+
+    def source_name(self) -> str:
+        """Name of the data source this engine's reports are recorded under (created if missing)."""
+        self._source()
+        return SOURCE_NAME
 
     def _send(self, household: Household, now: datetime, channel: ProbeChannel, purpose: ProbePurpose,
               parent: Optional[ProbeResponse], text: str) -> ProbeResponse:

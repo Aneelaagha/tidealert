@@ -13,6 +13,7 @@ class CaseBase(BaseModel):
     status: CaseStatus = CaseStatus.open
     inference_sentence: str
     source: Optional[str] = None
+    run_id: uuid.UUID
     confidence_word: ConfidenceWord
     task_id: Optional[uuid.UUID] = None
     outcome: Optional[str] = None
@@ -30,6 +31,7 @@ class CaseUpdate(BaseModel):
     status: Optional[CaseStatus] = None
     inference_sentence: Optional[str] = None
     source: Optional[str] = None
+    run_id: Optional[uuid.UUID] = None
     confidence_word: Optional[ConfidenceWord] = None
     task_id: Optional[uuid.UUID] = None
     outcome: Optional[str] = None

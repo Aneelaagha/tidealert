@@ -46,7 +46,8 @@ prompt to the nominated neighbor --30 min--> exhausted
   - their Signals are linked (`corroborates_signal_id`);
   - the block's `risk_level` is raised to the level of the depth that at
     least two of them reached: ankle → elevated, knee or waist → extreme. It
-    is never lowered automatically.
+    is never lowered automatically. A zone nobody has assessed is `unknown`
+    (the default), never `safe`.
 
 ## Cases (via the case matcher)
 
@@ -83,8 +84,8 @@ history, swept every 15 minutes from 14:00:
 | A3 | silent; neighbor: SEEN_OK | voice 14:15, neighbor 14:30; Case gets the explanation, stays open |
 | A4 | silent; neighbor: TROUBLE | voice 14:15, neighbor 14:30; Case becomes **corroborated** (back to single_source once the TROUBLE report decays, about 2 h later) |
 | A5 | silent, no nominated neighbor | voice 14:15, **exhausted** 14:30 |
-| A6, A7 | HELP → knee / waist | help Cases; the two reports, 27 min apart, **corroborate**: block A `safe` → `extreme`, block Case opened |
-| B1 | HELP → ankle | single report: visible, block B stays `safe` |
+| A6, A7 | HELP → knee / waist | help Cases; the two reports, 27 min apart, **corroborate**: block A `unknown` → `extreme`, block Case opened |
+| B1 | HELP → ankle | single report: visible, block B stays `unknown` |
 
 The Harvey isolation replay and the silence-only replay are unchanged by
 this work (same Cases).

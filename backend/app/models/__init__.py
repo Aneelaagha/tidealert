@@ -7,6 +7,7 @@ from app.models.nfip_claim import NfipClaim
 from app.models.probe_response import ProbeResponse
 from app.models.responder import Responder
 from app.models.road_segment import RoadSegment
+from app.models.run import Run, RunSource
 from app.models.signal import Signal
 from app.models.task import Task
 from app.models.zone import Zone

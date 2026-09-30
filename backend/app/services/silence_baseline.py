@@ -28,6 +28,18 @@ the verdict is "insufficient_history", never "late".
 
 Z_LATE, MIN_LOG_SCALE, WINDOW and MIN_HISTORY are statistical choices, not
 calibrated against real registry data (none exists yet).
+
+Confidence of a "late" verdict (silence_confidence) is a product of three
+factors from the same data:
+
+    history      0 below MIN_HISTORY answered check-ins (no verdict is ever "late" then),
+                 else min(1, answered in window / WINDOW)
+    strength     1 / (1 + exp(-(z - Z_LATE))): 0.5 at the flag threshold, ~0.95 at z = Z_LATE + 3
+    reliability  1 - the household's historical never-answered rate, since silence from a household
+                 that often never replies says less
+
+The strength curve is a design choice; the product is a heuristic, not a
+probability calibrated against outcomes.
 """
 import math
 import uuid
@@ -58,6 +70,7 @@ class Baseline:
     variance_seconds2: Optional[float]
     log_median: Optional[float]
     log_scale: Optional[float]
+    unanswered: int = 0  # earlier check-ins never answered (all history, not just the window)
 
     @property
     def sufficient(self) -> bool:
@@ -122,7 +135,29 @@ def household_baseline(db: Session, household_id: uuid.UUID, before: Optional[da
         query = query.where(ProbeResponse.sent_at < before)
     rows = db.execute(query.order_by(ProbeResponse.sent_at)).all()
     latencies = [(r.responded_at - r.sent_at).total_seconds() for r in rows if r.responded_at is not None]
-    return compute_baseline(household_id, latencies, probe_count=len(rows))
+    baseline = compute_baseline(household_id, latencies, probe_count=len(rows))
+    baseline.unanswered = len(rows) - len(latencies)
+    return baseline
+
+
+@dataclass
+class SilenceConfidence:
+    value: float
+    history: float
+    strength: float
+    reliability: float
+
+    def describe(self) -> str:
+        return (f"confidence {self.value:.2f} = history {self.history:.2f} x strength {self.strength:.2f} "
+                f"x reliability {self.reliability:.2f}")
+
+
+def silence_confidence(baseline: Baseline, verdict: Verdict) -> SilenceConfidence:
+    """Confidence of a silence verdict (0 without a personal baseline)."""
+    history = min(1.0, baseline.answered / WINDOW) if baseline.sufficient else 0.0
+    strength = 1.0 / (1.0 + math.exp(-(verdict.z - Z_LATE))) if verdict.z is not None else 0.0
+    reliability = 1.0 - baseline.unanswered / baseline.probe_count if baseline.probe_count else 0.0
+    return SilenceConfidence(history * strength * reliability, history, strength, reliability)
 
 
 def update_household_baselines(db: Session, household_ids: Optional[list[uuid.UUID]] = None) -> list[Baseline]:

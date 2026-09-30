@@ -179,9 +179,10 @@ later reconnections and mechanism changes.
   from the network, with road classes) or submerged (all boundary roads
   flooded), plus the river level, stage and river driver.
 - `confidence_word = single_source`: one engine, one river source.
-- `engine_confidence`: an **ordinal tier, not a calibrated probability**
-  (0.8 for the NWS flood-map driver, 0.4 for HAND). Nothing has been checked
-  against case outcomes yet.
+- `engine_confidence`: derived from coverage × source agreement × stage
+  provenance × library range, with a direction (a reconnection
+  contradicts) and time decay applied when read. These are unvalidated
+  heuristics; see [confidence.md](confidence.md).
 - `opened_at` / `last_contribution_at`: the isolation time.
 - `source`: set for replays, e.g.
   `backtest:2017-08-25..2017-09-02:USGS-08074500`, and null for live cases.

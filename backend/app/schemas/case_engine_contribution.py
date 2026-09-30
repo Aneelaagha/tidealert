@@ -1,9 +1,10 @@
 import uuid
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.case_engine_contribution import Engine
+from app.models.case_engine_contribution import ContributionDirection, Engine
 
 
 class CaseEngineContributionBase(BaseModel):
@@ -11,6 +12,9 @@ class CaseEngineContributionBase(BaseModel):
     engine: Engine
     rule_fragment: str
     engine_confidence: float
+    direction: ContributionDirection = ContributionDirection.supports
+    observed_at: datetime
+    independent_sources: int = 1
 
 
 class CaseEngineContributionCreate(CaseEngineContributionBase):
@@ -22,6 +26,9 @@ class CaseEngineContributionUpdate(BaseModel):
     engine: Optional[Engine] = None
     rule_fragment: Optional[str] = None
     engine_confidence: Optional[float] = None
+    direction: Optional[ContributionDirection] = None
+    observed_at: Optional[datetime] = None
+    independent_sources: Optional[int] = None
 
 
 class CaseEngineContributionRead(CaseEngineContributionBase):

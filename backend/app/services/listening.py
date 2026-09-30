@@ -31,6 +31,21 @@ passes the reply time. TwilioTransport is a placeholder.
 
 The timeouts, the corroboration window and the depth-to-risk mapping are
 placeholders, not calibrated against real households.
+
+Confidence of listening evidence (listening_confidence), source x corroboration:
+
+    household's own reply   SOURCE_BASE[channel]: sms 0.8, voice 0.85
+    corroborated depth      (1 - (1 - SOURCE_BASE[sms]) ** k) x (1 - DISAGREEMENT_STEP x spread)
+                            for k households, spread = steps between the shallowest and deepest
+                            report on ankle / knee / waist (0, 1 or 2)
+    neighbor reply          SOURCE_BASE[neighbor] 0.5: TROUBLE supports, SEEN_OK contradicts,
+                            CANT_SEE is neutral (0)
+    cascade steps           procedural, 0
+
+GUESSES, not findings: voice ranked above SMS (a keypress seemed less likely to
+be a mistyped text), the base values themselves, and the disagreement reduction
+(DISAGREEMENT_STEP per step of spread). None is validated against real
+households or outcomes.
 """
 import logging
 import uuid
@@ -61,6 +76,16 @@ DEPTH_ORDER = [DepthReported.ankle, DepthReported.knee, DepthReported.waist]
 DEPTH_RISK = {DepthReported.ankle: RiskLevel.elevated, DepthReported.knee: RiskLevel.extreme,
               DepthReported.waist: RiskLevel.extreme}
 RISK_ORDER = [RiskLevel.safe, RiskLevel.elevated, RiskLevel.extreme]
+SOURCE_BASE = {ProbeChannel.sms: 0.8, ProbeChannel.voice: 0.85, ProbeChannel.neighbor: 0.5}  # GUESSES
+DISAGREEMENT_STEP = 0.25  # GUESS
+
+
+def corroborated_depth_confidence(depths: list[DepthReported]) -> float:
+    """Confidence of k households' depth reports taken together."""
+    k = len(depths)
+    idx = [DEPTH_ORDER.index(d) for d in depths]
+    spread = max(idx) - min(idx)
+    return (1 - (1 - SOURCE_BASE[ProbeChannel.sms]) ** k) * (1 - DISAGREEMENT_STEP * spread)
 
 # Reply codes.
 OK, HELP = "OK", "HELP"
@@ -118,6 +143,8 @@ class Event:
     code: Optional[str] = None
     detail: str = ""
     signal_ids: list = field(default_factory=list)
+    channel: Optional[ProbeChannel] = None  # channel the reply came in on
+    depths: list = field(default_factory=list)  # DepthReported values behind a corroborated report
 
 
 # ------------------------------------------------------------------ engine
@@ -201,14 +228,15 @@ class ListeningEngine:
         if answered is not None:
             if self._once(answered.id, "answered"):
                 elapsed = answered.responded_at - root.sent_at
-                ev.append(Event("answered", answered.responded_at, code=answered.response_code,
+                ev.append(Event("answered", answered.responded_at, code=answered.response_code, channel=answered.channel,
                                 detail=f"answered {answered.response_code} by {answered.channel.value} "
                                        f"{_fmt(elapsed)} after the check-in", **base))
             if answered.response_code == HELP:
                 if depth_q is None:
                     self._send(household, now, ProbeChannel.sms, ProbePurpose.depth_followup, root,
                                "How deep is the water where you are? Reply ANKLE, KNEE or WAIST.")
-                    ev.append(Event("help", now, code=HELP, detail="replied HELP; depth follow-up sent", **base))
+                    ev.append(Event("help", now, code=HELP, channel=answered.channel,
+                                    detail=f"replied HELP by {answered.channel.value}; depth follow-up sent", **base))
                 elif depth_q.responded_at and depth_q.responded_at <= now and depth_q.depth_reported \
                         and self._once(depth_q.id, "depth"):
                     ev += self._record_depth(household, depth_q, base)
@@ -219,7 +247,7 @@ class ListeningEngine:
 
         if neighbor is not None and neighbor.responded_at and neighbor.responded_at <= now:
             if self._once(neighbor.id, "neighbor"):
-                ev.append(Event("neighbor", neighbor.responded_at, code=neighbor.response_code,
+                ev.append(Event("neighbor", neighbor.responded_at, code=neighbor.response_code, channel=ProbeChannel.neighbor,
                                 detail=f"nominated neighbor replied {neighbor.response_code} "
                                        f"{_fmt(neighbor.responded_at - neighbor.sent_at)} after the prompt", **base))
             return ev
@@ -265,6 +293,7 @@ class ListeningEngine:
         note = ("corroborates other reports in this block (see the block's case)" if corroborated else
                 "single report: visible, does not change the zone")
         ev = [Event("depth", probe.responded_at, code=probe.depth_reported.value, signal_ids=[signal.id],
+                    channel=probe.channel, depths=[probe.depth_reported],
                     detail=f"reported {probe.depth_reported.value}-deep water ({note})", **base)]
         if corroborated:
             ev.append(corroborated)
@@ -301,7 +330,7 @@ class ListeningEngine:
         change = f"zone risk_level {before.value} -> {zone.risk_level.value}" if zone.risk_level != before \
             else f"zone risk_level stays {before.value}"
         return Event("corroborated_depth", at, zone_id=zone_id, code=agreed.value,
-                     signal_ids=[p.signal_id for p in reports],
+                     signal_ids=[p.signal_id for p in reports], depths=[p.depth_reported for p in reports],
                      detail=f"{len(reports)} households reported flood depth within "
                             f"{_fmt(reports[-1].responded_at - reports[0].responded_at)} "
                             f"({', '.join(p.depth_reported.value for p in reports)}); at least {CORROBORATION_MIN} "

@@ -60,9 +60,12 @@ Its probe cascades (SMS, then voice call, then nominated neighbor) advance
 first in each sweep. Help requests, corroborated depth reports and neighbor
 replies then join or open Cases the same way silence does.
 
-`engine_confidence` values are ordinal tiers, not calibrated probabilities:
-isolation 0.8 (NWS map) or 0.4 (HAND), silence 0.5, listening 0.7 (from the
-household) or 0.5 (neighbor, cascade steps).
+Every contribution carries a direction (supports / contradicts / neutral /
+procedural), a confidence derived by its engine, and when it was observed.
+Evidence an engine keeps confirming is refreshed every sweep. At the end of
+each sweep every Case's `confidence_word` is recomputed with time decay, so
+`stale_verify` is set when no supporting evidence is fresh or the latest
+evidence contradicts the Case. Formulas and guesses: [confidence.md](confidence.md).
 
 ## Replay labels
 

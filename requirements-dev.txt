@@ -1,0 +1,4 @@
+# Notebooks (notebooks/)
+nbformat
+nbclient
+ipykernel

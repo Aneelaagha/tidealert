@@ -131,3 +131,7 @@ isolation engine (river driver only; the rain driver is not yet validated),
 which opens Cases for confirmed-isolated zones, and the silence engine's
 per-household response baseline (statistics only, tested on synthetic data;
 see [docs/algorithms/silence-engine.md](docs/algorithms/silence-engine.md)).
+A case matcher sweeps both engines every 15 minutes (Harvey replay only for
+now; [docs/algorithms/case-matcher.md](docs/algorithms/case-matcher.md)), and
+`notebooks/nfip_validation.ipynb` checks the resulting Cases against NFIP
+claims and FEMA's floodplain map.

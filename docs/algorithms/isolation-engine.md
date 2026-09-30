@@ -164,9 +164,11 @@ unknown roads). It is not an independent warning signal.
 
 ### Cases
 
-Every confirmed-isolated zone opens a `Case` with one
-`CaseEngineContribution` from the isolation engine
-(`app.services.isolation_cases`):
+Every confirmed-isolated zone opens a `Case` with a
+`CaseEngineContribution` from the isolation engine. Cases are opened and
+updated every 15 minutes by the case matcher
+([case-matcher.md](case-matcher.md)), not by this pipeline. It also appends
+later reconnections and mechanism changes.
 
 - `inference_sentence`: plain-language statement of what happened, e.g.
   "Street block with 29 residents was cut off from the main road network at
@@ -202,6 +204,59 @@ Before any isolation output, the pipeline fails loudly
 
 These checks exist because two earlier versions of this engine reported
 flooding at base flow that came from modeling errors, not from the event.
+
+## NFIP validation (Proof Layer)
+
+`notebooks/nfip_validation.ipynb`, built and executed by
+`notebooks/build_nfip_validation.py`, checks the Harvey replay's isolation
+Cases against NFIP claims. Everything is at census block group (BG) level,
+since claims are located by BG. The definitions were fixed before the
+results were computed:
+
+- **Heavy-claims BG:** the top 20% of a basin's BGs by NFIP claims per 100
+  housing units, with at least 5 claims.
+- **Spike day:** a BG's peak claims day.
+- **Static baseline:** FEMA's floodplain map (NFHL), counting a BG as "at
+  risk" if at least 10% of its populated street-block area lies in the
+  floodplain.
+
+**Across all 444 BGs (90 heavy) in the three basins:**
+
+| Flag | BGs flagged | Recall of heavy BGs | Flagged BGs that are heavy | Flagged BGs with any claim |
+|---|---|---|---|---|
+| Isolation Case, any time | 21 | 14.4% | 61.9% | 95.2% |
+| Isolation Case before the BG's spike day | 2 | **0%** | 0% | 100% |
+| FEMA 100-yr floodplain (static, before the storm) | 159 | **67.8%** | 38.4% | 82.4% |
+| FEMA 100+500-yr floodplain (static) | 221 | **82.2%** | 33.5% | 80.1% |
+| All BGs (base rate) | 444 | – | 20.3% | 73.0% |
+
+- **The engine does not beat the static floodplain map.** It reaches 14.4% of
+  heavy-claims BGs, the map 67.8% (100-year) or 82.2% (100+500-year), and the
+  map is available before the storm.
+- **Early warning:** no heavy BG got a Case before its spike day began. Ten
+  got their first Case during the spike day, which may or may not precede
+  that day's damage, since claims carry only a date. Three got it after.
+- **Where the engine is more precise:** its flagged BGs are more often heavy
+  (61.9% vs 38.4%), but it flags only 21 BGs.
+- **Inside the river driver's coverage** (27 BGs, 14 heavy, a very small
+  sample), the picture partly flips:
+  - The engine reaches 92.9% of heavy BGs, against 64.3% for the 100-year map
+    and 92.9% for the 100+500-year map.
+  - 65.0% of the BGs it flags are heavy, against 56.2% and 59.1%.
+  - By the notebook's fixed rule it beats the 100-year map there but only
+    ties the 100+500-year map on recall.
+- **Precision can only be stated as a lower bound, and only for flooding,
+  not isolation.**
+  - 95.2% of engine-flagged BGs recorded some NFIP claim, and 91.4% of
+    Cases (139 of 152) had a claim in their BG within a day of opening.
+  - Most homes had no flood insurance, so these undercount flooding.
+  - A claim records flood damage, not whether a household was cut off, so
+    precision for isolation itself cannot be bounded with this data.
+  - The base rate is high: 73% of all BGs had some claim.
+- **Map vintage:** the NFHL is today's effective map. 7 of the FIRM panels
+  touching the basins were made effective in November 2019, after Harvey,
+  and 12 of the 159 BGs flagged by the 100-year map touch one. This slightly
+  favours the static baseline.
 
 ## Rain driver: untestable with current data
 

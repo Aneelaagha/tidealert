@@ -321,6 +321,57 @@ def assert_dry_at_base_flow(
         )
 
 
+@dataclass
+class StepState:
+    """Isolation state of every zone at one timestep."""
+    flooded: np.ndarray  # bool per edge (known flooding, plus unknown roads if blocked)
+    isolated: np.ndarray  # bool per zone
+    stranded: np.ndarray  # bool per zone: isolated with some boundary road still dry
+
+
+def evaluated_zones(net: RoadNetwork, zones: ZoneBoundaries) -> tuple[np.ndarray, np.ndarray]:
+    """(has_boundary, evaluated) per zone. Zones already cut off from the main network with every road
+    dry are disconnected by the road network itself (fragments, basin-boundary cuts), not by flooding."""
+    n_zones = len(zones.zone_ids)
+    has_boundary = np.diff(zones.ptr) > 0
+    if not len(zones.edges):
+        return has_boundary, np.zeros(n_zones, bool)
+    starts = np.minimum(zones.ptr[:-1], len(zones.edges) - 1)
+    _, base_labels = connected_components(
+        coo_matrix((np.ones(len(net.u)), (net.u, net.v)), shape=(net.n_nodes, net.n_nodes)), directed=False
+    )
+    base_ok = base_labels[net.u] == np.bincount(base_labels).argmax()
+    connected_at_base = np.logical_or.reduceat(base_ok[zones.edges], starts) & has_boundary
+    return has_boundary, has_boundary & connected_at_base
+
+
+def isolation_step(
+    net: RoadNetwork,
+    zones: ZoneBoundaries,
+    evaluated: np.ndarray,
+    river_level: Optional[float],
+    ponding_level_m: Optional[np.ndarray] = None,
+    unknown_blocked: bool = False,
+) -> StepState:
+    """Which evaluated zones are isolated at one timestep. Depends only on that timestep's levels."""
+    n_zones = len(zones.zone_ids)
+    flooded = flooded_edges(net, river_level, ponding_level_m, receiving_level=river_level)
+    if unknown_blocked:
+        flooded = flooded | net.edge_stage_unknown | net.edge_rain_unknown
+    keep = ~flooded
+    graph = coo_matrix((np.ones(int(keep.sum())), (net.u[keep], net.v[keep])), shape=(net.n_nodes, net.n_nodes))
+    _, labels = connected_components(graph, directed=False)
+    edge_ok = keep & (labels[net.u] == np.bincount(labels).argmax())
+    if len(zones.edges):
+        starts = np.minimum(zones.ptr[:-1], len(zones.edges) - 1)
+        ok = np.logical_or.reduceat(edge_ok[zones.edges], starts)
+        dry = np.logical_or.reduceat(keep[zones.edges], starts)
+    else:
+        ok = dry = np.zeros(n_zones, bool)
+    isolated = evaluated & ~ok
+    return StepState(flooded=flooded, isolated=isolated, stranded=isolated & dry)
+
+
 def run_isolation(
     net: RoadNetwork,
     zones: ZoneBoundaries,
@@ -335,49 +386,30 @@ def run_isolation(
     if "rain" in drivers and not RAIN_DRIVER_VALIDATED:
         raise UnvalidatedDriverError("The rain driver is not validated; it produces no isolation output")
     n_zones = len(zones.zone_ids)
-    has_boundary = np.diff(zones.ptr) > 0
-    starts = np.minimum(zones.ptr[:-1], max(len(zones.edges) - 1, 0))
-    edge_unknown = net.edge_stage_unknown | net.edge_rain_unknown
-
-    # Zones already cut off from the main network with every road dry are disconnected by the road
-    # network itself (fragments, basin-boundary cuts), not by flooding.
-    _, base_labels = connected_components(
-        coo_matrix((np.ones(len(net.u)), (net.u, net.v)), shape=(net.n_nodes, net.n_nodes)), directed=False
-    )
-    base_ok = base_labels[net.u] == np.bincount(base_labels).argmax()
-    connected_at_base = (
-        np.logical_or.reduceat(base_ok[zones.edges], starts) & has_boundary
-        if len(zones.edges) else np.zeros(n_zones, bool)
-    )
-    evaluated = has_boundary & connected_at_base
+    has_boundary, evaluated = evaluated_zones(net, zones)
     isolated_hist = np.zeros((len(times), n_zones), dtype=bool)
     stranded_hist = np.zeros((len(times), n_zones), dtype=bool)
     flooded_count = np.zeros(len(times), dtype=int)
     ever = np.zeros(len(net.u), dtype=bool)
 
     for t in range(len(times)):
-        flooded = flooded_edges(
+        blocked = unknown_blocked is not None and bool(unknown_blocked[t])
+        known = flooded_edges(
             net,
             river_level[t] if "stage" in drivers else None,
             ponding_level_m[t] if "rain" in drivers else None,
             receiving_level=river_level[t],
         )
-        ever |= flooded
-        if unknown_blocked is not None and unknown_blocked[t]:
-            flooded = flooded | edge_unknown
-        flooded_count[t] = int(flooded.sum())
-        keep = ~flooded
-        graph = coo_matrix(
-            (np.ones(int(keep.sum())), (net.u[keep], net.v[keep])), shape=(net.n_nodes, net.n_nodes)
+        ever |= known
+        state = isolation_step(
+            net, zones, evaluated,
+            river_level[t] if "stage" in drivers else None,
+            ponding_level_m[t] if "rain" in drivers else None,
+            unknown_blocked=blocked,
         )
-        _, labels = connected_components(graph, directed=False)
-        main = np.bincount(labels).argmax()
-        edge_ok = keep & (labels[net.u] == main)
-
-        ok = np.logical_or.reduceat(edge_ok[zones.edges], starts) if len(zones.edges) else np.zeros(n_zones, bool)
-        dry = np.logical_or.reduceat(keep[zones.edges], starts) if len(zones.edges) else np.zeros(n_zones, bool)
-        isolated_hist[t] = evaluated & ~ok
-        stranded_hist[t] = isolated_hist[t] & dry
+        flooded_count[t] = int(state.flooded.sum())
+        isolated_hist[t] = state.isolated
+        stranded_hist[t] = state.stranded
 
     results = []
     for i in range(n_zones):

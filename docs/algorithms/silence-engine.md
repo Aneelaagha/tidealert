@@ -39,6 +39,14 @@ verdict is `insufficient_history`, never `late`.
 The window (30), minimum history (5), threshold (z > 3) and scale floor (±25%)
 are statistical choices. None is calibrated against real households.
 
+## In the case matcher
+
+Every 15 minutes the case matcher ([case-matcher.md](case-matcher.md))
+judges each household's most recent probe, if it is still unanswered.
+Older unanswered probes are moot once a later probe has been answered. A
+late household joins its zone's open isolation Case (making it
+`corroborated`) or opens a household Case.
+
 ## Synthetic test
 
 `scripts/generate_synthetic_probes.py` creates 24 test households in a zone

@@ -35,14 +35,10 @@ import logging
 import os
 import sys
 from collections import Counter, defaultdict
-from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
-from typing import Optional
-from zoneinfo import ZoneInfo
 
 import geopandas as gpd
 import numpy as np
-from rasterio.features import rasterize
 from rasterio.warp import Resampling, reproject
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
@@ -56,10 +52,12 @@ from app.services import isolation_engine as engine  # noqa: E402
 from app.services import sentinel1  # noqa: E402
 from app.services.census import fetch_block_groups  # noqa: E402
 from app.services.fim_library import fetch_fim_extents, iou  # noqa: E402
-from app.services.gauge_site import FEET_TO_METERS, GaugeSite, resolve_gauge  # noqa: E402
+from app.services.gauge_site import GaugeSite, resolve_gauge  # noqa: E402
 from app.services.ingest import ingest_gauge, ingest_rainfall, ingest_roads  # noqa: E402
-from app.services.isolation_cases import clear_cases, write_isolation_cases  # noqa: E402
 from app.services.nfip import pull_claims  # noqa: E402
+from app.services.river_driver import (  # noqa: E402
+    build_river_driver, depth_over_channel, local_zone, river_flood_mask,
+)
 from app.services.rainfall import (  # noqa: E402
     RESIDUAL_DRAIN_BRACKET, RESIDUAL_DRAIN_FRACTION, aorc_rainfall, drainage_capacity_mm_hr, ponding_levels,
 )
@@ -71,117 +69,12 @@ log = logging.getLogger("pipeline")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "backend", "app", "data")
 DEFAULT_START = datetime(2017, 8, 25, 5, tzinfo=timezone.utc)  # 2017-08-25 00:00 CDT
 DEFAULT_END = datetime(2017, 9, 3, 5, tzinfo=timezone.utc)  # 2017-09-03 00:00 CDT
-# Standard-time abbreviations (NWPS, USGS) -> IANA zones that observe daylight saving; zones that
-# do not observe it use a fixed offset instead.
-DST_ZONES = {"EST": "America/New_York", "CST": "America/Chicago", "MST": "America/Denver",
-             "PST": "America/Los_Angeles", "AKST": "America/Anchorage", "HST": "Pacific/Honolulu"}
-STANDARD_OFFSETS_H = {"EST": -5, "CST": -6, "MST": -7, "PST": -8, "AKST": -9, "HST": -10}
 # The rain driver's parameters were fit on this gauge; every other gauge is a held-out check.
 RAIN_FIT_SITE = "08076000"
 
 
 def utc_arg(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
-
-
-def local_zone(site: GaugeSite):
-    """The gauge's local time zone: NWS NWPS first, then the USGS site record, UTC only if neither has one."""
-    if site.nws_time_zone:
-        try:
-            return ZoneInfo(DST_ZONES.get(site.nws_time_zone, site.nws_time_zone))
-        except Exception:
-            log.warning("USGS %s: NWS time zone %r not recognised", site.site_id, site.nws_time_zone)
-    abbr = site.usgs_time_zone
-    if abbr in DST_ZONES and site.usgs_uses_dst is not False:
-        return ZoneInfo(DST_ZONES[abbr])
-    if abbr in STANDARD_OFFSETS_H:
-        return timezone(timedelta(hours=STANDARD_OFFSETS_H[abbr]), abbr)
-    log.warning("USGS %s: no time zone from NWS (%r) or USGS (%r); FALLBACK to UTC for claim dates",
-                site.site_id, site.nws_time_zone, abbr)
-    return timezone.utc
-
-
-def depth_over_channel(site: GaugeSite, stage: StageSeries, terrain: Terrain) -> tuple[np.ndarray, str]:
-    """Water depth (m) over the snapped DEM channel at the gauge, per timestep."""
-    wse = site.stage_to_wse_m(stage.stage_ft)
-    if wse is not None:
-        return wse - terrain.gauge_channel_elev_m, (
-            f"stage + gauge datum ({site.gauge_datum_altitude_ft} ft NAVD88) - DEM channel "
-            f"elevation at gauge ({terrain.gauge_channel_elev_m:.2f} m)")
-    base = float(stage.stage_ft.min())
-    log.warning("USGS %s: gauge datum is %s, not NAVD88; FALLBACK depth = stage above the event's lowest "
-                "stage (%.2f ft)", site.site_id, site.gauge_vertical_datum, base)
-    return (stage.stage_ft - base) * FEET_TO_METERS, f"FALLBACK: stage above event minimum {base:.2f} ft"
-
-
-@dataclass
-class RiverDriver:
-    """River-driver rasters and level series, in the driver's own units (see isolation_engine)."""
-    method: str
-    confidence: str  # "primary" | "LOWER CONFIDENCE"
-    caveat: Optional[str]  # recorded on evaluated zones when confidence is lower
-    threshold: np.ndarray  # river level at which each cell floods; inf = never within range
-    known: np.ndarray  # bool: the source covers the river here
-    level: np.ndarray  # river level per timestep
-    units: str
-    coverage_desc: str
-
-
-def gauge_nhd_reach(site: GaugeSite, terrain: Terrain) -> np.ndarray:
-    """Mainstem cells of the gauge's own NHDPlus reach (its COMID, between confluences)."""
-    mask = terrain.mainstem & (terrain.network_comid == site.comid)
-    if not mask.any():
-        raise RuntimeError(f"USGS {site.site_id}: gauge COMID {site.comid} has no mainstem cells in the basin")
-    return mask
-
-
-def fim_first_stage(terrain: Terrain, fim: gpd.GeoDataFrame) -> np.ndarray:
-    """Lowest library stage whose mapped extent covers each cell (inf where none does)."""
-    first = np.full(terrain.dem.shape, np.inf)
-    for stage_ft, geom in sorted(zip(fim.stage_ft, fim.geometry), reverse=True):
-        wet = rasterize([(geom, 1)], out_shape=terrain.dem.shape, transform=terrain.transform, fill=0).astype(bool)
-        first[wet] = stage_ft
-    return first
-
-
-def build_river_driver(site: GaugeSite, terrain: Terrain, stage: StageSeries, depth: np.ndarray,
-                       fim: Optional[gpd.GeoDataFrame]) -> RiverDriver:
-    if fim is not None:
-        stages = np.sort(fim.stage_ft.to_numpy())
-        # Coverage is the library's own largest mapped extent (plus one DEM cell for rendering edges):
-        # outside it the map makes no statement, whatever the gauge's reach is.
-        coverage_geom = fim.geometry.iloc[int(np.argmax(fim.stage_ft))].buffer(abs(terrain.transform.a))
-        known = rasterize([(coverage_geom, 1)], out_shape=terrain.dem.shape, transform=terrain.transform,
-                          fill=0).astype(bool) & terrain.in_basin
-        idx = np.minimum(np.searchsorted(stages, stage.stage_ft, side="left"), len(stages) - 1)
-        level = np.where(stage.stage_ft < stages[0], -np.inf, stages[idx])
-        n_above = int((stage.stage_ft > stages[-1]).sum())
-        if n_above:
-            log.warning("USGS %s: stage exceeds the NWS library's highest stage (%.1f ft) for %d steps; the "
-                        "highest mapped extent is used", site.site_id, stages[-1], n_above)
-        return RiverDriver(
-            method=f"NWS flood map library ({site.nws_lid}, {len(stages)} stages {stages[0]}-{stages[-1]} ft)",
-            confidence="primary", caveat=None, threshold=fim_first_stage(terrain, fim), known=known,
-            level=level, units="ft (library stage)",
-            coverage_desc=f"NWS map's largest mapped extent ({known.sum() * terrain.cell_area_m2 / 1e6:.2f} km2 "
-                          f"in basin); everything else draining to the mainstem is unknown")
-    reach = gauge_nhd_reach(site, terrain)
-    drain = terrain.mainstem_drain
-    known = (drain >= 0) & reach.ravel()[np.maximum(drain, 0)].reshape(drain.shape)
-    caveat = (f"River flooding from HAND (height above nearest drainage, snapped channel) because NWS publishes no "
-              f"flood-map library for USGS {site.site_id}; assumes constant depth along the reach. Lower confidence.")
-    log.warning("USGS %s: %s", site.site_id, caveat)
-    return RiverDriver(
-        method="HAND (snapped channel), constant depth along the gauge's NHD reach",
-        confidence="LOWER CONFIDENCE", caveat=caveat,
-        threshold=np.where(np.isnan(terrain.hand_mainstem), np.inf, terrain.hand_mainstem), known=known,
-        level=depth, units="m (depth over channel)",
-        coverage_desc=f"cells draining to the gauge's own NHDPlus reach, COMID {site.comid}")
-
-
-def river_flood_mask(terrain: Terrain, river: RiverDriver, i: int) -> np.ndarray:
-    """Cells the river driver floods at step i (same rule as isolation_engine); unknown cells are dry."""
-    return river.known & (river.threshold <= river.level[i]) & terrain.in_basin
 
 
 def rain_ponding_mask(terrain: Terrain, levels: np.ndarray, catchments: np.ndarray, river_wet: np.ndarray) -> np.ndarray:
@@ -268,11 +161,6 @@ def main() -> None:
         log.info("Roads: %d segments from OSM as of %s, fetched from Overpass at %s", road_counts["segments"],
                  road_counts["osm_date"], road_counts["fetched_at"])
 
-        # This replay's cases are rewritten below; clear them first so they don't pin stale zones.
-        case_source = (f"backtest:{start.astimezone(tz).date()}..{(end - timedelta(seconds=1)).astimezone(tz).date()}"
-                       f":USGS-{site.site_id}")
-        clear_cases(db, case_source)
-        db.commit()
         generate_zones(db, site, terrain.crs_epsg, road_counts["edge_ids"])
         zones = list(db.scalars(select(Zone).where(Zone.region == site.region).order_by(Zone.name)))
         zone_geoms = gpd.GeoSeries([to_shape(z.boundary) for z in zones], crs=4326).to_crs(terrain.crs_epsg)
@@ -315,16 +203,6 @@ def main() -> None:
         run = bounded.optimistic  # known flooding only
         alarm = stage.first_crossing(site.thresholds.minor_ft)
         engine.update_zone_countdowns(db, bounded, alarm or times[0], site.site_id, river.caveat)
-
-        # One Case per confirmed-isolated zone, labelled as a replay of this event window.
-        cases = write_isolation_cases(
-            db, source=case_source, bounded=bounded, net=net, bounds=bounds,
-            highway_class=list(segments["highway_class"]), times=times, river_level=river.level,
-            river_method=river.method, river_confidence=river.confidence, river_units=river.units.split(" ")[0],
-            stage_ft=stage.stage_ft, site_id=site.site_id, local_tz=tz,
-        )
-        case_summary = sorted(((c.opened_at, c.zone_id, c.inference_sentence, c.contributions[0].rule_fragment,
-                                c.contributions[0].engine_confidence, str(c.id)) for c in cases))
 
         # Rain driver: evaluated against Sentinel-1 below, never used for isolation (engine gate).
         capacity = drainage_capacity_mm_hr(site)
@@ -441,13 +319,8 @@ def main() -> None:
         lead = None if (t is None or alarm is None) else (alarm - t).total_seconds() / 60
         print(f"  {label:28s} {fmt(t):40s} {'none detected' if t is None else ('n/a' if lead is None else f'{lead:+.0f} min')}")
 
-    print(f"\nCASES written: {len(case_summary)} (source {case_source}; status open, confidence_word single_source; "
-          f"engine_confidence is an ordinal tier, not calibrated)")
-    for opened, zone_id, sentence, fragment, conf, case_id in case_summary[:5]:
-        print(f"  {fmt(opened)}  case {case_id[:8]}  zone {str(zone_id)[:8]}\n    {sentence}\n    [{conf}] {fragment}")
-    if len(case_summary) > 5:
-        print(f"  ... {len(case_summary) - 5} more")
-    report["cases"] = {"source": case_source, "count": len(case_summary)}
+    print("\nCASES: opened and updated by the case matcher, not this pipeline "
+          f"(.venv/bin/python scripts/run_case_matcher.py {site.site_id})")
 
     days = [claim_start + timedelta(days=d) for d in range((claim_end - claim_start).days + 1)]
     total = Counter()

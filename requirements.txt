@@ -16,3 +16,5 @@ rasterio
 s3fs
 xarray
 zarr<3
+pysheds
+scipy

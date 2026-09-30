@@ -1,10 +1,10 @@
 # TideAlert
 
-Backend foundation for TideAlert: a FastAPI + PostGIS service for tracking
-flood-affected households, zones, and relief needs. This is the base
-scaffold only — models, schemas, basic CRUD routes, and a working database
-connection. No algorithm logic (silence scoring, risk calculation, etc.) is
-implemented yet; that will live in `backend/app/services/`.
+Backend for TideAlert: a FastAPI + PostGIS service for tracking
+flood-affected households, zones, and relief needs. It has models, schemas,
+basic CRUD routes, and the first engine: the isolation engine, which works out
+when street blocks lose every road route out during a flood, from a single
+USGS gauge ID. See [docs/algorithms/isolation-engine.md](docs/algorithms/isolation-engine.md).
 
 ## Project layout
 
@@ -17,14 +17,14 @@ tidealert/
 │       ├── models/            # SQLAlchemy 2.0 models (Household, Zone, ZoneNeed)
 │       ├── schemas/           # Pydantic Create/Read/Update schemas
 │       ├── routes/            # FastAPI routers (CRUD for households, zones)
-│       ├── services/          # (empty) algorithm logic goes here later
+│       ├── services/          # engines and data services (isolation engine, ingest, terrain, ...)
 │       └── data/              # (empty, gitignored) cached data pulls
 ├── frontend/                  # placeholder
 ├── notebooks/                 # placeholder for Jupyter validation work
 ├── docs/
-│   ├── algorithms/             # placeholder, one doc per algorithm
+│   ├── algorithms/             # one doc per algorithm (isolation-engine.md)
 │   └── data-sources/           # placeholder, data sources + access methods
-├── scripts/                   # placeholder for one-off data scripts
+├── scripts/                   # pipelines and data pulls (run_isolation_pipeline.py, pull_nfip_claims.py)
 ├── alembic/                   # migrations
 ├── docker-compose.yml         # local PostGIS
 └── requirements.txt
@@ -112,8 +112,19 @@ it is accepted/returned as GeoJSON, e.g.:
 }
 ```
 
+## Isolation engine
+
+```bash
+.venv/bin/python scripts/run_isolation_pipeline.py 08074500
+```
+
+The USGS gauge ID is the only site input; the event window defaults to
+Hurricane Harvey. Downloads are cached under `backend/app/data/usgs-<site>/`.
+Method, current validated result and known limitations are in
+[docs/algorithms/isolation-engine.md](docs/algorithms/isolation-engine.md).
+
 ## Status
 
-Foundation only: models, Pydantic schemas, CRUD routes for households and
-zones, Alembic migrations, and the docker-compose PostGIS setup. No
-algorithm/service logic yet.
+Models, Pydantic schemas, CRUD routes for households and zones, Alembic
+migrations, the docker-compose PostGIS setup (host port 5433), and the
+isolation engine (river driver only; the rain driver is not yet validated).

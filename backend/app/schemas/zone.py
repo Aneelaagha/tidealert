@@ -14,6 +14,7 @@ class ZoneBase(BaseModel):
     boundary: dict[str, Any]
     region: str
     census_geoid: Optional[str] = None
+    block_group_geoid: Optional[str] = None
     silence_score: float = 0
     isolation_minutes: Optional[int] = None
     risk_level: RiskLevel = RiskLevel.safe
@@ -36,6 +37,7 @@ class ZoneUpdate(BaseModel):
     boundary: Optional[dict[str, Any]] = None
     region: Optional[str] = None
     census_geoid: Optional[str] = None
+    block_group_geoid: Optional[str] = None
     silence_score: Optional[float] = None
     isolation_minutes: Optional[int] = None
     risk_level: Optional[RiskLevel] = None

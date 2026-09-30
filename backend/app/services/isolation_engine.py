@@ -1,284 +1,424 @@
-"""Isolation engine: when does each zone lose every road route to high ground?
+"""Isolation engine: when does each zone lose every road route out?
 
-Pipeline, per hourly timestep:
+Per timestep:
 
-    gauge stage -> NWS FIM inundation extent -> flooded road segments removed
-    (bridges/tunnels exempt) -> connected components -> per-zone reachability
+    gauge stage -> river level -> river-driver flooding               (driver "stage")
+    rainfall    -> per-catchment ponding level -> HAND(network) ponding (driver "rain", NOT YET VALIDATED)
+    flooded road segments removed (bridges exempt; tunnels are not, see below)
+    -> connected components -> per-zone reachability
 
-Inputs are all real data already loaded in the database or data directory:
+The river driver is generic: each road sample has a threshold and each
+timestep a river level, in the same units, and a sample is wet when
+threshold <= level. The pipeline supplies one of two sources:
 
-- road_segments (OSM, as of 2017-08-24), rebuilt into an undirected graph via
-  graph_edge_id "<u>-<v>-<key>".
-- The NWS FIM library for HGTT2 (fim_extents.gpkg): one inundation extent per
-  1 ft of stage. A stage maps to the smallest library stage >= it, which is
-  the convention NWS uses for its own flood-category maps (e.g. minor 32 ft
-  is drawn with the 32.7 ft grid). Below the lowest library stage nothing is
-  flooded; above the highest, the highest extent is used.
-- A USGS 3DEP DEM for picking high-ground nodes.
-- zones (census block groups).
+- NWS flood map (primary, where NWS publishes a library): threshold = lowest
+  library stage whose mapped extent contains the sample (ft); level = the
+  library stage in effect (next layer up from the gauge stage, NWS's own
+  convention; nothing floods below the lowest layer).
+- HAND (only where no library exists; lower confidence): threshold =
+  HAND(mainstem) (m); level = depth over the gauge's channel (m).
 
 Definitions:
 
-- A segment is flooded at stage S when at least MIN_WET_LENGTH_M of it lies
-  inside the extent for S. Bridges and tunnels are never flooded (spec §2).
-- High-ground nodes: road nodes with ground elevation at least
-  HIGH_GROUND_FREEBOARD_M above the event's peak water-surface elevation at
-  the gauge and outside the largest FIM extent.
-- The "main network" at a timestep is the connected component of the
-  surviving graph containing the most high-ground nodes. A zone is isolated
-  when none of its road nodes is in the main network. This also catches a
-  zone cut off on a high-ground island.
-- A cut-off road node is "submerged" when every road touching it is flooded,
-  and "stranded" when it is still dry (some road touching it is passable) but
-  none of its routes reach the main network. Stranded nodes are the finer
-  isolation signal; a zone is only isolated when all of its nodes are cut off.
+- Each road segment is sampled every SAMPLE_SPACING_M. A segment is flooded
+  when at least MIN_WET_SAMPLES samples are wet (~10 m of road), under either
+  driver.
+- The main network is the largest connected component of the surviving
+  road graph.
+- A zone (street block) is reachable while at least one road on its boundary
+  is dry and part of the main network. A zone is isolated when none is.
+  An isolated zone is "stranded" if some boundary road is still dry (dry
+  but cut off) and "submerged" if every boundary road is flooded.
+- The river driver only applies where its source actually covers the river:
+  inside the NWS map's mapped extent, or (HAND) draining to the gauge's own
+  reach. Samples draining to the mainstem outside that coverage have unknown
+  river flooding. A zone with any such boundary road is "unknown" and is not
+  evaluated;
+  elsewhere, unknown-stage roads are treated as passable (optimistic), and
+  the share of such roads is reported.
+- Rain ponding is capped at the receiving water level: outside closed
+  depressions a sample ponds only where the river driver already has water;
+  where that level is unmeasured, only closed depressions pond, and roads
+  that would pond beyond them are "rain unknown", handled like stage-unknown.
+- Zones not connected to the main network even with every road dry are
+  "not connected at base flow" and are not evaluated.
+- Only bridges are exempt from flooding: they are elevated above the DEM
+  surface the flood sources describe. Tunnels and underpasses are below
+  grade and flood first, so they are not exempt. (Spec §2 exempted both;
+  this is a deliberate, documented deviation.)
+- The rain driver is gated off (RAIN_DRIVER_VALIDATED): it over-predicted
+  flooding against Sentinel-1 in every basin tested and must not produce
+  isolation output until it is calibrated.
 
-Flooding is only known inside the FIM library's reach. Everything outside it
-is treated as passable.
+Known limitation: roads whose flooding is unknown are treated as passable,
+the optimistic default for a safety tool. See docs/algorithms/isolation-engine.md.
 """
-from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
 import geopandas as gpd
-import networkx as nx
 import numpy as np
-import rasterio
-from geoalchemy2.shape import to_shape
-from shapely.geometry import Point
-from shapely.prepared import prep
-from sqlalchemy import select
+import shapely
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
+from shapely.strtree import STRtree
 from sqlalchemy.orm import Session
 
-from app.models import RoadSegment, Zone
-from app.services.stage import HourlyStage
+from app.models import Zone
+from app.services.terrain import Terrain
 
-METRIC_CRS = 32615  # UTM 15N
-MIN_WET_LENGTH_M = 6.0  # two FIM pixels; ignores rendering-edge slivers
-HIGH_GROUND_FREEBOARD_M = 1.0
-NEVER = np.inf
+SAMPLE_SPACING_M = 5.0
+MIN_WET_SAMPLES = 2
+BOUNDARY_TOLERANCE_M = 1.0
+# A cell is in a closed depression when filling raises it at least this much: above the ~0.1 m
+# vertical accuracy of 3DEP lidar DEMs, so noise-level pits do not count.
+DEPRESSION_MIN_M = 0.15
+# The rain (ponding) driver over-predicted flooding against Sentinel-1 in every basin tested
+# (3-7% of modeled water confirmed; every evaluated Greens Bayou zone isolated). Until it is
+# calibrated it must not produce isolation output.
+RAIN_DRIVER_VALIDATED = False
 
 
-@dataclass
-class FimLibrary:
-    stages_ft: np.ndarray
-    extents: list  # shapely geometries in METRIC_CRS, nested, ascending stage
-
-    @classmethod
-    def load(cls, path: str) -> "FimLibrary":
-        gdf = gpd.read_file(path, layer="inundation_extents").sort_values("stage_ft").to_crs(METRIC_CRS)
-        return cls(stages_ft=gdf["stage_ft"].to_numpy(), extents=list(gdf.geometry))
-
-    def layer_for_stage(self, stage_ft: float) -> int:
-        """Index of the extent in effect at this stage, or -1 for no inundation."""
-        if stage_ft < self.stages_ft[0]:
-            return -1
-        return int(min(np.searchsorted(self.stages_ft, stage_ft, side="left"), len(self.stages_ft) - 1))
+class UnvalidatedDriverError(RuntimeError):
+    """A driver that has not been validated was asked to produce isolation output."""
 
 
 @dataclass
-class RoadGraph:
-    graph: nx.MultiGraph
-    node_xy: dict[int, tuple[float, float]]  # METRIC_CRS
-    # Per edge (u, v, key): index of the lowest FIM layer that floods it, or NEVER.
-    edge_flood_layer: dict[tuple[int, int, int], float]
-    n_bridge_or_tunnel_exempt: int
+class RoadNetwork:
+    edge_ids: list[str]
+    u: np.ndarray  # node index per edge
+    v: np.ndarray
+    n_nodes: int
+    exempt: np.ndarray  # bool per edge
+    geometry: gpd.GeoSeries  # metric CRS
+    # One row per sample point along an edge.
+    sample_edge: np.ndarray
+    sample_river_threshold: np.ndarray  # river level at which the sample floods (inf: never within range)
+    sample_hand_network: np.ndarray
+    sample_catchment: np.ndarray  # index into the ponding catchments, -1 if none
+    sample_stage_known: np.ndarray  # bool: inside the river driver's coverage
+    sample_depression: np.ndarray  # bool: inside a closed depression (see DEPRESSION_MIN_M)
+    edge_stage_unknown: np.ndarray  # bool per edge: some sample drains to the mainstem outside it
+    edge_rain_unknown: np.ndarray  # bool per edge: set by mark_rain_unknown
+
+
+@dataclass
+class ZoneBoundaries:
+    zone_ids: list
+    populations: np.ndarray
+    block_groups: list[Optional[str]]
+    ptr: np.ndarray  # CSR pointers into edges; zone i owns edges[ptr[i]:ptr[i+1]]
+    edges: np.ndarray
 
 
 @dataclass
 class ZoneResult:
     zone_id: str
-    census_geoid: str
-    n_nodes: int
+    block_group_geoid: Optional[str]
+    population: int
     first_isolated_at: Optional[datetime]
     reconnected_at: Optional[datetime]
-    # First hour any of the zone's road nodes is cut off from the main network.
-    first_partial_cut_at: Optional[datetime]
-    min_reachable_fraction: float
-    min_reachable_at: datetime
-    reachable_fraction: list[float] = field(repr=False)
+    isolated_steps: int
+    state_at_isolation: Optional[str]  # "stranded" | "submerged"
+    # "known" | "unknown" (flooding of a boundary road depends on an unmeasured water level)
+    # | "not connected at base flow" | "no boundary roads"
+    coverage: str
 
     def countdown_minutes(self, now: datetime) -> Optional[int]:
-        """Minutes from `now` until isolation (0 if already isolated), None if never isolated."""
-        if self.first_isolated_at is None:
+        """Minutes from `now` until isolation (0 if already isolated), None if never isolated or not evaluated."""
+        if self.coverage != "known" or self.first_isolated_at is None:
             return None
         return max(0, int((self.first_isolated_at - now).total_seconds() // 60))
 
 
 @dataclass
 class IsolationRun:
-    stage: HourlyStage
-    layer_index: list[int]
-    flooded_edge_count: list[int]
-    # Cut-off road nodes inside zones, per timestep.
-    stranded_node_count: list[int]
-    submerged_node_count: list[int]
-    zones: list[ZoneResult]
-    n_high_ground_nodes: int
+    drivers: tuple[str, ...]
+    times: list[datetime]
+    flooded_edges: np.ndarray  # (time,) count
+    isolated_zones: np.ndarray  # (time,) count
+    isolated_population: np.ndarray  # (time,)
+    stranded_zones: np.ndarray  # (time,) count
+    edge_ever_flooded: np.ndarray  # bool per edge
+    zones: list[ZoneResult] = field(repr=False)
 
 
-def _resolve_node_coordinates(edges: list[tuple[int, int, list]]) -> dict[int, tuple[float, float]]:
-    """Recover node coordinates from edge geometries whose orientation is unknown.
+def build_network(
+    segments: gpd.GeoDataFrame,
+    terrain: Terrain,
+    catchments: np.ndarray,
+    river_threshold: np.ndarray,
+    river_known: np.ndarray,
+) -> RoadNetwork:
+    """segments: basin road segments in the terrain CRS (see street_blocks.basin_segments).
+    river_threshold: raster of the river level at which each cell floods (inf: never within range).
+    river_known: bool raster of where the river driver's source covers the river."""
+    node_ids: dict[int, int] = {}
+    u, v = [], []
+    for edge_id in segments["edge_id"]:
+        a, b, _ = (int(x) for x in edge_id.split("-"))
+        u.append(node_ids.setdefault(a, len(node_ids)))
+        v.append(node_ids.setdefault(b, len(node_ids)))
 
-    A node's true coordinate is shared by every incident edge's endpoints, so
-    for nodes with degree >= 2 it is the most common candidate endpoint.
-    Degree-1 nodes take whichever endpoint is not their neighbour's coordinate.
-    """
-    candidates: dict[int, Counter] = {}
-    for u, v, coords in edges:
-        ends = (tuple(coords[0]), tuple(coords[-1]))
-        for n in (u, v):
-            candidates.setdefault(n, Counter()).update(ends)
+    geoms = segments.geometry.to_numpy()
+    lengths = shapely.length(geoms)
+    n_samples = np.maximum(2, np.ceil(lengths / SAMPLE_SPACING_M).astype(int) + 1)
+    sample_edge = np.repeat(np.arange(len(geoms)), n_samples)
+    # Position of each sample along its edge, from 0 to 1.
+    offsets = np.arange(len(sample_edge)) - np.repeat(np.cumsum(n_samples) - n_samples, n_samples)
+    fraction = offsets / np.repeat(n_samples - 1, n_samples)
+    points = shapely.line_interpolate_point(geoms[sample_edge], fraction, normalized=True)
+    inv = ~terrain.transform
+    col, row = inv * (shapely.get_x(points), shapely.get_y(points))
+    r = np.floor(row).astype(int)
+    c = np.floor(col).astype(int)
+    rows_n, cols_n = terrain.dem.shape
+    inside = (r >= 0) & (r < rows_n) & (c >= 0) & (c < cols_n)
+    rr, cc = np.clip(r, 0, rows_n - 1), np.clip(c, 0, cols_n - 1)
 
-    resolved = {n: c.most_common(1)[0][0] for n, c in candidates.items() if c.most_common(1)[0][1] >= 2}
-    for u, v, coords in edges:
-        ends = (tuple(coords[0]), tuple(coords[-1]))
-        for n, other in ((u, v), (v, u)):
-            if n in resolved:
-                continue
-            if other in resolved:
-                resolved[n] = ends[1] if ends[0] == resolved[other] else ends[0]
-    return resolved
+    def sample(raster: np.ndarray, fill):
+        return np.where(inside, raster[rr, cc], fill)
 
+    comid = sample(terrain.catchment_comid, 0)
+    pos = np.searchsorted(catchments, comid)
+    if len(catchments):
+        pos_ok = (pos < len(catchments)) & (catchments[np.minimum(pos, len(catchments) - 1)] == comid) & (comid > 0)
+    else:
+        pos_ok = np.zeros(len(comid), dtype=bool)
 
-def load_road_graph(db: Session, fim: FimLibrary) -> RoadGraph:
-    segments = gpd.GeoDataFrame(
-        [
-            {
-                "edge_id": s.graph_edge_id,
-                "is_exempt": s.is_bridge or s.is_tunnel,
-                "geometry": to_shape(s.geometry),
-            }
-            for s in db.scalars(select(RoadSegment))
-        ],
-        crs=4326,
-    ).to_crs(METRIC_CRS)
+    stage_known = sample(river_known, False)
+    stage_unknown = (sample(terrain.mainstem_drain, -1) >= 0) & ~stage_known
+    edge_unknown = np.bincount(sample_edge, weights=stage_unknown, minlength=len(geoms)) > 0
 
-    graph = nx.MultiGraph()
-    edge_coords = []
-    keys = []
-    for row in segments.itertuples():
-        u, v, k = (int(x) for x in row.edge_id.split("-"))
-        graph.add_edge(u, v, key=k)
-        edge_coords.append((u, v, list(row.geometry.coords)))
-        keys.append((u, v, k))
-    node_xy = _resolve_node_coordinates(edge_coords)
-
-    # Lowest FIM layer that floods each edge. Extents are nested, so scan
-    # downward from the largest and stop at the first layer that is too dry.
-    largest = prep(fim.extents[-1])
-    edge_flood_layer = {}
-    n_exempt = 0
-    for key, row in zip(keys, segments.itertuples()):
-        edge_flood_layer[key] = NEVER
-        if not largest.intersects(row.geometry):
-            continue
-        if row.is_exempt:
-            n_exempt += 1
-            continue
-        for layer in range(len(fim.extents) - 1, -1, -1):
-            if row.geometry.intersection(fim.extents[layer]).length >= MIN_WET_LENGTH_M:
-                edge_flood_layer[key] = layer
-            else:
-                break
-    return RoadGraph(graph=graph, node_xy=node_xy, edge_flood_layer=edge_flood_layer, n_bridge_or_tunnel_exempt=n_exempt)
-
-
-def high_ground_nodes(road: RoadGraph, fim: FimLibrary, dem_path: str, peak_wse_m: float) -> set[int]:
-    nodes = list(road.node_xy)
-    with rasterio.open(dem_path) as dem:
-        if dem.crs.to_epsg() != METRIC_CRS:
-            raise ValueError(f"DEM must be in EPSG:{METRIC_CRS}, got {dem.crs}")
-        elevations = np.array([v[0] for v in dem.sample([road.node_xy[n] for n in nodes], masked=True)])
-    largest = prep(fim.extents[-1])
-    threshold = peak_wse_m + HIGH_GROUND_FREEBOARD_M
-    return {
-        n
-        for n, elev in zip(nodes, elevations)
-        if elev is not np.ma.masked and elev >= threshold and not largest.contains(Point(road.node_xy[n]))
-    }
-
-
-def zone_nodes(db: Session, road: RoadGraph) -> dict[Zone, list[int]]:
-    zones = list(db.scalars(select(Zone).where(Zone.census_geoid.is_not(None)).order_by(Zone.census_geoid)))
-    polygons = gpd.GeoSeries([to_shape(z.boundary) for z in zones], crs=4326).to_crs(METRIC_CRS)
-    node_ids = list(road.node_xy)
-    points = gpd.GeoSeries([Point(road.node_xy[n]) for n in node_ids], crs=METRIC_CRS)
-    result = {}
-    for zone, polygon in zip(zones, polygons):
-        inside = points.within(polygon).to_numpy()
-        result[zone] = [n for n, hit in zip(node_ids, inside) if hit]
-    return result
-
-
-def run_isolation(
-    road: RoadGraph,
-    fim: FimLibrary,
-    stage: HourlyStage,
-    zones: dict[Zone, list[int]],
-    high_ground: set[int],
-) -> IsolationRun:
-    layer_index = [fim.layer_for_stage(s) for s in stage.stage_ft]
-    reachable: dict[Zone, list[float]] = {z: [] for z in zones}
-    flooded_counts, stranded_counts, submerged_counts = [], [], []
-    cache: dict[int, tuple[int, set[int], int, int]] = {}
-    zone_node_set = {n for nodes in zones.values() for n in nodes}
-
-    for layer in layer_index:
-        if layer not in cache:
-            surviving = road.graph.copy()
-            flooded = [e for e, first in road.edge_flood_layer.items() if first <= layer]
-            surviving.remove_edges_from(flooded)
-            components = list(nx.connected_components(surviving))
-            main = max(components, key=lambda c: len(c & high_ground))
-            cut = zone_node_set - main
-            submerged = sum(1 for n in cut if surviving.degree(n) == 0)
-            cache[layer] = (len(flooded), main, len(cut) - submerged, submerged)
-        n_flooded, main, n_stranded, n_submerged = cache[layer]
-        flooded_counts.append(n_flooded)
-        stranded_counts.append(n_stranded)
-        submerged_counts.append(n_submerged)
-        for zone, nodes in zones.items():
-            reachable[zone].append(sum(n in main for n in nodes) / len(nodes) if nodes else 0.0)
-
-    results = []
-    for zone, fractions in reachable.items():
-        first = next((i for i, f in enumerate(fractions) if f == 0.0), None)
-        partial = next((i for i, f in enumerate(fractions) if f < 1.0), None)
-        worst = int(np.argmin(fractions))
-        back = None
-        if first is not None:
-            back = next((i for i in range(first, len(fractions)) if fractions[i] > 0.0), None)
-        results.append(
-            ZoneResult(
-                zone_id=str(zone.id),
-                census_geoid=zone.census_geoid,
-                n_nodes=len(zones[zone]),
-                first_isolated_at=stage.times[first] if first is not None else None,
-                reconnected_at=stage.times[back] if back is not None else None,
-                first_partial_cut_at=stage.times[partial] if partial is not None else None,
-                min_reachable_fraction=fractions[worst],
-                min_reachable_at=stage.times[worst],
-                reachable_fraction=fractions,
-            )
-        )
-    return IsolationRun(
-        stage=stage,
-        layer_index=layer_index,
-        flooded_edge_count=flooded_counts,
-        stranded_node_count=stranded_counts,
-        submerged_node_count=submerged_counts,
-        zones=results,
-        n_high_ground_nodes=len(high_ground),
+    return RoadNetwork(
+        edge_ids=list(segments["edge_id"]),
+        u=np.array(u), v=np.array(v), n_nodes=len(node_ids),
+        exempt=segments["is_exempt"].to_numpy(bool),
+        geometry=segments.geometry.reset_index(drop=True),
+        sample_edge=sample_edge,
+        sample_river_threshold=sample(river_threshold, np.inf),
+        sample_hand_network=sample(terrain.hand_network, np.nan),
+        sample_catchment=np.where(pos_ok, pos, -1),
+        sample_stage_known=stage_known,
+        sample_depression=sample(terrain.depression_depth, 0.0) >= DEPRESSION_MIN_M,
+        edge_stage_unknown=edge_unknown & ~segments["is_exempt"].to_numpy(bool),
+        edge_rain_unknown=np.zeros(len(geoms), dtype=bool),
     )
 
 
-def update_zone_countdowns(db: Session, run: IsolationRun, now: datetime) -> None:
-    """Write each zone's countdown to isolation, as of `now`, to zones.isolation_minutes."""
+def zone_boundaries(zones: list[Zone], zone_geoms: gpd.GeoSeries, net: RoadNetwork) -> ZoneBoundaries:
+    """Road segments that run along each zone's boundary. zone_geoms are in the network's CRS."""
+    tree = STRtree(list(net.geometry))
+    ptr, edges = [0], []
+    for geom in zone_geoms:
+        ring = geom.boundary.buffer(BOUNDARY_TOLERANCE_M)
+        for i in tree.query(ring, predicate="intersects"):
+            edge = net.geometry.iloc[i]
+            if edge.intersection(ring).length >= min(0.5 * edge.length, 5.0):
+                edges.append(int(i))
+        ptr.append(len(edges))
+    return ZoneBoundaries(
+        zone_ids=[z.id for z in zones],
+        populations=np.array([z.population_count for z in zones]),
+        block_groups=[z.block_group_geoid for z in zones],
+        ptr=np.array(ptr),
+        edges=np.array(edges, dtype=int),
+    )
+
+
+def _river_samples(net: RoadNetwork, river_level: float) -> np.ndarray:
+    """Samples the river driver has under water at this river level."""
+    return net.sample_stage_known & (net.sample_river_threshold <= river_level)
+
+
+def _rain_samples(net: RoadNetwork, ponding_level_m: np.ndarray, river_level: float) -> tuple[np.ndarray, np.ndarray]:
+    """(wet, unknown) per sample under the rain driver.
+
+    Ponded water cannot stand above the water level of the channel it spills into: it flows there
+    overland. Where the river driver covers the river, that means a sample outside a closed
+    depression ponds only where the river is already there. Elsewhere (tributaries, unmapped
+    mainstem) the receiving level is unmeasured, so only closed depressions, which hold water
+    whatever the receiving level, count as wet; other samples below the catchment's ponding level
+    are unknown.
+    """
+    has_catchment = net.sample_catchment >= 0
+    level = np.where(has_catchment, ponding_level_m[np.maximum(net.sample_catchment, 0)], -np.inf)
+    with np.errstate(invalid="ignore"):
+        below = has_catchment & (net.sample_hand_network <= level)
+    wet = below & (net.sample_depression | _river_samples(net, river_level))
+    unknown = below & ~net.sample_depression & ~net.sample_stage_known
+    return wet, unknown
+
+
+def flooded_edges(
+    net: RoadNetwork,
+    river_level: Optional[float],
+    ponding_level_m: Optional[np.ndarray],
+    receiving_level: Optional[float] = None,
+) -> np.ndarray:
+    """Flooded segments. The river driver runs when river_level is given; the rain driver when
+    ponding_level_m is given, capped by the river at receiving_level (defaults to river_level)."""
+    wet = np.zeros(len(net.sample_edge), dtype=bool)
+    if river_level is not None:
+        wet |= _river_samples(net, river_level)
+    if ponding_level_m is not None:
+        receiving = river_level if receiving_level is None else receiving_level
+        wet |= _rain_samples(net, ponding_level_m, receiving)[0]
+    counts = np.bincount(net.sample_edge, weights=wet, minlength=len(net.u))
+    return (counts >= MIN_WET_SAMPLES) & ~net.exempt
+
+
+def mark_rain_unknown(net: RoadNetwork, river_level: np.ndarray, ponding_level_m: np.ndarray) -> None:
+    """Flag segments that, at any timestep, would pond beyond closed depressions toward an unmeasured
+    receiving water level. Their flooding is unknown; they are handled like stage-unknown segments."""
+    ever = np.zeros(len(net.u), dtype=bool)
+    for t in range(len(river_level)):
+        _, unknown = _rain_samples(net, ponding_level_m[t], river_level[t])
+        ever |= np.bincount(net.sample_edge, weights=unknown, minlength=len(net.u)) >= MIN_WET_SAMPLES
+    net.edge_rain_unknown = ever & ~net.exempt
+
+
+class BaseFlowFloodingError(AssertionError):
+    """Roads flood at a timestep where the river is at base flow: the flood model is wrong, not the event."""
+
+
+def assert_dry_at_base_flow(
+    net: RoadNetwork, river_level: float, ponding_level_m: Optional[np.ndarray], when: str
+) -> None:
+    """Fail loudly if any road segment floods, under any driver in use, at a base-flow timestep."""
+    problems = []
+    checks = [("river", flooded_edges(net, river_level, None))]
+    if ponding_level_m is not None:
+        checks.append(("rain", flooded_edges(net, None, ponding_level_m, river_level)))
+    for driver, flooded in checks:
+        idx = np.flatnonzero(flooded)
+        if len(idx):
+            sample = ", ".join(net.edge_ids[i] for i in idx[:10])
+            problems.append(f"{driver} driver floods {len(idx)} segments (e.g. {sample})")
+    if problems:
+        raise BaseFlowFloodingError(
+            f"Base-flow check failed at {when} (river level {river_level}): " + "; ".join(problems)
+        )
+
+
+def run_isolation(
+    net: RoadNetwork,
+    zones: ZoneBoundaries,
+    times: list[datetime],
+    river_level: np.ndarray,
+    ponding_level_m: Optional[np.ndarray],
+    drivers: tuple[str, ...] = ("stage",),
+) -> IsolationRun:
+    if "rain" in drivers and not RAIN_DRIVER_VALIDATED:
+        raise UnvalidatedDriverError("The rain driver is not validated; it produces no isolation output")
+    n_zones = len(zones.zone_ids)
+    has_boundary = np.diff(zones.ptr) > 0
+    starts = np.minimum(zones.ptr[:-1], max(len(zones.edges) - 1, 0))
+
+    edge_unknown = net.edge_stage_unknown | net.edge_rain_unknown
+    unknown = (
+        np.logical_or.reduceat(edge_unknown[zones.edges], starts) & has_boundary
+        if len(zones.edges) else np.zeros(n_zones, bool)
+    )
+    # Zones already cut off from the main network with every road dry are disconnected by the road
+    # network itself (fragments, basin-boundary cuts), not by flooding.
+    _, base_labels = connected_components(
+        coo_matrix((np.ones(len(net.u)), (net.u, net.v)), shape=(net.n_nodes, net.n_nodes)), directed=False
+    )
+    base_ok = base_labels[net.u] == np.bincount(base_labels).argmax()
+    connected_at_base = (
+        np.logical_or.reduceat(base_ok[zones.edges], starts) & has_boundary
+        if len(zones.edges) else np.zeros(n_zones, bool)
+    )
+    evaluated = has_boundary & ~unknown & connected_at_base
+    isolated_hist = np.zeros((len(times), n_zones), dtype=bool)
+    stranded_hist = np.zeros((len(times), n_zones), dtype=bool)
+    flooded_count = np.zeros(len(times), dtype=int)
+    ever = np.zeros(len(net.u), dtype=bool)
+
+    for t in range(len(times)):
+        flooded = flooded_edges(
+            net,
+            river_level[t] if "stage" in drivers else None,
+            ponding_level_m[t] if "rain" in drivers else None,
+            receiving_level=river_level[t],
+        )
+        ever |= flooded
+        flooded_count[t] = int(flooded.sum())
+        keep = ~flooded
+        graph = coo_matrix(
+            (np.ones(int(keep.sum())), (net.u[keep], net.v[keep])), shape=(net.n_nodes, net.n_nodes)
+        )
+        _, labels = connected_components(graph, directed=False)
+        main = np.bincount(labels).argmax()
+        edge_ok = keep & (labels[net.u] == main)
+
+        ok = np.logical_or.reduceat(edge_ok[zones.edges], starts) if len(zones.edges) else np.zeros(n_zones, bool)
+        dry = np.logical_or.reduceat(keep[zones.edges], starts) if len(zones.edges) else np.zeros(n_zones, bool)
+        isolated_hist[t] = evaluated & ~ok
+        stranded_hist[t] = isolated_hist[t] & dry
+
+    results = []
+    for i in range(n_zones):
+        if not evaluated[i]:
+            results.append(ZoneResult(
+                zone_id=str(zones.zone_ids[i]), block_group_geoid=zones.block_groups[i],
+                population=int(zones.populations[i]), first_isolated_at=None, reconnected_at=None,
+                isolated_steps=0, state_at_isolation=None,
+                coverage=("no boundary roads" if not has_boundary[i] else
+                          "unknown" if unknown[i] else "not connected at base flow"),
+            ))
+            continue
+        steps = np.flatnonzero(isolated_hist[:, i])
+        first = int(steps[0]) if len(steps) else None
+        back = None
+        if first is not None:
+            after = np.flatnonzero(~isolated_hist[first:, i])
+            back = first + int(after[0]) if len(after) else None
+        results.append(ZoneResult(
+            zone_id=str(zones.zone_ids[i]),
+            block_group_geoid=zones.block_groups[i],
+            population=int(zones.populations[i]),
+            first_isolated_at=times[first] if first is not None else None,
+            reconnected_at=times[back] if back is not None else None,
+            isolated_steps=len(steps),
+            state_at_isolation=None if first is None else ("stranded" if stranded_hist[first, i] else "submerged"),
+            coverage="known",
+        ))
+    return IsolationRun(
+        drivers=drivers,
+        times=times,
+        flooded_edges=flooded_count,
+        isolated_zones=isolated_hist.sum(axis=1),
+        isolated_population=(isolated_hist * zones.populations).sum(axis=1),
+        stranded_zones=stranded_hist.sum(axis=1),
+        edge_ever_flooded=ever,
+        zones=results,
+    )
+
+
+def update_zone_countdowns(
+    db: Session, run: IsolationRun, now: datetime, gauge_site_id: str, river_driver_caveat: Optional[str] = None
+) -> None:
+    """Write each zone's countdown to isolation, as of `now`, to zones.isolation_minutes, and record
+    zones the engine could not evaluate in zones.coverage_gaps instead of giving them a countdown.
+    river_driver_caveat, if given, is recorded on evaluated zones (e.g. a lower-confidence river driver)."""
     by_id = {r.zone_id: r for r in run.zones}
-    for zone in db.scalars(select(Zone).where(Zone.census_geoid.is_not(None))):
-        result = by_id.get(str(zone.id))
-        if result is not None:
-            zone.isolation_minutes = result.countdown_minutes(now)
+    for zone in db.query(Zone).filter(Zone.id.in_(list(by_id))):
+        result = by_id[str(zone.id)]
+        zone.isolation_minutes = result.countdown_minutes(now)
+        if result.coverage == "unknown":
+            zone.coverage_gaps = {"isolation": (
+                f"A road bordering this block drains to a stretch of river outside what USGS {gauge_site_id}'s "
+                f"flood source covers (the NWS map's mapped extent, or the gauge's own reach for HAND), so "
+                f"its flooding is unknown; isolation not evaluated.")}
+        elif result.coverage == "not connected at base flow":
+            zone.coverage_gaps = {"isolation": (
+                "This block's roads do not connect to the main road network even with every road dry "
+                "(network fragment or basin-boundary cut); isolation by flooding not evaluated.")}
+        elif result.coverage == "no boundary roads":
+            zone.coverage_gaps = {"isolation": "No drivable road borders this block; isolation not evaluated."}
+        else:
+            zone.coverage_gaps = {"river_driver": river_driver_caveat} if river_driver_caveat else None
     db.commit()

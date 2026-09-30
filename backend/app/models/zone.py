@@ -26,6 +26,8 @@ class Zone(Base):
     region: Mapped[str] = mapped_column(String, nullable=False)
     # Census block group GEOID when the zone is a block group.
     census_geoid: Mapped[Optional[str]] = mapped_column(String, nullable=True, unique=True)
+    # 2020 census block group the zone mostly falls in, for zones smaller than a block group.
+    block_group_geoid: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
 
     silence_score: Mapped[float] = mapped_column(Float, default=0, nullable=False)
     isolation_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

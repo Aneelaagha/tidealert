@@ -1,6 +1,9 @@
 """Silence engine: each household's own expected response time, and whether a response is late for them.
 
-A probe's latency is responded_at - sent_at. People differ enormously (one
+A probe's latency is responded_at - sent_at. Only check-in SMS count (purpose
+"checkin", or unset on probes recorded before cascades existed): voice calls,
+neighbor prompts and depth follow-ups have their own timing and would skew the
+baseline. People differ enormously (one
 household answers in a minute, another always takes 40), so "late" only
 means something relative to that household's own history. That per-household
 baseline is the silence engine's main false-positive reducer.
@@ -9,7 +12,7 @@ Per household, over its last WINDOW answered probes:
 
 - median_response_seconds    median latency (stored on Household)
 - response_variance_seconds  variance of latency, in seconds^2 (stored on Household)
-- probe_count                every probe sent, answered or not (stored on Household)
+- probe_count                every check-in SMS sent, answered or not (stored on Household)
 
 Latencies are right-skewed, so lateness is judged on the log scale with
 robust statistics:
@@ -33,10 +36,11 @@ from datetime import datetime
 from typing import Iterable, Optional
 
 import numpy as np
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Household, ProbeResponse
+from app.models.probe_response import ProbeChannel, ProbePurpose
 
 WINDOW = 30
 MIN_HISTORY = 5
@@ -102,10 +106,17 @@ def evaluate(baseline: Baseline, elapsed_seconds: float) -> Verdict:
     return Verdict("late" if z > Z_LATE else "normal", elapsed_seconds, z, baseline.late_after_seconds)
 
 
+def checkin_sms_filter():
+    """Check-in SMS: the probes the baseline (and silence) is about."""
+    return (ProbeResponse.channel == ProbeChannel.sms) & or_(
+        ProbeResponse.purpose.is_(None), ProbeResponse.purpose == ProbePurpose.checkin
+    )
+
+
 def household_baseline(db: Session, household_id: uuid.UUID, before: Optional[datetime] = None) -> Baseline:
-    """Baseline from a household's probes sent before `before` (all probes if None)."""
+    """Baseline from a household's check-in SMS sent before `before` (all of them if None)."""
     query = select(ProbeResponse.sent_at, ProbeResponse.responded_at).where(
-        ProbeResponse.household_id == household_id
+        ProbeResponse.household_id == household_id, checkin_sms_filter()
     )
     if before is not None:
         query = query.where(ProbeResponse.sent_at < before)

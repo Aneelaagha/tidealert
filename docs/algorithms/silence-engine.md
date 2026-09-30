@@ -13,7 +13,11 @@ Code: `backend/app/services/silence_baseline.py`.
 
 ## Method
 
-Latency is `responded_at - sent_at` of a `ProbeResponse`. Per household, over
+Latency is `responded_at - sent_at` of a check-in SMS (`ProbeResponse` with
+channel `sms` and purpose `checkin`, or no purpose on older rows). Voice
+calls, neighbor prompts and depth follow-ups from the Listening engine's
+cascade are excluded: they have their own timing and would skew the
+baseline. Per household, over
 its last 30 answered probes:
 
 | Stored on `Household` | Meaning |

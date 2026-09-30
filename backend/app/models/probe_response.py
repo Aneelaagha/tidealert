@@ -22,6 +22,12 @@ class DepthReported(str, enum.Enum):
     waist = "waist"
 
 
+class ProbePurpose(str, enum.Enum):
+    checkin = "checkin"  # "are you OK?" (SMS, then the voice call that escalates it)
+    depth_followup = "depth_followup"  # after an "I need help" reply: how deep is the water?
+    neighbor_prompt = "neighbor_prompt"  # asked of the nominated neighbor about this household
+
+
 class ProbeResponse(Base):
     __tablename__ = "probe_responses"
 
@@ -29,9 +35,16 @@ class ProbeResponse(Base):
     signal_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("signals.id"), nullable=True
     )
+    # The household the probe is about (for a neighbor prompt, the household being asked about).
     household_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("households.id"), nullable=False
     )
+    # The check-in this probe escalates or follows up (voice call, neighbor prompt, depth follow-up).
+    parent_probe_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("probe_responses.id"), nullable=True, index=True
+    )
+    # Null on probes recorded before cascades existed; treated as a check-in.
+    purpose: Mapped[Optional[ProbePurpose]] = mapped_column(Enum(ProbePurpose, name="probe_purpose"), nullable=True)
 
     channel: Mapped[ProbeChannel] = mapped_column(Enum(ProbeChannel, name="probe_channel"), nullable=False)
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

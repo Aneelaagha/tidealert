@@ -4,12 +4,14 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.probe_response import DepthReported, ProbeChannel
+from app.models.probe_response import DepthReported, ProbeChannel, ProbePurpose
 
 
 class ProbeResponseBase(BaseModel):
     signal_id: Optional[uuid.UUID] = None
     household_id: uuid.UUID
+    parent_probe_id: Optional[uuid.UUID] = None
+    purpose: Optional[ProbePurpose] = None
     channel: ProbeChannel
     sent_at: datetime
     responded_at: Optional[datetime] = None
@@ -26,6 +28,8 @@ class ProbeResponseCreate(ProbeResponseBase):
 class ProbeResponseUpdate(BaseModel):
     signal_id: Optional[uuid.UUID] = None
     household_id: Optional[uuid.UUID] = None
+    parent_probe_id: Optional[uuid.UUID] = None
+    purpose: Optional[ProbePurpose] = None
     channel: Optional[ProbeChannel] = None
     sent_at: Optional[datetime] = None
     responded_at: Optional[datetime] = None

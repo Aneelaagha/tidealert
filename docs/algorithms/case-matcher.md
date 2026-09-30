@@ -42,9 +42,10 @@ at that timestep, with unknown roads passable, so isolation is confirmed.
 - The engine never resolves or closes a Case. That is a human decision.
 
 **Silence.** It looks at each household's most recent probe as of `now`.
-Older unanswered probes are moot once a later one has been answered. If that
-probe is still unanswered at `now`, it is judged against the household's own
-baseline from earlier probes. A late household is handled like this:
+Only check-in SMS count, and older unanswered ones are moot once a later one
+has been answered. If that probe is still unanswered at `now` (on the SMS or
+on the voice call escalating it), it is judged against the household's own
+baseline from earlier check-ins. A late household is handled like this:
 
 - **Matching:** if its zone has an open isolation Case, the silence flag
   joins that Case as a second engine, and `confidence_word` becomes
@@ -54,8 +55,14 @@ baseline from earlier probes. A late household is handled like this:
 - **Later:** the household's eventual response is recorded as a
   contribution.
 
+**Listening,** when a Listening engine is attached ([listening-engine.md](listening-engine.md)).
+Its probe cascades (SMS, then voice call, then nominated neighbor) advance
+first in each sweep. Help requests, corroborated depth reports and neighbor
+replies then join or open Cases the same way silence does.
+
 `engine_confidence` values are ordinal tiers, not calibrated probabilities:
-isolation 0.8 (NWS map) or 0.4 (HAND), silence 0.5.
+isolation 0.8 (NWS map) or 0.4 (HAND), silence 0.5, listening 0.7 (from the
+household) or 0.5 (neighbor, cascade steps).
 
 ## Replay labels
 

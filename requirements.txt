@@ -7,3 +7,12 @@ pydantic>=2.0
 python-dotenv
 alembic
 shapely
+requests
+geopandas
+networkx
+numpy
+osmnx
+rasterio
+s3fs
+xarray
+zarr<3

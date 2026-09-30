@@ -86,11 +86,12 @@ Everything below is derived from the gauge ID; nothing is set by hand per site.
 | COMID, location | NLDI crosswalk (`nwissite/USGS-{site}`) |
 | Study area | NLDI upstream drainage basin |
 | Flood thresholds | NWS NWPS categories. Missing categories fall back to percentiles of USGS annual peak stages (p50 minor, p80 moderate, p90 major). The fallback is logged as a warning and printed as `*** FALLBACK, NOT AN NWS THRESHOLD ***` |
-| Gauge datum, time zone | USGS monitoring location, NWS NWPS |
+| Gauge datum | USGS monitoring location |
+| Time zone | NWS NWPS; otherwise the USGS monitoring location (standard-time zone and daylight-saving flag); UTC only if neither has one (logged) |
 | Stage | USGS 15-min gage height; gaps filled from USGS discharge (including ESTIMATED values, stored as `inferred`) through the event's own rating curve |
 | River flooding | NWS flood-map library where published, otherwise HAND (below) |
 | Roads | OSM drivable network inside the basin, as of the day before the event (Overpass historical query, logged with fetch timestamps) |
-| Zones | OSM street blocks (faces of the road network) with 2020 census population. Blocks with no residents are dropped |
+| Zones | OSM street blocks (faces of the road network) with 2020 census population. Blocks with no residents are dropped. Zone ids are deterministic (UUIDv5 of region and normalized block geometry), so reruns update the same zones and cases stay attached |
 | Claims | OpenFEMA NFIP claims (v3) for the zones' counties, joined by census block group |
 | Validation | HAND vs NWS map agreement (every run), Sentinel-1 RTC change detection (Planetary Computer) |
 
@@ -160,6 +161,34 @@ whole 55–72 hours above minor stage. The band narrows only as coverage grows.
 The earliest possible isolation time sits at or just after the minor-flood
 alarm by construction (that is when the pessimistic run starts blocking
 unknown roads). It is not an independent warning signal.
+
+### Cases
+
+Every confirmed-isolated zone opens a `Case` with one
+`CaseEngineContribution` from the isolation engine
+(`app.services.isolation_cases`):
+
+- `inference_sentence`: plain-language statement of what happened, e.g.
+  "Street block with 29 residents was cut off from the main road network at
+  2017-08-26 23:00 CDT: all 4 boundary roads stayed dry, but both roads
+  leading out of its neighborhood flooded, with USGS 08074500 at 30.29 ft."
+- `rule_fragment`: the mechanism the engine found at the isolation timestep,
+  i.e. stranded (the flooded exit roads separating the block's dry pocket
+  from the network, with road classes) or submerged (all boundary roads
+  flooded), plus the river level, stage and river driver.
+- `confidence_word = single_source`: one engine, one river source.
+- `engine_confidence`: an **ordinal tier, not a calibrated probability**
+  (0.8 for the NWS flood-map driver, 0.4 for HAND). Nothing has been checked
+  against case outcomes yet.
+- `opened_at` / `last_contribution_at`: the isolation time.
+- `source`: set for replays, e.g.
+  `backtest:2017-08-25..2017-09-02:USGS-08074500`, and null for live cases.
+  A rerun replaces its own source's cases and never touches others.
+
+Harvey replay: White Oak 49 cases (1,156 people), Greens 92, Hunting 11.
+The three White Oak blocks isolated before the alarm (68 people) are
+neighbours in one dry pocket whose only two exits (a tertiary road and a
+tertiary link) flood together at the 30.7 ft NWS layer.
 
 ### Standing checks
 
@@ -233,8 +262,7 @@ AORC rainfall is still ingested and printed as input data.
   6.76 km² (Greens) of their basins, which is why most residents fall in the
   "possibly isolated" band.
 - **Coarse claims timing.** NFIP claims only carry a date of loss, so lead
-  times against claims are ranges over a whole day. For gauges without an NWS
-  record the time zone falls back to UTC (logged), shifting day boundaries.
+  times against claims are ranges over a whole day.
 - **Stage gaps.** They are filled through a rating curve that ignores
   hysteresis (White Oak Bayou: 426 of 865 steps, because the gauge stopped
   recording stage at the Harvey peak).

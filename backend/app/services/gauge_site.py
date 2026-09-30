@@ -2,8 +2,9 @@
 
 - NHDPlus COMID, reach and location: NLDI crosswalk for nwissite/USGS-{site}.
 - Study area: the gauge's upstream drainage basin from NLDI's basin endpoint.
-- Gauge datum: USGS monitoring-location record (altitude of gauge datum and
-  vertical datum), so stage can be converted to water-surface elevation.
+- Gauge datum and time zone: USGS monitoring-location record (altitude of
+  gauge datum and vertical datum, so stage can be converted to water-surface
+  elevation; standard-time zone and whether daylight saving applies).
 - Flood thresholds: NWS NWPS (AHPS) categories for the gauge. For any
   category NWS does not publish, an explicit, logged fallback is used:
   empirical percentiles of the gauge's USGS annual peak stages.
@@ -61,6 +62,8 @@ class GaugeSite:
     thresholds: FloodThresholds
     fim_mapserver_url: Optional[str]
     nws_time_zone: Optional[str]
+    usgs_time_zone: Optional[str]  # standard-time abbreviation from the USGS site record, e.g. "CST"
+    usgs_uses_dst: Optional[bool]
 
     @property
     def region(self) -> str:
@@ -152,4 +155,6 @@ def resolve_gauge(site_id: str) -> GaugeSite:
         thresholds=_thresholds(site_id, nwps),
         fim_mapserver_url=inundation.get("url") if inundation.get("enabled") else None,
         nws_time_zone=(nwps or {}).get("timeZone"),
+        usgs_time_zone=location.get("time_zone_abbreviation"),
+        usgs_uses_dst={"Y": True, "N": False}.get(location.get("uses_daylight_savings")),
     )

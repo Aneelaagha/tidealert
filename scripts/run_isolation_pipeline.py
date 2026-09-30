@@ -58,6 +58,7 @@ from app.services.census import fetch_block_groups  # noqa: E402
 from app.services.fim_library import fetch_fim_extents, iou  # noqa: E402
 from app.services.gauge_site import FEET_TO_METERS, GaugeSite, resolve_gauge  # noqa: E402
 from app.services.ingest import ingest_gauge, ingest_rainfall, ingest_roads  # noqa: E402
+from app.services.isolation_cases import clear_cases, write_isolation_cases  # noqa: E402
 from app.services.nfip import pull_claims  # noqa: E402
 from app.services.rainfall import (  # noqa: E402
     RESIDUAL_DRAIN_BRACKET, RESIDUAL_DRAIN_FRACTION, aorc_rainfall, drainage_capacity_mm_hr, ponding_levels,
@@ -70,9 +71,11 @@ log = logging.getLogger("pipeline")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "backend", "app", "data")
 DEFAULT_START = datetime(2017, 8, 25, 5, tzinfo=timezone.utc)  # 2017-08-25 00:00 CDT
 DEFAULT_END = datetime(2017, 9, 3, 5, tzinfo=timezone.utc)  # 2017-09-03 00:00 CDT
-# NWPS reports standard-time abbreviations; map to IANA zones so DST is handled.
-NWS_TIME_ZONES = {"EST": "America/New_York", "CST": "America/Chicago", "MST": "America/Denver",
-                  "PST": "America/Los_Angeles", "AKST": "America/Anchorage", "HST": "Pacific/Honolulu"}
+# Standard-time abbreviations (NWPS, USGS) -> IANA zones that observe daylight saving; zones that
+# do not observe it use a fixed offset instead.
+DST_ZONES = {"EST": "America/New_York", "CST": "America/Chicago", "MST": "America/Denver",
+             "PST": "America/Los_Angeles", "AKST": "America/Anchorage", "HST": "Pacific/Honolulu"}
+STANDARD_OFFSETS_H = {"EST": -5, "CST": -6, "MST": -7, "PST": -8, "AKST": -9, "HST": -10}
 # The rain driver's parameters were fit on this gauge; every other gauge is a held-out check.
 RAIN_FIT_SITE = "08076000"
 
@@ -82,12 +85,20 @@ def utc_arg(value: str) -> datetime:
 
 
 def local_zone(site: GaugeSite):
-    name = NWS_TIME_ZONES.get(site.nws_time_zone or "", site.nws_time_zone)
-    try:
-        return ZoneInfo(name)
-    except Exception:
-        log.warning("USGS %s: unknown time zone %r; claim dates compared in UTC", site.site_id, site.nws_time_zone)
-        return timezone.utc
+    """The gauge's local time zone: NWS NWPS first, then the USGS site record, UTC only if neither has one."""
+    if site.nws_time_zone:
+        try:
+            return ZoneInfo(DST_ZONES.get(site.nws_time_zone, site.nws_time_zone))
+        except Exception:
+            log.warning("USGS %s: NWS time zone %r not recognised", site.site_id, site.nws_time_zone)
+    abbr = site.usgs_time_zone
+    if abbr in DST_ZONES and site.usgs_uses_dst is not False:
+        return ZoneInfo(DST_ZONES[abbr])
+    if abbr in STANDARD_OFFSETS_H:
+        return timezone(timedelta(hours=STANDARD_OFFSETS_H[abbr]), abbr)
+    log.warning("USGS %s: no time zone from NWS (%r) or USGS (%r); FALLBACK to UTC for claim dates",
+                site.site_id, site.nws_time_zone, abbr)
+    return timezone.utc
 
 
 def depth_over_channel(site: GaugeSite, stage: StageSeries, terrain: Terrain) -> tuple[np.ndarray, str]:
@@ -257,6 +268,11 @@ def main() -> None:
         log.info("Roads: %d segments from OSM as of %s, fetched from Overpass at %s", road_counts["segments"],
                  road_counts["osm_date"], road_counts["fetched_at"])
 
+        # This replay's cases are rewritten below; clear them first so they don't pin stale zones.
+        case_source = (f"backtest:{start.astimezone(tz).date()}..{(end - timedelta(seconds=1)).astimezone(tz).date()}"
+                       f":USGS-{site.site_id}")
+        clear_cases(db, case_source)
+        db.commit()
         generate_zones(db, site, terrain.crs_epsg, road_counts["edge_ids"])
         zones = list(db.scalars(select(Zone).where(Zone.region == site.region).order_by(Zone.name)))
         zone_geoms = gpd.GeoSeries([to_shape(z.boundary) for z in zones], crs=4326).to_crs(terrain.crs_epsg)
@@ -299,6 +315,16 @@ def main() -> None:
         run = bounded.optimistic  # known flooding only
         alarm = stage.first_crossing(site.thresholds.minor_ft)
         engine.update_zone_countdowns(db, bounded, alarm or times[0], site.site_id, river.caveat)
+
+        # One Case per confirmed-isolated zone, labelled as a replay of this event window.
+        cases = write_isolation_cases(
+            db, source=case_source, bounded=bounded, net=net, bounds=bounds,
+            highway_class=list(segments["highway_class"]), times=times, river_level=river.level,
+            river_method=river.method, river_confidence=river.confidence, river_units=river.units.split(" ")[0],
+            stage_ft=stage.stage_ft, site_id=site.site_id, local_tz=tz,
+        )
+        case_summary = sorted(((c.opened_at, c.zone_id, c.inference_sentence, c.contributions[0].rule_fragment,
+                                c.contributions[0].engine_confidence, str(c.id)) for c in cases))
 
         # Rain driver: evaluated against Sentinel-1 below, never used for isolation (engine gate).
         capacity = drainage_capacity_mm_hr(site)
@@ -414,6 +440,14 @@ def main() -> None:
     for label, t in signals.items():
         lead = None if (t is None or alarm is None) else (alarm - t).total_seconds() / 60
         print(f"  {label:28s} {fmt(t):40s} {'none detected' if t is None else ('n/a' if lead is None else f'{lead:+.0f} min')}")
+
+    print(f"\nCASES written: {len(case_summary)} (source {case_source}; status open, confidence_word single_source; "
+          f"engine_confidence is an ordinal tier, not calibrated)")
+    for opened, zone_id, sentence, fragment, conf, case_id in case_summary[:5]:
+        print(f"  {fmt(opened)}  case {case_id[:8]}  zone {str(zone_id)[:8]}\n    {sentence}\n    [{conf}] {fragment}")
+    if len(case_summary) > 5:
+        print(f"  ... {len(case_summary) - 5} more")
+    report["cases"] = {"source": case_source, "count": len(case_summary)}
 
     days = [claim_start + timedelta(days=d) for d in range((claim_end - claim_start).days + 1)]
     total = Counter()

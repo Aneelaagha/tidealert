@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Text
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,6 +42,9 @@ class Case(Base):
         Enum(CaseStatus, name="case_status"), default=CaseStatus.open, nullable=False, index=True
     )
     inference_sentence: Mapped[str] = mapped_column(Text, nullable=False)
+    # Where the case came from, e.g. "backtest:2017-08-25..2017-09-02:USGS-08074500" for a historical
+    # replay. Null for live cases. Lets replays be replaced wholesale and kept apart from live cases.
+    source: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     confidence_word: Mapped[ConfidenceWord] = mapped_column(
         Enum(ConfidenceWord, name="confidence_word"), nullable=False
     )

@@ -31,11 +31,13 @@ Definitions:
   but cut off) and "submerged" if every boundary road is flooded.
 - The river driver only applies where its source actually covers the river:
   inside the NWS map's mapped extent, or (HAND) draining to the gauge's own
-  reach. Samples draining to the mainstem outside that coverage have unknown
-  river flooding. A zone with any such boundary road is "unknown" and is not
-  evaluated;
-  elsewhere, unknown-stage roads are treated as passable (optimistic), and
-  the share of such roads is reported.
+  reach. Roads draining to the mainstem outside that coverage have unknown
+  river flooding. Reachability is bounded (run_bounded): an optimistic run
+  treats unknown roads as passable, a pessimistic run treats them as flooded
+  while the gauge is at/above minor flood stage. Zones are "isolated"
+  (confirmed: isolated even in the optimistic run), "possibly isolated"
+  (pessimistic run only, with an earliest-possible isolation time) or
+  "reachable".
 - Rain ponding is capped at the receiving water level: outside closed
   depressions a sample ponds only where the river driver already has water;
   where that level is unmeasured, only closed depressions pond, and roads
@@ -46,12 +48,9 @@ Definitions:
   surface the flood sources describe. Tunnels and underpasses are below
   grade and flood first, so they are not exempt. (Spec §2 exempted both;
   this is a deliberate, documented deviation.)
-- The rain driver is gated off (RAIN_DRIVER_VALIDATED): it over-predicted
-  flooding against Sentinel-1 in every basin tested and must not produce
-  isolation output until it is calibrated.
-
-Known limitation: roads whose flooding is unknown are treated as passable,
-the optimistic default for a safety tool. See docs/algorithms/isolation-engine.md.
+- The rain driver is gated off (RAIN_DRIVER_VALIDATED) and produces no
+  isolation output until it matches the river driver's Sentinel-1
+  confirmation on held-out basins. See docs/algorithms/isolation-engine.md.
 """
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -71,12 +70,14 @@ from app.services.terrain import Terrain
 SAMPLE_SPACING_M = 5.0
 MIN_WET_SAMPLES = 2
 BOUNDARY_TOLERANCE_M = 1.0
-# A cell is in a closed depression when filling raises it at least this much: above the ~0.1 m
-# vertical accuracy of 3DEP lidar DEMs, so noise-level pits do not count.
-DEPRESSION_MIN_M = 0.15
-# The rain (ponding) driver over-predicted flooding against Sentinel-1 in every basin tested
-# (3-7% of modeled water confirmed; every evaluated Greens Bayou zone isolated). Until it is
-# calibrated it must not produce isolation output.
+# A cell counts as a closed depression (for rain ponding) when filling raises it at least this much.
+# 0.5 m, fit on Greens Bayou against Sentinel-1: shallower "depressions" are mostly street sags at
+# storm inlets (61-64% of rain-flooded road samples were 0.15-0.3 m deep) and roughly halved the
+# share of modeled ponding that Sentinel-1 confirmed.
+DEPRESSION_MIN_M = 0.5
+# The rain (ponding) driver must not produce isolation output until it matches the validated river
+# driver's Sentinel-1 confirmation on held-out basins (see the pipeline's rain validation section and
+# docs/algorithms/isolation-engine.md). Only change this by hand, after reviewing that evidence.
 RAIN_DRIVER_VALIDATED = False
 
 
@@ -121,15 +122,33 @@ class ZoneResult:
     reconnected_at: Optional[datetime]
     isolated_steps: int
     state_at_isolation: Optional[str]  # "stranded" | "submerged"
-    # "known" | "unknown" (flooding of a boundary road depends on an unmeasured water level)
-    # | "not connected at base flow" | "no boundary roads"
-    coverage: str
+    coverage: str  # "evaluated" | "not connected at base flow" | "no boundary roads"
+
+
+@dataclass
+class ZoneStatus:
+    """A zone's isolation status across the optimistic and pessimistic bounds."""
+    zone_id: str
+    block_group_geoid: Optional[str]
+    population: int
+    # "reachable" | "isolated" | "possibly isolated" | "not connected at base flow" | "no boundary roads"
+    status: str
+    isolated_at: Optional[datetime]  # confirmed: isolated even with unknown roads passable
+    earliest_possible_isolation_at: Optional[datetime]  # pessimistic bound
+    state_at_isolation: Optional[str]  # "stranded" | "submerged", for confirmed isolation
 
     def countdown_minutes(self, now: datetime) -> Optional[int]:
-        """Minutes from `now` until isolation (0 if already isolated), None if never isolated or not evaluated."""
-        if self.coverage != "known" or self.first_isolated_at is None:
+        """Minutes from `now` until confirmed isolation (0 if already isolated); None otherwise."""
+        if self.status != "isolated" or self.isolated_at is None:
             return None
-        return max(0, int((self.first_isolated_at - now).total_seconds() // 60))
+        return max(0, int((self.isolated_at - now).total_seconds() // 60))
+
+
+@dataclass
+class BoundedRun:
+    optimistic: "IsolationRun"
+    pessimistic: "IsolationRun"
+    zones: list[ZoneStatus] = field(repr=False)
 
 
 @dataclass
@@ -309,18 +328,17 @@ def run_isolation(
     river_level: np.ndarray,
     ponding_level_m: Optional[np.ndarray],
     drivers: tuple[str, ...] = ("stage",),
+    unknown_blocked: Optional[np.ndarray] = None,
 ) -> IsolationRun:
+    """One isolation run. Roads whose flooding is unknown are passable, except at timesteps where
+    unknown_blocked[t] is True, when they are treated as flooded (the pessimistic bound)."""
     if "rain" in drivers and not RAIN_DRIVER_VALIDATED:
         raise UnvalidatedDriverError("The rain driver is not validated; it produces no isolation output")
     n_zones = len(zones.zone_ids)
     has_boundary = np.diff(zones.ptr) > 0
     starts = np.minimum(zones.ptr[:-1], max(len(zones.edges) - 1, 0))
-
     edge_unknown = net.edge_stage_unknown | net.edge_rain_unknown
-    unknown = (
-        np.logical_or.reduceat(edge_unknown[zones.edges], starts) & has_boundary
-        if len(zones.edges) else np.zeros(n_zones, bool)
-    )
+
     # Zones already cut off from the main network with every road dry are disconnected by the road
     # network itself (fragments, basin-boundary cuts), not by flooding.
     _, base_labels = connected_components(
@@ -331,7 +349,7 @@ def run_isolation(
         np.logical_or.reduceat(base_ok[zones.edges], starts) & has_boundary
         if len(zones.edges) else np.zeros(n_zones, bool)
     )
-    evaluated = has_boundary & ~unknown & connected_at_base
+    evaluated = has_boundary & connected_at_base
     isolated_hist = np.zeros((len(times), n_zones), dtype=bool)
     stranded_hist = np.zeros((len(times), n_zones), dtype=bool)
     flooded_count = np.zeros(len(times), dtype=int)
@@ -345,6 +363,8 @@ def run_isolation(
             receiving_level=river_level[t],
         )
         ever |= flooded
+        if unknown_blocked is not None and unknown_blocked[t]:
+            flooded = flooded | edge_unknown
         flooded_count[t] = int(flooded.sum())
         keep = ~flooded
         graph = coo_matrix(
@@ -366,8 +386,7 @@ def run_isolation(
                 zone_id=str(zones.zone_ids[i]), block_group_geoid=zones.block_groups[i],
                 population=int(zones.populations[i]), first_isolated_at=None, reconnected_at=None,
                 isolated_steps=0, state_at_isolation=None,
-                coverage=("no boundary roads" if not has_boundary[i] else
-                          "unknown" if unknown[i] else "not connected at base flow"),
+                coverage="no boundary roads" if not has_boundary[i] else "not connected at base flow",
             ))
             continue
         steps = np.flatnonzero(isolated_hist[:, i])
@@ -384,7 +403,7 @@ def run_isolation(
             reconnected_at=times[back] if back is not None else None,
             isolated_steps=len(steps),
             state_at_isolation=None if first is None else ("stranded" if stranded_hist[first, i] else "submerged"),
-            coverage="known",
+            coverage="evaluated",
         ))
     return IsolationRun(
         drivers=drivers,
@@ -398,27 +417,70 @@ def run_isolation(
     )
 
 
+def run_bounded(
+    net: RoadNetwork,
+    zones: ZoneBoundaries,
+    times: list[datetime],
+    river_level: np.ndarray,
+    unknown_blocked: np.ndarray,
+) -> BoundedRun:
+    """Bounded reachability for the river driver.
+
+    Optimistic: roads with unknown flooding are passable. Pessimistic: they are impassable while
+    unknown_blocked[t] (the gauge is at/above minor flood stage). A zone is "isolated" if it is
+    isolated even in the optimistic run (confirmed), "possibly isolated" if only in the pessimistic
+    run, and "reachable" if in neither.
+    """
+    optimistic = run_isolation(net, zones, times, river_level, None, ("stage",))
+    pessimistic = run_isolation(net, zones, times, river_level, None, ("stage",), unknown_blocked=unknown_blocked)
+    statuses = []
+    for opt, pes in zip(optimistic.zones, pessimistic.zones):
+        if opt.coverage != "evaluated":
+            status = opt.coverage
+        elif opt.first_isolated_at is not None:
+            status = "isolated"
+        elif pes.first_isolated_at is not None:
+            status = "possibly isolated"
+        else:
+            status = "reachable"
+        firsts = [t for t in (opt.first_isolated_at, pes.first_isolated_at) if t is not None]
+        statuses.append(ZoneStatus(
+            zone_id=opt.zone_id, block_group_geoid=opt.block_group_geoid, population=opt.population,
+            status=status, isolated_at=opt.first_isolated_at,
+            earliest_possible_isolation_at=min(firsts) if firsts else None,
+            state_at_isolation=opt.state_at_isolation,
+        ))
+    return BoundedRun(optimistic=optimistic, pessimistic=pessimistic, zones=statuses)
+
+
 def update_zone_countdowns(
-    db: Session, run: IsolationRun, now: datetime, gauge_site_id: str, river_driver_caveat: Optional[str] = None
+    db: Session, bounded: BoundedRun, now: datetime, gauge_site_id: str, river_driver_caveat: Optional[str] = None
 ) -> None:
-    """Write each zone's countdown to isolation, as of `now`, to zones.isolation_minutes, and record
-    zones the engine could not evaluate in zones.coverage_gaps instead of giving them a countdown.
-    river_driver_caveat, if given, is recorded on evaluated zones (e.g. a lower-confidence river driver)."""
-    by_id = {r.zone_id: r for r in run.zones}
+    """Write each zone's countdown to confirmed isolation, as of `now`, to zones.isolation_minutes, and
+    record in zones.coverage_gaps why a zone has no countdown (possibly isolated, not evaluated).
+    river_driver_caveat, if given, is also recorded (e.g. a lower-confidence river driver)."""
+    by_id = {z.zone_id: z for z in bounded.zones}
     for zone in db.query(Zone).filter(Zone.id.in_(list(by_id))):
         result = by_id[str(zone.id)]
         zone.isolation_minutes = result.countdown_minutes(now)
-        if result.coverage == "unknown":
-            zone.coverage_gaps = {"isolation": (
-                f"A road bordering this block drains to a stretch of river outside what USGS {gauge_site_id}'s "
-                f"flood source covers (the NWS map's mapped extent, or the gauge's own reach for HAND), so "
-                f"its flooding is unknown; isolation not evaluated.")}
-        elif result.coverage == "not connected at base flow":
-            zone.coverage_gaps = {"isolation": (
+        gaps = {}
+        if result.status == "possibly isolated":
+            gaps["isolation"] = {
+                "status": "possibly isolated",
+                "earliest_possible_isolation_at": result.earliest_possible_isolation_at.isoformat(),
+                "reason": (
+                    f"Isolated only if roads whose flooding is unknown are flooded: they drain to a stretch of "
+                    f"river outside what USGS {gauge_site_id}'s flood source covers (the NWS map's mapped "
+                    f"extent, or the gauge's own reach for HAND). Treated as impassable while the gauge is at "
+                    f"or above minor flood stage."),
+            }
+        elif result.status == "not connected at base flow":
+            gaps["isolation"] = (
                 "This block's roads do not connect to the main road network even with every road dry "
-                "(network fragment or basin-boundary cut); isolation by flooding not evaluated.")}
-        elif result.coverage == "no boundary roads":
-            zone.coverage_gaps = {"isolation": "No drivable road borders this block; isolation not evaluated."}
-        else:
-            zone.coverage_gaps = {"river_driver": river_driver_caveat} if river_driver_caveat else None
+                "(network fragment or basin-boundary cut); isolation by flooding not evaluated.")
+        elif result.status == "no boundary roads":
+            gaps["isolation"] = "No drivable road borders this block; isolation not evaluated."
+        if river_driver_caveat and result.status in ("reachable", "isolated", "possibly isolated"):
+            gaps["river_driver"] = river_driver_caveat
+        zone.coverage_gaps = gaps or None
     db.commit()

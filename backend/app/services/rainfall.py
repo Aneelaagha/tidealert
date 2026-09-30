@@ -23,11 +23,17 @@ relative to the full drainage network. All excess becomes surface water
 
 Coupling to the river (a stated modeling assumption, not a measurement):
 storm drains discharge into the gauged bayou and its tributaries, so while
-the gauge is at or above its minor (flood) stage the outfalls are treated as
-submerged and drains stop clearing: C = 0 for every catchment. Below flood
-stage, C is the Atlas 14 rate. The threshold is the site's minor flood stage
-(NWS, or its logged percentile fallback); tributary outfalls are assumed to
-back up with the mainstem.
+the gauge is at or above its minor (flood) stage the outfalls are partly
+submerged and drains keep only RESIDUAL_DRAIN_FRACTION of C. Below flood
+stage, C is the full Atlas 14 rate. The threshold is the site's minor flood
+stage (NWS, or its logged percentile fallback); tributary outfalls are
+assumed to back up with the mainstem.
+
+RESIDUAL_DRAIN_FRACTION = 0.5 was chosen on Greens Bayou (USGS 08076000)
+only, bracketed by 0.25 and 1.0 in every report. Zero (the first version)
+isolated every evaluated Greens zone: Harvey's ~0.9 m of rain fills most
+shallow depressions by itself, so with no drainage at all nothing ever
+empties.
 """
 import json
 import logging
@@ -53,6 +59,9 @@ ATLAS14_URL = "https://hdsc.nws.noaa.gov/cgi-bin/new/cgi_readH5.py"
 ATLAS14_ROW_60MIN = 4
 ATLAS14_COL_2YR = 1
 MM_PER_INCH = 25.4
+# Share of drain capacity kept while the receiving bayou is at/above flood stage (fit on Greens Bayou).
+RESIDUAL_DRAIN_FRACTION = 0.5
+RESIDUAL_DRAIN_BRACKET = (0.25, 1.0)
 
 
 @dataclass
@@ -129,10 +138,16 @@ def aorc_rainfall(terrain: Terrain, start: datetime, end: datetime) -> RainfallS
 
 
 def ponding_levels(
-    terrain: Terrain, rain: RainfallSeries, times: list[datetime], capacity_mm_hr: float, drains_blocked: np.ndarray
+    terrain: Terrain,
+    rain: RainfallSeries,
+    times: list[datetime],
+    capacity_mm_hr: float,
+    drains_blocked: np.ndarray,
+    residual_fraction: float = RESIDUAL_DRAIN_FRACTION,
 ) -> PondingLevels:
     """Water level above drainage (m) per catchment at each engine timestep.
-    drains_blocked[i]: drains stop clearing at step i (receiving bayou at/above flood stage)."""
+    drains_blocked[i]: the receiving bayou is at/above flood stage at step i, so drains keep only
+    residual_fraction of their capacity."""
     hour_ts = np.array([t.timestamp() for t in rain.times])
     step_ts = np.array([t.timestamp() for t in times])
     dt_hr = np.diff(step_ts, prepend=step_ts[0] - (step_ts[1] - step_ts[0])) / 3600.0
@@ -155,7 +170,7 @@ def ponding_levels(
         curves.append((h, stored_at, len(h) * area))
 
     for i in range(len(times)):
-        capacity = 0.0 if drains_blocked[i] else capacity_mm_hr
+        capacity = capacity_mm_hr * (residual_fraction if drains_blocked[i] else 1.0)
         storage_mm = np.maximum(0.0, storage_mm + (rate[i] - capacity) * dt_hr[i])
         for j, (h, stored_at, catchment_area) in enumerate(curves):
             volume = storage_mm[j] / 1000.0 * catchment_area

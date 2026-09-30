@@ -14,10 +14,11 @@ Everything site-specific is derived:
     claims                   OpenFEMA NFIP claims for the zones' counties
     validation               HAND vs NWS flood map (every run), Sentinel-1 pairs
 
-Isolation output is river-driven only. The rain (ponding) driver in
-app.services.rainfall / isolation_engine is not yet validated (it
-over-predicted flooding against Sentinel-1 in every basin tested), so it
-produces no isolation output: see docs/algorithms/isolation-engine.md.
+Isolation output is river-driven only, with bounded reachability for roads
+whose flooding is unknown (reachable / isolated / possibly isolated). The
+rain (ponding) driver is evaluated against Sentinel-1 on every run but is
+not yet validated, so it produces no isolation output: see
+docs/algorithms/isolation-engine.md.
 
 The event window defaults to Hurricane Harvey (2017-08-25 .. 2017-09-02
 US Central). It describes the event, not the site.
@@ -58,7 +59,9 @@ from app.services.fim_library import fetch_fim_extents, iou  # noqa: E402
 from app.services.gauge_site import FEET_TO_METERS, GaugeSite, resolve_gauge  # noqa: E402
 from app.services.ingest import ingest_gauge, ingest_rainfall, ingest_roads  # noqa: E402
 from app.services.nfip import pull_claims  # noqa: E402
-from app.services.rainfall import aorc_rainfall  # noqa: E402
+from app.services.rainfall import (  # noqa: E402
+    RESIDUAL_DRAIN_BRACKET, RESIDUAL_DRAIN_FRACTION, aorc_rainfall, drainage_capacity_mm_hr, ponding_levels,
+)
 from app.services.stage import StageSeries, fit_event_rating, observed_stage, timesteps  # noqa: E402
 from app.services.street_blocks import basin_segments, generate_zones  # noqa: E402
 from app.services.terrain import Terrain, build_terrain, download_dem  # noqa: E402
@@ -70,7 +73,8 @@ DEFAULT_END = datetime(2017, 9, 3, 5, tzinfo=timezone.utc)  # 2017-09-03 00:00 C
 # NWPS reports standard-time abbreviations; map to IANA zones so DST is handled.
 NWS_TIME_ZONES = {"EST": "America/New_York", "CST": "America/Chicago", "MST": "America/Denver",
                   "PST": "America/Los_Angeles", "AKST": "America/Anchorage", "HST": "Pacific/Honolulu"}
-RIVER_ONLY = ("stage",)
+# The rain driver's parameters were fit on this gauge; every other gauge is a held-out check.
+RAIN_FIT_SITE = "08076000"
 
 
 def utc_arg(value: str) -> datetime:
@@ -167,6 +171,18 @@ def build_river_driver(site: GaugeSite, terrain: Terrain, stage: StageSeries, de
 def river_flood_mask(terrain: Terrain, river: RiverDriver, i: int) -> np.ndarray:
     """Cells the river driver floods at step i (same rule as isolation_engine); unknown cells are dry."""
     return river.known & (river.threshold <= river.level[i]) & terrain.in_basin
+
+
+def rain_ponding_mask(terrain: Terrain, levels: np.ndarray, catchments: np.ndarray, river_wet: np.ndarray) -> np.ndarray:
+    """Cells the rain driver ponds that the river driver does not already flood: closed depressions
+    (>= engine.DEPRESSION_MIN_M) below their catchment's ponding level."""
+    pos = np.searchsorted(catchments, terrain.catchment_comid)
+    valid = (terrain.catchment_comid > 0) & (pos < len(catchments))
+    valid &= catchments[np.minimum(pos, len(catchments) - 1)] == terrain.catchment_comid
+    level = np.where(valid, levels[np.minimum(pos, len(catchments) - 1)], -np.inf)
+    with np.errstate(invalid="ignore"):
+        below = terrain.hand_network <= level
+    return below & (terrain.depression_depth >= engine.DEPRESSION_MIN_M) & terrain.in_basin & ~river_wet
 
 
 def claims_by_block_group(db, site: GaugeSite, block_groups: set[str], start: date, end: date) -> dict[str, Counter]:
@@ -270,14 +286,24 @@ def main() -> None:
         engine.assert_dry_at_base_flow(net, float(river.level[0]), None, fmt(times[0]))
 
         bounds = engine.zone_boundaries(zones, zone_geoms, net)
-        run = engine.run_isolation(net, bounds, times, river.level, None, RIVER_ONLY)
-        if run.isolated_zones[0]:
-            raise engine.BaseFlowFloodingError(
-                f"Base-flow check failed at {fmt(times[0])}: {run.isolated_zones[0]} evaluated zones are isolated")
-        log.info("Base-flow check passed at %s: stage %.2f ft, 0 segments flooded, 0 evaluated zones isolated",
-                 fmt(times[0]), stage.stage_ft[0])
+        # Pessimistic bound: roads with unknown flooding are impassable while the gauge is at/above minor stage.
+        unknown_blocked = stage.stage_ft >= site.thresholds.minor_ft
+        bounded = engine.run_bounded(net, bounds, times, river.level, unknown_blocked)
+        for name, r in (("optimistic", bounded.optimistic), ("pessimistic", bounded.pessimistic)):
+            if r.isolated_zones[0]:
+                raise engine.BaseFlowFloodingError(
+                    f"Base-flow check failed at {fmt(times[0])}: {r.isolated_zones[0]} evaluated zones are "
+                    f"isolated in the {name} run")
+        log.info("Base-flow check passed at %s: stage %.2f ft, 0 segments flooded, 0 evaluated zones isolated "
+                 "(optimistic and pessimistic)", fmt(times[0]), stage.stage_ft[0])
+        run = bounded.optimistic  # known flooding only
         alarm = stage.first_crossing(site.thresholds.minor_ft)
-        engine.update_zone_countdowns(db, run, alarm or times[0], site.site_id, river.caveat)
+        engine.update_zone_countdowns(db, bounded, alarm or times[0], site.site_id, river.caveat)
+
+        # Rain driver: evaluated against Sentinel-1 below, never used for isolation (engine gate).
+        capacity = drainage_capacity_mm_hr(site)
+        rain_ponding = {frac: ponding_levels(terrain, rain, times, capacity, unknown_blocked, frac)
+                        for frac in (RESIDUAL_DRAIN_FRACTION, *RESIDUAL_DRAIN_BRACKET)}
 
         block_groups = {z.block_group_geoid for z in zones if z.block_group_geoid}
         counties = sorted({bg[:5] for bg in block_groups})
@@ -321,10 +347,8 @@ def main() -> None:
     print(f"  coverage: {river.coverage_desc}")
     if river.caveat:
         print(f"  *** {river.caveat} ***")
-    print("  RAIN DRIVER: not yet validated; no rain-driven isolation output (see docs/algorithms/isolation-engine.md)")
     report["river_driver"] = {"method": river.method, "confidence": river.confidence, "caveat": river.caveat,
                               "coverage": river.coverage_desc}
-    report["rain_driver"] = "not yet validated; no output"
 
     if fim is not None:
         # Ongoing validation, every run: HAND vs the NWS map inside the map's coverage.
@@ -352,38 +376,38 @@ def main() -> None:
     n_seg = len(net.u)
     print(f"\nROADS ({road_counts['segments']} OSM segments as of {osm_date[:10]}; {road_counts['bridges']} bridges "
           f"exempt from flooding, {road_counts['tunnels']} tunnels NOT exempt: below grade, they flood first)")
-    print(f"  segments whose river flooding is UNKNOWN (drain to mainstem outside the river driver's coverage; "
-          f"TREATED AS PASSABLE, see known limitations): {int(net.edge_stage_unknown.sum())} / {n_seg} = "
-          f"{net.edge_stage_unknown.mean():.1%}")
-    print(f"  flooded at worst step ({fmt(times[int(np.argmax(run.flooded_edges))])}): {run.flooded_edges.max()} / "
+    print(f"  segments whose river flooding is UNKNOWN (drain to mainstem outside the river driver's coverage): "
+          f"{int(net.edge_stage_unknown.sum())} / {n_seg} = {net.edge_stage_unknown.mean():.1%}; bounded: passable "
+          f"in the optimistic run, impassable at/above minor stage ({unknown_blocked.sum() * args.step_minutes / 60:.1f} h) "
+          f"in the pessimistic run")
+    print(f"  flooded (known) at worst step ({fmt(times[int(np.argmax(run.flooded_edges))])}): {run.flooded_edges.max()} / "
           f"{n_seg} = {run.flooded_edges.max() / n_seg:.1%}; ever flooded {run.edge_ever_flooded.sum()}")
 
     pops = bounds.populations
-    coverage = Counter(z.coverage for z in run.zones)
-    cov_pop = Counter()
-    for z in run.zones:
-        cov_pop[z.coverage] += z.population
+    status_n, status_pop = Counter(), Counter()
+    for z in bounded.zones:
+        status_n[z.status] += 1
+        status_pop[z.status] += z.population
     print(f"\nZONES: {len(zones)} street blocks with residents (median {zone_geoms.area.median() / 1e3:.1f}k m2, "
           f"population {pops.sum():,})")
-    for state in ("known", "unknown", "not connected at base flow", "no boundary roads"):
-        print(f"  {state:27s} {coverage[state]:5d} zones  {cov_pop[state]:8,d} people"
-              + ("   <- not evaluated; recorded in zones.coverage_gaps" if state != "known" else ""))
-    boundary_flooded = np.array([run.edge_ever_flooded[bounds.edges[a:b]].any()
-                                 for a, b in zip(bounds.ptr[:-1], bounds.ptr[1:])])
-    print(f"  zones with >= 1 boundary road flooded at some point: {boundary_flooded.sum()} "
-          f"({pops[boundary_flooded].sum():,} people)")
-    iso_zones = [z for z in run.zones if z.first_isolated_at]
+    notes = {"isolated": "confirmed (isolated even with unknown roads passable); countdown written",
+             "possibly isolated": "only if unknown roads are flooded; earliest time + reason in coverage_gaps",
+             "reachable": "reachable even with unknown roads impassable",
+             "not connected at base flow": "not evaluated; reason in coverage_gaps",
+             "no boundary roads": "not evaluated; reason in coverage_gaps"}
+    for state, note in notes.items():
+        print(f"  {state:27s} {status_n[state]:5d} zones  {status_pop[state]:8,d} people   {note}")
+    iso_zones = [z for z in bounded.zones if z.status == "isolated"]
+    possible = [z for z in bounded.zones if z.status == "possibly isolated"]
     stranded = [z for z in iso_zones if z.state_at_isolation == "stranded"]
-    print(f"  isolated: {len(iso_zones)} zones, {sum(z.population for z in iso_zones):,} people; stranded dry "
-          f"{len(stranded)} ({sum(z.population for z in stranded):,} people), submerged {len(iso_zones) - len(stranded)}")
-    worst = int(np.argmax(run.isolated_population))
-    print(f"  worst step {fmt(times[worst])}: {run.isolated_zones[worst]} zones, "
-          f"{run.isolated_population[worst]:,} people isolated")
+    print(f"  confirmed isolated: stranded dry {len(stranded)} ({sum(z.population for z in stranded):,} people), "
+          f"submerged {len(iso_zones) - len(stranded)}")
 
     signals = {
         "first road segment floods": next((t for t, n in zip(times, run.flooded_edges) if n), None),
-        "first zone isolated": min((z.first_isolated_at for z in iso_zones), default=None),
-        "first zone stranded dry": min((z.first_isolated_at for z in stranded), default=None),
+        "first zone isolated": min((z.isolated_at for z in iso_zones), default=None),
+        "first zone stranded dry": min((z.isolated_at for z in stranded), default=None),
+        "earliest possible isolation": min((z.earliest_possible_isolation_at for z in iso_zones + possible), default=None),
     }
     print(f"\nLEAD TIME vs gauge minor-flood alarm ({fmt(alarm)}); + = signal before alarm, {args.step_minutes}-min "
           f"steps (river driver only)")
@@ -410,6 +434,7 @@ def main() -> None:
 
     print("\nSENTINEL-1 vs river-driver flood extent (inside the river driver's coverage)")
     s1_results = []
+    rain_checks = []
     bbox = tuple(site.basin.bounds)
     for pre_ids, post_ids in sentinel1.find_pairs(bbox, start, end):
         try:
@@ -436,24 +461,69 @@ def main() -> None:
                 "s1_inside_model": tp / s1.sum() if s1.sum() else None,
                 "model_confirmed": tp / m.sum() if m.sum() else None,
                 "csi": tp / (m | s1).sum() if (m | s1).sum() else None}
-        s1_results.append(line)
-        pct = lambda x: "n/a" if x is None else f"{x:.0%}"
+        pct = lambda x: "n/a" if x is None else f"{x:.1%}"
         print(f"  {post.orbit_state} {post.relative_orbit} {fmt(post.acquired_at)}  stage {line['stage_ft']:.1f} ft "
               f"[{line['stage_provenance']}]: S1 new water {line['s1_new_water_km2']:.2f} km2, model "
               f"{line['model_km2']:.2f} km2 | S1 water inside model {pct(line['s1_inside_model'])} | model "
               f"confirmed by S1 {pct(line['model_confirmed'])} | CSI {pct(line['csi'])}")
+
+        # Rain driver validation on the same scene, across the whole basin.
+        basin_valid = on_s1_grid(terrain.in_basin) & np.isfinite(pre_on_post) & np.isfinite(post.vv_db)
+        s1_basin = water & basin_valid
+        river_wet = river_flood_mask(terrain, river, i)
+        line["rain"] = {}
+        for frac, pond in rain_ponding.items():
+            rm = on_s1_grid(rain_ponding_mask(terrain, pond.level_m[i], pond.catchments, river_wet)) & basin_valid
+            hit = int((rm & s1_basin).sum())
+            line["rain"][frac] = {"model_km2": rm.sum() * 1e-4, "confirmed": hit / rm.sum() if rm.sum() else None,
+                                  "captures": hit / s1_basin.sum() if s1_basin.sum() else None}
+        line["drains_reduced"] = bool(unknown_blocked[i])
+        s1_results.append(line)
+        rain_checks.append(line)
     if not s1_results:
         print("  no same-orbit Sentinel-1 pairs found for this basin and window")
+
+    role = "FIT basin (parameters chosen here)" if site.site_id == RAIN_FIT_SITE else \
+        f"HELD-OUT basin (parameters fit on USGS {RAIN_FIT_SITE}; nothing tuned here)"
+    print(f"\nRAIN DRIVER VALIDATION ({role})")
+    print(f"  parameters: depression >= {engine.DEPRESSION_MIN_M} m; drains keep {RESIDUAL_DRAIN_FRACTION:.0%} of "
+          f"{capacity:.1f} mm/h at/above minor stage (bracket {', '.join(f'{f:.0%}' for f in RESIDUAL_DRAIN_BRACKET)}); "
+          f"criterion: Sentinel-1 confirms rain ponding at least as often as the validated river driver")
+    passes = []
+    for line in rain_checks:
+        base = line["model_confirmed"]
+        r = line["rain"][RESIDUAL_DRAIN_FRACTION]
+        bracket = "  ".join(f"{f:.0%}: {line['rain'][f]['model_km2']:.2f} km2 / {pct(line['rain'][f]['confirmed'])}"
+                            for f in RESIDUAL_DRAIN_BRACKET)
+        if base is None:
+            verdict = "no baseline (river driver floods nothing at this scene)"
+        elif r["confirmed"] is None:
+            verdict = "cannot be checked: rain driver ponds nothing at this scene"
+            passes.append(False)
+        else:
+            verdict = "clears" if r["confirmed"] >= base else "BELOW baseline"
+            passes.append(r["confirmed"] >= base)
+        print(f"  {line['acquired_at'][:16]} UTC (drains {'reduced' if line['drains_reduced'] else 'full'}): rain ponding "
+              f"{r['model_km2']:.2f} km2, confirmed {pct(r['confirmed'])}, captures {pct(r['captures'])} of S1 water | "
+              f"river baseline {pct(base)} -> {verdict}   [bracket {bracket}]")
+    cleared = bool(passes) and all(passes)
+    print(f"  VERDICT: {'clears' if cleared else 'does NOT clear (or cannot be checked against)'} the river-driver "
+          f"baseline on this basin. "
+          f"Rain driver stays gated off (RAIN_DRIVER_VALIDATED = {engine.RAIN_DRIVER_VALIDATED}); no rain-driven "
+          f"isolation output.")
+    report["rain_driver_validation"] = {"role": role, "cleared": cleared, "scenes": [
+        {"acquired_at": x["acquired_at"], "river_confirmed": x["model_confirmed"], "rain": x["rain"]} for x in rain_checks]}
 
     report.update({
         "stage_provenance": dict(Counter(stage.provenance)),
         "flooded_edges_max": int(run.flooded_edges.max()),
         "unknown_river_segments": int(net.edge_stage_unknown.sum()),
-        "zone_coverage": {state: {"zones": coverage[state], "people": cov_pop[state]} for state in coverage},
+        "zone_status": {state: {"zones": status_n[state], "people": status_pop[state]} for state in notes},
         "zones": [{"zone_id": z.zone_id, "block_group": z.block_group_geoid, "population": z.population,
-                   "first_isolated_at": z.first_isolated_at and str(z.first_isolated_at),
-                   "reconnected_at": z.reconnected_at and str(z.reconnected_at),
-                   "state": z.state_at_isolation} for z in iso_zones],
+                   "status": z.status, "isolated_at": z.isolated_at and str(z.isolated_at),
+                   "earliest_possible_isolation_at": z.earliest_possible_isolation_at
+                   and str(z.earliest_possible_isolation_at),
+                   "state": z.state_at_isolation} for z in iso_zones + possible],
         "alarm_minor": alarm and str(alarm),
         "lead_minutes_vs_alarm": {k: None if (t is None or alarm is None) else (alarm - t).total_seconds() / 60
                                   for k, t in signals.items()},

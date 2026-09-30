@@ -14,27 +14,61 @@ Code: `scripts/run_isolation_pipeline.py` (pipeline and backtest report) and
 `street_blocks`, `isolation_engine`, `fim_library`, `sentinel1`, `rainfall`,
 `nfip`, `census`).
 
-## Current validated result
+## Results (Hurricane Harvey 2017)
+
+### Primary result: first flooded road
 
 > **At both gauges with an NWS flood-map library, the first road flooded by
 > the river driver comes 37–75 minutes before the gauge reaches its NWS
-> minor flood stage** (Greens Bayou +37 min, White Oak Bayou +75 min, Hurricane
-> Harvey 2017). This matches the earlier, independently built flood-map-only
-> engine's +77 min estimate for White Oak Bayou.
+> minor flood stage** (Greens Bayou +37 min, White Oak Bayou +75 min). This
+> matches the earlier, independently built flood-map-only engine's +77 min
+> estimate for White Oak Bayou.
 
-That is the only result this engine currently treats as validated. Whole-zone
-isolation arrives **after** the gauge alarm at both NWS-map gauges, so on its
-own it adds no warning over watching the gauge:
+This is the result the engine currently treats as validated and reportable.
 
-| Harvey 2017, river driver only | White Oak Bayou 08074500 | Greens Bayou 08076000 | Hunting Bayou 08075770 |
+The numbers use NWS's own convention for its category maps: a stage uses the
+next library layer **up**. If a layer only applied once the stage actually
+reached it (round-down), the leads shrink to +22 min (Greens) and +60 min
+(White Oak). Both conventions give a lead ahead of the gauge alarm.
+
+| First road floods, vs minor-flood alarm | NWS convention (round-up) | Round-down |
+|---|---|---|
+| White Oak Bayou 08074500 | **+75 min** | +60 min |
+| Greens Bayou 08076000 | **+37 min** | +22 min |
+
+### Secondary result: first confirmed zone isolation (White Oak only)
+
+Smaller and more caveated. At White Oak Bayou, whole street blocks become
+**confirmed isolated** (isolated even if every road of unknown status is
+passable) before the gauge alarm:
+
+| First confirmed zone isolation, vs minor-flood alarm | NWS convention (round-up) | Round-down |
+|---|---|---|
+| White Oak Bayou 08074500 | +30 min | +15 min |
+
+- **Mechanism.** The first such block (29 residents, 7,300 m²) has four
+  boundary roads, all dry. It is cut off (stranded) because every route
+  from them to the main road network crosses roads the NWS map floods at its
+  30.7 ft layer. At the time the stage was 30.29 ft, below the 32 ft minor
+  flood stage.
+- **Scale.** 3 street blocks, 68 people, are confirmed isolated at or
+  before the alarm, under either convention.
+- **Why it is new.** These blocks touch roads whose flooding is unknown.
+  Earlier versions excluded such blocks. Bounded reachability (below)
+  now evaluates them.
+
+At Greens Bayou the first confirmed isolation comes 863 min *after* the
+alarm, so there whole-zone isolation adds no warning over watching the gauge.
+
+### All three gauges
+
+| River driver only | White Oak Bayou 08074500 | Greens Bayou 08076000 | Hunting Bayou 08075770 |
 |---|---|---|---|
 | River flood source | NWS flood map (HGTT2) | NWS flood map (GBHT2) | HAND, **lower confidence** |
 | Minor-flood alarm | 2017-08-26 23:29 CDT | 2017-08-26 10:21 CDT | 2017-08-27 05:05 UTC (**fallback threshold**) |
 | First road floods | **+75 min** | **+37 min** | +1026 min (unverified) |
-| First zone isolated | −150 min | −863 min | +6 min |
-| First zone stranded dry | −315 min | −863 min | +6 min |
+| First confirmed zone isolation | +30 min (3 zones, 68 people before the alarm) | −863 min | +6 min |
 | HAND vs NWS map, IoU over flooding steps | median 0.64 (0.58–0.84) | median 0.70 (0.27–0.77) | n/a |
-| Evaluated / unknown zones | 1,667 / 1,843 | 581 / 911 | 596 / 421 |
 
 `+` means before the alarm. Timesteps are 15 minutes. Hunting Bayou's numbers
 use a percentile fallback threshold and HAND. They show the pipeline runs with
@@ -70,7 +104,7 @@ wet.
   gauge stage, which is NWS's own convention for its category maps. Nothing
   floods below the lowest library stage. The driver only covers the map's
   largest mapped extent. Outside it the map says nothing, so roads draining to
-  the river outside that extent are unknown, even near the gauge.
+  the river outside that extent have unknown flooding, even near the gauge.
 - **HAND (only where NWS publishes no library; lower confidence).** A sample's
   height above nearest drainage is the highest ground on its flow path down to
   the channel, minus the channel elevation. Water must overtop that ground to
@@ -86,78 +120,118 @@ HAND vs NWS agreement is computed on every run for every gauge that has a
 library, both per library stage and at every flooding timestep. It is an
 ongoing validation metric, not a one-off check.
 
-### Isolation
+### Isolation and bounded reachability
 
 The main network is the largest connected component of the unflooded road
-graph. A zone (street block) is reachable while at least one road on its
-boundary is dry and part of the main network, and isolated when none is.
-An isolated zone is "stranded" when some boundary road is still dry but cut
-off, and "submerged" when all of them are flooded. Each zone's countdown to
-isolation, as of the gauge's minor-flood alarm, is written to
-`zones.isolation_minutes`.
+graph. A street block is reachable while at least one road on its boundary is
+dry and part of the main network, and isolated when none is. An isolated
+block is "stranded" when some boundary road is still dry but cut off, and
+"submerged" when all of them are flooded.
 
-Zones are not evaluated, and get no countdown, when:
+Roads whose flooding the river driver cannot determine (they drain to river
+outside its coverage) are handled with two bounding runs:
 
-- **unknown:** a boundary road drains to river the flood source does not
-  cover. The reason is recorded in `zones.coverage_gaps`.
-- **not connected at base flow:** the block's roads do not reach the main
-  network even with every road dry (network fragments, basin-boundary cuts).
+- **Optimistic:** unknown roads are passable.
+- **Pessimistic:** unknown roads are impassable while the gauge is at or
+  above minor flood stage, and passable below it. The base-flow checks still
+  hold.
+
+Each block gets one status:
+
+| Status | Meaning | Written to the zone |
+|---|---|---|
+| isolated | Isolated even in the optimistic run (confirmed) | countdown to isolation in `isolation_minutes`, as of the minor-flood alarm |
+| possibly isolated | Isolated only in the pessimistic run | no countdown; earliest possible isolation time and the reason in `coverage_gaps` |
+| reachable | Reachable even in the pessimistic run | no countdown |
+| not connected at base flow | Its roads do not reach the main network even with every road dry (network fragments, basin-boundary cuts) | not evaluated; reason in `coverage_gaps` |
+
+Harvey classification:
+
+| Basin | Isolated | Possibly isolated | Reachable | Not connected at base flow |
+|---|---|---|---|---|
+| White Oak Bayou | 49 zones / 1,156 people | 2,520 / 217,882 | 938 / 101,546 | 15 / 1,537 |
+| Greens Bayou | 92 / 5,087 | 949 / 109,999 | 451 / 72,262 | 9 / 238 |
+| Hunting Bayou | 11 / 393 | 781 / 32,321 | 225 / 12,344 | 9 / 612 |
+
+The "possibly isolated" band is wide because the flood sources cover little
+of each basin. 44.5% of White Oak's roads, 54.5% of Greens' and 37.5% of
+Hunting's have unknown flooding, and the pessimistic run blocks them for the
+whole 55–72 hours above minor stage. The band narrows only as coverage grows.
+The earliest possible isolation time sits at or just after the minor-flood
+alarm by construction (that is when the pessimistic run starts blocking
+unknown roads). It is not an independent warning signal.
 
 ### Standing checks
 
-Before any isolation run, the pipeline fails loudly
+Before any isolation output, the pipeline fails loudly
 (`BaseFlowFloodingError`) unless, at the first timestep:
 
 - the gauge is below minor flood stage,
 - zero road segments are flooded, and
-- zero evaluated zones are isolated.
+- zero evaluated zones are isolated, in both the optimistic and the
+  pessimistic run.
 
 These checks exist because two earlier versions of this engine reported
 flooding at base flow that came from modeling errors, not from the event.
 
-## Known limitations
-
-### Unknown roads are treated as passable
-
-**This is the riskier default for a safety tool.** Roads whose flooding the
-engine cannot determine (outside the flood source's coverage) are kept in the
-road graph as passable when computing routes for evaluated zones. A zone
-whose only real exit runs through an unknown, actually flooded road can
-therefore be reported reachable. The share of such roads is printed on every
-run: 44.5% of White Oak Bayou's basin roads, 54.5% of Greens Bayou's and 37.5%
-of Hunting Bayou's in the Harvey backtest. Treating unknown roads as blocked,
-or reporting reachability as a range, is open work.
-
-### Rain driver: not yet validated, no output
+## Rain driver: untestable with current data
 
 A direct-rainfall ponding driver exists in the code (`app.services.rainfall`
-and the rain paths of `isolation_engine`). It works like this:
+and the rain paths of `isolation_engine`):
 
 - AORC hourly rainfall per NHD catchment.
-- Drain capacity from the NOAA Atlas 14 2-year 1-hour rainfall, set to 0
-  while the gauge is above minor flood stage.
-- Ponding capped at the receiving river level, and limited to closed
-  depressions where that level is unmeasured.
+- Drain capacity: the NOAA Atlas 14 2-year 1-hour rainfall.
+- Drains keep 50% of that capacity while the gauge is at or above minor flood
+  stage. Every run also reports 25% and 100% as a bracket.
+- Excess water fills closed depressions at least 0.5 m deep, capped at the
+  receiving river level.
 
-It is **gated off** (`RAIN_DRIVER_VALIDATED = False`): the engine refuses to
-run it and the pipeline produces no rain-driven isolation output. In the Harvey
-backtest it over-predicted flooding in every basin:
+Both parameters were chosen on Greens Bayou only, and White Oak and Hunting
+are held out. The first version (0% residual drainage, 0.15 m depressions)
+isolated every evaluated Greens zone. That was traced to zero drainage:
+Harvey's ~0.9 m of rain fills most shallow depressions by itself, so nothing
+ever emptied.
 
-- only 3–7% of its modeled water was confirmed by Sentinel-1,
-- every evaluated Greens Bayou zone ended up isolated.
+**With the fixed parameters the rain driver cannot be tested at all.** The
+only usable Sentinel-1 pass (2017-08-29 00:26 UTC) comes about 27 hours after
+peak rain. By then the driver has drained all its ponding, in the fit basin
+and both held-out basins:
 
-Calibrating the depression-filling rule against Sentinel-1 comes before any of
-its numbers are reported. AORC rainfall is still ingested as input data.
+| Aug 29 Sentinel-1 pass | Rain ponding (50%) | River-driver baseline (S1 confirmation) | 25% bracket: ponding / confirmed |
+|---|---|---|---|
+| Greens (fit) | 0.00 km² | 6.7% | 0.01 km² / not meaningful at that size |
+| White Oak (held out) | 0.00 km² | 8.3% | 0.20 km² / 0.1% |
+| Hunting (held out) | 0.00 km² | 1.0% | 0.92 km² / 9.4% |
 
-### Other limitations and assumptions
+The Aug 30 pass has even less. Every run prints
+`VERDICT: does NOT clear (or cannot be checked against) the river-driver baseline`.
+The driver is **gated off** (`RAIN_DRIVER_VALIDATED = False`): the engine
+refuses to run it and the pipeline produces no rain-driven isolation output.
+
+This is a data limit, not a tuning problem, and no parameter was tuned toward
+a passing result. What would make it testable, as the concrete next step:
+
+- **An earlier observation** while ponding is still present, from a
+  Sentinel-1 pass (or another SAR or optical sensor) during or within hours
+  of peak rain; or
+- **Alternative ground truth:** USGS high-water marks, City of Houston 311
+  street-flooding reports, or NWS local storm reports, which record where
+  and when streets flooded.
+
+AORC rainfall is still ingested and printed as input data.
+
+## Known limitations and assumptions
 
 - **Tunnels are not exempt from flooding.** Spec §2 exempted bridges and
   tunnels from terrain-based flood removal. Only bridges are exempt here: they
   are elevated above the flood surface. Tunnels and underpasses are below grade
   and flood first, a known Houston hazard. This is a deliberate, corrected
   deviation from the spec.
+- **Layer-convention sensitivity.** Lead times move by about 15 minutes
+  between NWS's round-up convention and round-down (tables above).
 - **Coverage is small.** The NWS libraries cover 2.53 km² (White Oak) and
-  6.76 km² (Greens) of their basins, so most residents are in unknown zones.
+  6.76 km² (Greens) of their basins, which is why most residents fall in the
+  "possibly isolated" band.
 - **Coarse claims timing.** NFIP claims only carry a date of loss, so lead
   times against claims are ranges over a whole day. For gauges without an NWS
   record the time zone falls back to UTC (logged), shifting day boundaries.
@@ -168,5 +242,6 @@ its numbers are reported. AORC rainfall is still ingested as input data.
   gauge-datum changes, which the percentile fallback does not correct for.
 - **Undirected road graph.** One-way rules are ignored (rescue vehicles).
 - **Sentinel-1 misses urban flooding.** Water among buildings raises radar
-  backscatter, so low confirmation rates partly reflect the sensor, not only
-  the model.
+  backscatter, so confirmation rates are low even for the validated river
+  driver (1–8%). The river driver's own rate is the baseline other drivers
+  must match.

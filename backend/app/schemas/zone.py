@@ -13,6 +13,7 @@ class ZoneBase(BaseModel):
     # GeoJSON Polygon, e.g. {"type": "Polygon", "coordinates": [[[lon, lat], ...]]}
     boundary: dict[str, Any]
     region: str
+    census_geoid: Optional[str] = None
     silence_score: float = 0
     isolation_minutes: Optional[int] = None
     risk_level: RiskLevel = RiskLevel.safe
@@ -21,6 +22,8 @@ class ZoneBase(BaseModel):
     current_water_depth: Optional[float] = None
     flood_extent_confirmed: bool = False
     data_confidence: int = 0
+    coverage_gaps: Optional[dict[str, Any]] = None
+    typical_resolution_minutes: Optional[int] = None
     last_updated_at: datetime
 
 
@@ -32,6 +35,7 @@ class ZoneUpdate(BaseModel):
     name: Optional[str] = None
     boundary: Optional[dict[str, Any]] = None
     region: Optional[str] = None
+    census_geoid: Optional[str] = None
     silence_score: Optional[float] = None
     isolation_minutes: Optional[int] = None
     risk_level: Optional[RiskLevel] = None
@@ -40,6 +44,8 @@ class ZoneUpdate(BaseModel):
     current_water_depth: Optional[float] = None
     flood_extent_confirmed: Optional[bool] = None
     data_confidence: Optional[int] = None
+    coverage_gaps: Optional[dict[str, Any]] = None
+    typical_resolution_minutes: Optional[int] = None
     last_updated_at: Optional[datetime] = None
 
 

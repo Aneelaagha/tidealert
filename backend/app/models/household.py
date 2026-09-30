@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,7 +36,9 @@ class Household(Base):
     __tablename__ = "households"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    zone_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("zones.id"), nullable=False)
+    zone_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("zones.id"), nullable=False, index=True
+    )
 
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
@@ -60,4 +62,16 @@ class Household(Base):
         Enum(HouseholdStatus, name="household_status"), default=HouseholdStatus.unknown, nullable=False
     )
 
+    # Neighbor who can be probed on this household's behalf.
+    nominee_household_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("households.id"), nullable=True
+    )
+
+    median_response_seconds: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    response_variance_seconds: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    probe_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+
     zone: Mapped["Zone"] = relationship("Zone", back_populates="households")
+    nominee: Mapped[Optional["Household"]] = relationship("Household", remote_side=[id])
+    cases: Mapped[list["Case"]] = relationship("Case", back_populates="household")
+    probe_responses: Mapped[list["ProbeResponse"]] = relationship("ProbeResponse", back_populates="household")

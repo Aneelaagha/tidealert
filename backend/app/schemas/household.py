@@ -22,6 +22,10 @@ class HouseholdBase(BaseModel):
     last_signal_source: SignalSource = SignalSource.none
     current_silence_score: float = 0
     status: HouseholdStatus = HouseholdStatus.unknown
+    nominee_household_id: Optional[uuid.UUID] = None
+    median_response_seconds: Optional[float] = None
+    response_variance_seconds: Optional[float] = None
+    probe_count: int = 0
 
 
 class HouseholdCreate(HouseholdBase):
@@ -43,6 +47,10 @@ class HouseholdUpdate(BaseModel):
     last_signal_source: Optional[SignalSource] = None
     current_silence_score: Optional[float] = None
     status: Optional[HouseholdStatus] = None
+    nominee_household_id: Optional[uuid.UUID] = None
+    median_response_seconds: Optional[float] = None
+    response_variance_seconds: Optional[float] = None
+    probe_count: Optional[int] = None
 
 
 class HouseholdRead(HouseholdBase):

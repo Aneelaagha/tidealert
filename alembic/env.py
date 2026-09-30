@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 load_dotenv()
 
 from app.database import Base  # noqa: E402
-from app.models import Household, Zone, ZoneNeed  # noqa: E402,F401
+import app.models  # noqa: E402,F401  (registers every model on Base.metadata)
 
 # this is the Alembic Config object, which provides access to values
 # within the .ini file in use.

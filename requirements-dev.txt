@@ -2,3 +2,7 @@
 nbformat
 nbclient
 ipykernel
+
+# API tests (tests/): FastAPI TestClient against the local database
+pytest
+httpx

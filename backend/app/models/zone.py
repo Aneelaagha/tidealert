@@ -36,6 +36,8 @@ class Zone(Base):
         Enum(RiskLevel, name="risk_level"), default=RiskLevel.unknown, server_default=RiskLevel.unknown.value,
         nullable=False,
     )
+    # When risk_level was last set (event time, not wall-clock time). Null: never set by an engine.
+    risk_level_set_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     population_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     registered_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

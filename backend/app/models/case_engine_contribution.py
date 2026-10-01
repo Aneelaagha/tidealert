@@ -37,8 +37,12 @@ class CaseEngineContribution(Base):
         Enum(ContributionDirection, name="contribution_direction"), nullable=False,
         default=ContributionDirection.supports, server_default=ContributionDirection.supports.value,
     )
-    # When the engine last observed this evidence. Evidence an engine keeps re-confirming (a block still cut
-    # off, a household still silent) is refreshed each sweep, so it decays from the latest confirmation.
+    # When the engine first observed this evidence, and when it last confirmed it. Evidence an engine keeps
+    # re-confirming (a block still cut off, a household still silent) is refreshed each sweep, so it decays from
+    # the latest confirmation; between the two it was being confirmed every sweep. Reading a case as of an
+    # earlier time needs both.
+    first_observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now())
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     # Independent reports behind this contribution (k households for a corroborated depth report).
     independent_sources: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")

@@ -333,6 +333,7 @@ class ListeningEngine:
         target = DEPTH_RISK[agreed]
         if RISK_ORDER.index(target) > RISK_ORDER.index(before):
             zone.risk_level = target
+            zone.risk_level_set_at = at
         change = f"zone risk_level {before.value} -> {zone.risk_level.value}" if zone.risk_level != before \
             else f"zone risk_level stays {before.value}"
         return Event("corroborated_depth", at, zone_id=zone_id, code=agreed.value,

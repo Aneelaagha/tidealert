@@ -18,6 +18,7 @@ class ZoneBase(BaseModel):
     silence_score: float = 0
     isolation_minutes: Optional[int] = None
     risk_level: RiskLevel = RiskLevel.unknown
+    risk_level_set_at: Optional[datetime] = None
     population_count: int = 0
     registered_count: int = 0
     current_water_depth: Optional[float] = None

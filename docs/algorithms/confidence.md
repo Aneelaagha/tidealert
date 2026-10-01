@@ -131,6 +131,12 @@ set by how fast each engine's evidence goes stale):
 Evidence that is still being confirmed does not decay, because it is
 refreshed every sweep.
 
+**Reading a Case as of an earlier time.** Each contribution stores when it
+was first observed (`first_observed_at`) and when it was last confirmed
+(`observed_at`). As of any time between the two it counts at age 0; before
+`first_observed_at` it does not exist. The map uses this to read a finished
+run back at any tick.
+
 ## Case aggregation and the confidence word
 
 Every sweep recomputes each Case's `confidence_word` as of that sweep:

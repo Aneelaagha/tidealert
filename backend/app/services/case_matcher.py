@@ -157,7 +157,7 @@ class CaseSweeper:
             confidence = 0.0
         contribution = CaseEngineContribution(
             engine=which, rule_fragment=f"[{now.isoformat()}] {fragment}", engine_confidence=confidence,
-            direction=direction, observed_at=now, independent_sources=sources)
+            direction=direction, first_observed_at=now, observed_at=now, independent_sources=sources)
         case.contributions.append(contribution)
         case.last_contribution_at = now
         return contribution
@@ -240,7 +240,8 @@ class CaseSweeper:
                                 f"{ctx.stage.stage_ft[i]:.2f} ft{caveat}."))
         conf = self._iso_confidence(i, mech)
         live = CaseEngineContribution(engine=Engine.isolation, rule_fragment=f"{self._fragment(mech, i)}; {conf.describe()}",
-                                      engine_confidence=conf.value, direction=SUPPORTS, observed_at=now,
+                                      engine_confidence=conf.value, direction=SUPPORTS, first_observed_at=now,
+                                      observed_at=now,
                                       independent_sources=1)
         case.contributions.append(live)
         return case, live

@@ -13,6 +13,7 @@ class CaseEngineContributionBase(BaseModel):
     rule_fragment: str
     engine_confidence: float
     direction: ContributionDirection = ContributionDirection.supports
+    first_observed_at: datetime
     observed_at: datetime
     independent_sources: int = 1
 
@@ -27,6 +28,7 @@ class CaseEngineContributionUpdate(BaseModel):
     rule_fragment: Optional[str] = None
     engine_confidence: Optional[float] = None
     direction: Optional[ContributionDirection] = None
+    first_observed_at: Optional[datetime] = None
     observed_at: Optional[datetime] = None
     independent_sources: Optional[int] = None
 

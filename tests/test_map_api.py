@@ -106,3 +106,11 @@ def test_cases_as_of_a_time(client, runs):
 
 def test_unknown_run_is_404(client):
     assert client.get("/map/zones", params={"run_id": "00000000-0000-0000-0000-000000000000"}).status_code == 404
+
+
+def test_map_page_is_served(client):
+    page = client.get("/ui/")
+    assert page.status_code == 200 and "maplibre-gl" in page.text and "map.js" in page.text
+    script = client.get("/ui/map.js")
+    assert script.status_code == 200 and "/map/zones" in script.text
+    assert client.get("/", follow_redirects=False).headers["location"] == "/ui/"

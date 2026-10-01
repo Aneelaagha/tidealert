@@ -1,5 +1,9 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.routes import households, map, zones
 
@@ -10,6 +14,16 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.include_router(households.router)
 app.include_router(zones.router)
 app.include_router(map.router)
+
+
+# The map page (frontend/index.html + map.js): static files that read the API above.
+FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
+app.mount("/ui", StaticFiles(directory=FRONTEND_DIR, html=True), name="ui")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/ui/")
 
 
 @app.get("/health")

@@ -14,7 +14,13 @@ const COLORS = {
   // Case outline. stale_verify is also dashed (separate layer).
   // stale_verify is brown, kept well away from the UNSTYLED magenta.
   confidence_word: { corroborated: "#0d47a1", single_source: "#1e88e5", stale_verify: "#795548" },
+  // Task marker fill. pending is white (hollow): nobody is on it yet. null = deliberately not drawn (a closed task
+  // leaves no marker); a status missing from this table still draws UNSTYLED.
+  task_status: { pending: "#ffffff", assigned: "#1565c0", en_route: "#2e7d32",
+                 complete: null, unable_to_reach: null, cancelled: null },
 };
+const TASK_VERIFY_EDGE = "#e65100"; // thick amber edge: verify before dispatch
+const TASK_RADIUS = { high: 9, medium: 7, low: 5 };
 const GAP_COLOR = "#5f6b7a";
 const TICK_MS = 15 * 60 * 1000; // the case matcher's sweep cadence
 
@@ -23,7 +29,8 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const fmtTime = (iso) => iso ? new Date(iso).toISOString().replace("T", " ").slice(0, 16) + " UTC" : "—";
 const fmtAge = (s) => s == null ? "—" : s < 3600 ? `${Math.round(s / 60)} min` : s < 172800 ? `${(s / 3600).toFixed(1)} h` : `${Math.round(s / 86400)} d`;
 
-const state = { runs: [], vocabulary: null, run: null, ticks: [], at: null, zones: new Map(), gapReasons: [], request: 0 };
+const state = { runs: [], vocabulary: null, run: null, ticks: [], at: null, zones: new Map(), gapReasons: [], request: 0,
+                responders: new Map() };
 
 const map = new maplibregl.Map({
   container: "map",
@@ -43,7 +50,7 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.NavigationControl(), "top-left");
 
 function matchColor(field) {
-  const pairs = Object.entries(COLORS[field]).flat();
+  const pairs = Object.entries(COLORS[field]).filter(([, c]) => c).flat();
   return ["match", ["coalesce", ["get", field], "__null__"], ...pairs, UNSTYLED];
 }
 
@@ -76,6 +83,15 @@ function addLayers() {
     paint: { "line-color": matchColor("confidence_word"), "line-width": 2.5, "line-dasharray": [1.5, 1] } });
   map.addLayer({ id: "zone-selected", type: "line", source: "zones", filter: ["==", ["get", "zone_id"], ""],
     paint: { "line-color": "#111", "line-width": 3 } });
+  // Task markers: one per zone with an active task, at a point inside the zone (task_anchor from the API).
+  map.addSource("tasks", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({ id: "task-marker", type: "circle", source: "tasks", paint: {
+    "circle-color": matchColor("task_status"),
+    "circle-radius": ["match", ["get", "task_priority"], ...Object.entries(TASK_RADIUS).flat(), 7],
+    "circle-stroke-color": ["case", ["get", "task_verify"], TASK_VERIFY_EDGE, "#1f2328"],
+    "circle-stroke-width": ["case", ["get", "task_verify"], 3, 1.5],
+  } });
+  map.on("click", "task-marker", (e) => selectZone(e.features[0].properties.zone_id));
 
   map.on("click", "zone-fill", (e) => selectZone(e.features[0].properties.zone_id));
   map.on("mouseenter", "zone-fill", () => { map.getCanvas().style.cursor = "pointer"; });
@@ -103,6 +119,19 @@ function legendRows(field, label) {
   return `<div class="muted">${label}</div>${rows}`;
 }
 
+function taskLegend() {
+  const v = state.vocabulary;
+  const rows = v.task_status.map((s) => {
+    const c = COLORS.task_status[s];
+    if (c === null) return `<div class="legend-row"><span class="sw" style="visibility:hidden"></span><span>${esc(s)} <span class="muted">(closed: no marker)</span></span></div>`;
+    return `<div class="legend-row"><span class="dot" style="width:14px;height:14px;background:${c || UNSTYLED};border:1.5px solid #1f2328"></span><span>${esc(s)}${c ? "" : ' <span class="warn">(unstyled value: no color mapped)</span>'}</span></div>`;
+  }).join("");
+  const sizes = v.task_priority.map((p) => `<span class="dot" style="width:${2 * (TASK_RADIUS[p] || 7)}px;height:${2 * (TASK_RADIUS[p] || 7)}px;background:#fff;border:1.5px solid #1f2328;vertical-align:middle"></span> ${esc(p)}`).join(" &nbsp; ");
+  return `<div class="muted">Marker: the zone's active tasks. Fill = the most advanced status among them; all are listed in the zone panel</div>${rows}
+    <div class="legend-row"><span class="dot" style="width:14px;height:14px;background:#fff;border:3px solid ${TASK_VERIFY_EDGE}"></span><span>thick amber edge: at least one of the zone's active tasks is flagged verify before dispatch</span></div>
+    <div class="legend-row muted">size = priority: ${sizes}</div>`;
+}
+
 function renderLegend() {
   const v = state.vocabulary;
   el("legend").innerHTML = [
@@ -110,6 +139,7 @@ function renderLegend() {
     legendRows("confidence_word", "Outline: strongest Case confidence word in the zone"),
     `<div class="legend-row"><span class="sw" style="background:#fff"></span><span>thin grey outline: no Case</span></div>`,
     `<div class="legend-row"><span class="sw hatch"></span><span>coverage gap active (${v.coverage_gap.map(esc).join(", ")})</span></div>`,
+    taskLegend(),
     `<div class="legend-row"><span class="sw" style="background:${UNSTYLED}"></span><span>unstyled value: the API returned something with no color here</span></div>`,
     `<div class="muted" style="margin-top:6px">Engines: ${v.engine.map((e) => `<span class="tag">${esc(e)}</span>`).join("")} (shown per zone in the panel)</div>`,
   ].join("");
@@ -118,6 +148,10 @@ function renderLegend() {
 // ---------------------------------------------------------------- run, time
 function setRun(run, atIso) {
   state.run = run;
+  state.responders = new Map();
+  api("/responders", run.mode === "live" ? {} : { run_id: run.id })
+    .then((body) => { state.responders = new Map(body.responders.map((r) => [r.id, r])); })
+    .catch(() => {}); // names only; ids are shown if this fails
   const badge = el("mode");
   badge.textContent = run.mode.toUpperCase();
   badge.className = `badge ${["replay", "scenario", "live"].includes(run.mode) ? run.mode : "unstyled"}`;
@@ -145,6 +179,7 @@ function setRun(run, atIso) {
 function currentAt() { return state.ticks.length ? state.ticks[+el("slider").value] : null; }
 
 async function loadAt() {
+  if (!state.run) return; // runs not loaded yet
   const run = state.run, at = currentAt(), req = ++state.request;
   el("at-label").textContent = at ? fmtTime(at) : "now (live)";
   const params = new URLSearchParams({ run: run.id });
@@ -161,10 +196,21 @@ async function loadAt() {
     state.gapReasons = zones.gap_reasons;
     state.zones = new Map(zones.features.map((f) => [f.properties.zone_id, f.properties]));
     map.getSource("zones").setData(zones);
+    const withTask = zones.features.filter((f) => f.properties.task_count > 0);
+    map.getSource("tasks").setData({ type: "FeatureCollection", features: withTask.map((f) => ({
+      type: "Feature", geometry: { type: "Point", coordinates: f.properties.task_anchor },
+      properties: { zone_id: f.properties.zone_id, task_status: f.properties.task_status,
+                    task_priority: f.properties.task_priority, task_verify: f.properties.task_verify },
+    })) });
     renderBanner(fresh);
     const withCases = zones.features.filter((f) => f.properties.case_count > 0).length;
     const gaps = zones.features.filter((f) => f.properties.coverage_gap_active).length;
+    // Counted per task, not per zone (a zone's marker shows only its most advanced task). Awaiting assignment =
+    // pending and not flagged; a flagged task must be verified before it can be assigned.
+    const sum = (k) => withTask.reduce((n, f) => n + f.properties[k], 0);
+    const tasks = sum("task_count"), awaiting = sum("task_awaiting"), flagged = sum("task_flagged");
     el("status").textContent = `${zones.features.length.toLocaleString()} zones · ${withCases} with Cases · `
+      + `${tasks} active tasks in ${withTask.length} zones (${awaiting} awaiting assignment, ${flagged} flagged verify) · `
       + `${gaps.toLocaleString()} with an active coverage gap · ${((performance.now() - t0) / 1000).toFixed(1)} s`;
     if (state.selected) selectZone(state.selected);
   } catch (err) {
@@ -199,6 +245,7 @@ async function selectZone(zoneId) {
       <dt>Data confidence</dt><dd>${z.data_confidence == null ? '<span class="muted">not assessed</span>' : esc(z.data_confidence)}</dd>
       <dt>Cases</dt><dd>${z.case_count}${z.confidence_word ? ` · strongest: ${esc(z.confidence_word)}` : ""}</dd>
       <dt>Engines</dt><dd>${z.engines.length ? z.engines.map((e) => `<span class="tag">${esc(e)}</span>`).join("") : '<span class="muted">none</span>'}</dd>
+      <dt>Active tasks</dt><dd>${z.task_count ? `${z.task_count} (most advanced: ${esc(z.task_status)}) · ${z.task_awaiting} awaiting assignment · ${z.task_flagged} flagged verify` : '<span class="muted">none</span>'}</dd>
     </dl>
     ${gaps ? `<div class="muted">Coverage gaps</div><ul>${gaps}</ul>` : ""}`;
   el("detail").innerHTML = head + (z.case_count ? '<p class="muted">loading Cases…</p>' : "");
@@ -207,6 +254,26 @@ async function selectZone(zoneId) {
   const body = await api("/cases", { run_id: state.run.id, zone_id: zoneId, at: state.at });
   if (req !== state.request || state.selected !== zoneId) return;
   el("detail").innerHTML = head + body.cases.map(renderCase).join("");
+}
+
+function responderName(id) {
+  if (!id) return null;
+  const r = state.responders.get(id);
+  return r ? `${r.name}${r.synthetic ? " (synthetic)" : ""}` : `responder ${id.slice(0, 8)}`;
+}
+
+function renderTask(t) {
+  const who = responderName(t.assigned_responder_id);
+  const history = t.events.map((e) => `<li><span class="muted">${esc(fmtTime(e.at))} · ${esc(e.actor)}</span><br>
+      <span class="tag">${esc(e.status)}</span><span class="tag">${esc(e.priority)}</span>${e.verify_before_dispatch ? '<span class="tag supports">verify</span>' : ""}
+      ${esc(e.note)}</li>`).join("");
+  return `<div class="task">
+    <p><b>Task: ${esc(t.kind.replace("_", " "))}</b> · <span class="tag">${esc(t.status)}</span><span class="tag">${esc(t.priority)}</span>
+      ${t.verify_before_dispatch ? '<span class="tag supports">verify before dispatch</span>' : ""}
+      ${t.status === "pending" && !t.verify_before_dispatch ? '<span class="muted">awaiting assignment</span>' : ""}</p>
+    <p class="muted">${esc(t.created_by_rule)}${who ? ` · assigned to ${esc(who)}` : ""}</p>
+    <details><summary>History (${t.events.length})</summary><ul class="history">${history}</ul></details>
+  </div>`;
 }
 
 function renderCase(c) {
@@ -220,7 +287,8 @@ function renderCase(c) {
     <p><b>${esc(c.confidence_word)}</b> · ${esc(c.status)} · opened ${esc(fmtTime(c.opened_at))}</p>
     <p>${esc(c.inference_sentence)}</p>
     <p class="muted">support ${c.support.toFixed(2)} · against ${c.contradiction.toFixed(2)} · fresh sources ${c.fresh_sources}</p>
-    ${contribs}</div>`;
+    ${c.tasks.length ? c.tasks.map(renderTask).join("") : '<p class="muted">No task at this time.</p>'}
+    <details><summary>Evidence (${c.contributions.length})</summary>${contribs}</details></div>`;
 }
 
 // ---------------------------------------------------------------- start

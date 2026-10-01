@@ -53,6 +53,8 @@ all 99,699 Case-ticks.
 
 - **Task summary as of `at`**, from `task_events`:
   - `task_count`: tasks active at `at`;
+  - `task_awaiting`: of those, pending and not flagged (assignable now);
+  - `task_flagged`: of those, flagged verify before dispatch;
   - `task_status`: the most advanced (en_route > assigned > pending);
   - `task_priority`: the highest;
   - `task_verify`: whether any is flagged for verification;
@@ -107,6 +109,20 @@ Plain HTML/JS with MapLibre GL JS 4.7.1 from jsDelivr, served by FastAPI
   with no entry draws in magenta and is flagged in the legend as an
   unstyled value.
 - **Shareable views:** the run and time are kept in the URL (`?run=&at=`).
+- **Task markers:** one circle per zone with an active task, at the zone's
+  `task_anchor`.
+  - **Fill** is the most advanced status among the zone's active tasks
+    (`pending` is hollow white, `assigned` blue, `en_route` green).
+  - **A thick amber edge** means at least one of the zone's active tasks is
+    flagged verify before dispatch.
+  - **Size** is the highest priority.
+  - **Closed statuses** are set to `null` in `COLORS`: deliberately not
+    drawn, and the legend says so. A status with no entry at all still
+    draws magenta.
+  - **The status line counts tasks**, not zones (`task_awaiting`,
+    `task_flagged`).
+  - **The zone panel** lists each Case's tasks as of the slider time, with
+    the assignee and the full event history.
 
 **Page limitations:**
 - **Basemap:** tiles come from OpenStreetMap's public tile server. That's
@@ -114,6 +130,10 @@ Plain HTML/JS with MapLibre GL JS 4.7.1 from jsDelivr, served by FastAPI
   allowed by OSM's tile usage policy.
 - **Engines on the map:** contributing engines appear only in the zone
   panel, not as map symbols.
+- **Read-only for tasks:** the page has no assign or status controls. Task
+  actions are API-only (`docs/algorithms/task-lifecycle.md`).
+- **One marker per zone:** a zone's marker summarizes all its active tasks.
+  The zone panel has the detail.
 - **Slider step:** the 15-minute cadence is assumed in `map.js`; a run
   doesn't store its cadence.
 - **Each slider stop refetches every zone:** the full zone GeoJSON, about

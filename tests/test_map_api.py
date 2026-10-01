@@ -113,4 +113,5 @@ def test_map_page_is_served(client):
     assert page.status_code == 200 and "maplibre-gl" in page.text and "map.js" in page.text
     script = client.get("/ui/map.js")
     assert script.status_code == 200 and "/map/zones" in script.text
+    assert "task-marker" in script.text and "task_anchor" in script.text  # task markers from the API's anchors
     assert client.get("/", follow_redirects=False).headers["location"] == "/ui/"

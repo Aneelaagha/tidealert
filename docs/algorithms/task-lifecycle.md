@@ -1,13 +1,15 @@
 # Task lifecycle
 
-Status: **step 2 of 3.** The engine creates tasks and keeps them updated from
-Case state, and people act on them through the API. Code:
+Status: **step 3 of 3.** The engine creates tasks and keeps them updated from
+Case state, people act on them through the API, and the map page shows them
+(read-only). Code:
 - `backend/app/services/task_rules.py` (engine rules, run by the case
   matcher at the end of every sweep);
 - `backend/app/services/task_actions.py` (people's actions);
 - `backend/app/routes/tasks.py` (endpoints).
 
-The map page does not show tasks yet (step 3).
+- the map page (`frontend/map.js`): task markers, legend, and zone-panel
+  task history.
 
 ## Rules (from Case state, on the run's clock)
 
@@ -105,8 +107,8 @@ for the listening run.)
 
 ## Not yet
 
-- **The map page doesn't show tasks** (step 3). The map API already carries
-  them.
+- **No task controls on the map page:** assigning and status changes are
+  API-only.
 - **Assignment is manual only:** no proximity, skills or routing.
   `route_geometry` stays empty.
 - **Responder safety monitoring and supply routing:** Week 7.

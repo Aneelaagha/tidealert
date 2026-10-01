@@ -49,6 +49,9 @@ class Household(Base):
     income_bracket: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     is_registered: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # True only for generated test households. Default false: a household nobody marked counts as REAL, and real
+    # household data is never sent to an external service (app.services.copilot checks this before any model call).
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
     contact_phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     registered_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 

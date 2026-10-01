@@ -28,9 +28,10 @@ from shapely.geometry import box  # noqa: E402
 from sqlalchemy import delete, select  # noqa: E402
 
 from app.database import SessionLocal  # noqa: E402
-from app.models import Household, ProbeResponse, Zone  # noqa: E402
+from app.models import Case, Household, ProbeResponse, Zone  # noqa: E402
 from app.models.household import AgeBracket  # noqa: E402
 from app.models.probe_response import ProbeChannel  # noqa: E402
+from app.services.isolation_cases import clear_cases  # noqa: E402
 
 REGION = "synthetic:silence-baseline"
 NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "tidealert:synthetic:silence-baseline")
@@ -78,6 +79,9 @@ def main() -> None:
     rng = np.random.default_rng(SEED)
     zone_id = uuid.uuid5(NAMESPACE, "zone")
     with SessionLocal() as db:
+        # Cases (and their tasks) in this zone reference its zone and households: clear them first, per source.
+        for source in db.scalars(select(Case.source).where(Case.zone_id == zone_id).distinct()):
+            clear_cases(db, source)
         ids = list(db.scalars(select(Household.id).where(Household.zone_id == zone_id)))
         if ids:
             db.execute(delete(ProbeResponse).where(ProbeResponse.household_id.in_(ids)))
@@ -92,7 +96,7 @@ def main() -> None:
         n_probes = n_answered = 0
         for i, prof in enumerate(profiles(rng)):
             hid = household_id(i)
-            db.add(Household(id=hid, zone_id=zone_id, latitude=0.0005, longitude=0.0005,
+            db.add(Household(id=hid, zone_id=zone_id, is_synthetic=True, latitude=0.0005, longitude=0.0005,
                              age_bracket=AgeBracket.age_18_64, primary_language="en", is_registered=True))
             db.flush()
             for j, sent in enumerate(probe_times(rng)):

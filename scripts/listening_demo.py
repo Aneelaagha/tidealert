@@ -101,7 +101,7 @@ def build(db) -> dict:
     households = {}
     for name, block, median_s, _, _ in SCENARIO:
         c = BLOCKS[block].centroid
-        h = Household(id=uuid.uuid5(NS, name), zone_id=zones[block].id, latitude=c.y, longitude=c.x,
+        h = Household(id=uuid.uuid5(NS, name), zone_id=zones[block].id, is_synthetic=True, latitude=c.y, longitude=c.x,
                       age_bracket=AgeBracket.age_18_64, primary_language="en", is_registered=True)
         db.add(h)
         households[name] = h

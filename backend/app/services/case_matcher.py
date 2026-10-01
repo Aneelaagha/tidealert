@@ -70,9 +70,14 @@ SUPPORTS, CONTRADICTS = ContributionDirection.supports, ContributionDirection.co
 NEUTRAL, PROCEDURAL = ContributionDirection.neutral, ContributionDirection.procedural
 
 
+def replay_run_name(start: datetime, end: datetime, tz) -> str:
+    """Name of a replay run over this window, e.g. backtest:2017-08-25..2017-09-02."""
+    return f"backtest:{start.astimezone(tz).date()}..{(end - timedelta(seconds=1)).astimezone(tz).date()}"
+
+
 def replay_source(start: datetime, end: datetime, tz, label: str) -> str:
     """Source label for replayed cases, e.g. backtest:2017-08-25..2017-09-02:USGS-08074500."""
-    return f"backtest:{start.astimezone(tz).date()}..{(end - timedelta(seconds=1)).astimezone(tz).date()}:{label}"
+    return f"{replay_run_name(start, end, tz)}:{label}"
 
 
 def _fmt_s(seconds: float) -> str:
@@ -110,6 +115,7 @@ class CaseSweeper:
     db: Session
     source: str
     tz: object
+    run_id: object  # the Run every case this sweeper opens belongs to (app.services.runs.ensure_run)
     ctx: Optional[SiteContext] = None  # isolation; None for a sweep without a gauge
     household_zone_ids: list = field(default_factory=list)
     listening: Optional[ListeningEngine] = None  # runs probe cascades; None = no cascades
@@ -138,7 +144,8 @@ class CaseSweeper:
 
     # ---------------------------------------------------------------- shared
     def _new_case(self, now: datetime, **fields) -> Case:
-        case = Case(status=CaseStatus.open, source=self.source, confidence_word=ConfidenceWord.single_source,
+        case = Case(status=CaseStatus.open, source=self.source, run_id=self.run_id,
+                    confidence_word=ConfidenceWord.single_source,
                     opened_at=now, last_contribution_at=now, **fields)
         self.db.add(case)
         self._cases.append(case)

@@ -6,7 +6,13 @@ an explanation.
 
 Gauge replays need scripts/run_isolation_pipeline.py to have run for each
 gauge first (they load its caches and zones). Replay cases are labelled
-backtest:<window>:USGS-<site> and replace that label's previous cases.
+backtest:<window>:USGS-<site> and replace that label's previous cases. All
+gauges over one window belong to one run (backtest:<window>), registered with
+mode "replay" (recorded historical data) and the gauges' USGS records as its
+sources.
+
+A silence-only sweep of a synthetic region is registered as its own run with
+mode "scenario"; any other region needs --mode given explicitly.
 
 A silence-only replay (--silence-region) sweeps the households of one zone
 region over a window, e.g. the synthetic test households:
@@ -31,11 +37,13 @@ from sqlalchemy import select  # noqa: E402
 
 from app.database import SessionLocal  # noqa: E402
 from app.models import Zone  # noqa: E402
+from app.models.run import RunMode  # noqa: E402
 from app.services.case_matcher import (  # noqa: E402
-    CADENCE, CaseSweeper, LiveClock, ReplayClock, replay_source, run_scheduler,
+    CADENCE, CaseSweeper, LiveClock, ReplayClock, replay_run_name, replay_source, run_scheduler,
 )
+from app.services.runs import ensure_run  # noqa: E402
 from app.services.river_driver import HARVEY_END, HARVEY_START, load_site_context  # noqa: E402
-from app.services.stage import timesteps  # noqa: E402
+from app.services.stage import timesteps, usgs_source_name  # noqa: E402
 
 
 def utc_arg(value: str) -> datetime:
@@ -49,6 +57,8 @@ def main() -> None:
     parser.add_argument("--end", type=utc_arg, default=HARVEY_END)
     parser.add_argument("--cadence-minutes", type=int, default=int(CADENCE.total_seconds() // 60))
     parser.add_argument("--silence-region", help="sweep only the households of this zone region")
+    parser.add_argument("--mode", choices=[m.value for m in RunMode if m != RunMode.live],
+                        help="run mode for --silence-region (default: scenario for synthetic:* regions)")
     parser.add_argument("--live", action="store_true", help="live sweeps (not available yet)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
@@ -76,13 +86,27 @@ def main() -> None:
             ctx = load_site_context(db, site_id, args.start, args.end, step)
             if ctx.times != ticks:
                 sys.exit(f"USGS {site_id}: context timesteps do not match the replay ticks")
-            sweepers.append(CaseSweeper(db=db, source=replay_source(args.start, args.end, ctx.tz,
-                                                                    f"USGS-{site_id}"), tz=ctx.tz, ctx=ctx))
+            # Recorded historical gauge data: a replay. It reads only the gauge's USGS record.
+            run = ensure_run(db, name=replay_run_name(args.start, args.end, ctx.tz), mode=RunMode.replay,
+                             description="Isolation replayed from recorded USGS gauge data",
+                             window_start=args.start, window_end=args.end, source_names=[usgs_source_name(site_id)])
+            sweepers.append(CaseSweeper(db=db, source=replay_source(args.start, args.end, ctx.tz, f"USGS-{site_id}"),
+                                        tz=ctx.tz, ctx=ctx, run_id=run.id))
         if args.silence_region:
+            if args.mode:
+                mode = RunMode(args.mode)
+            elif args.silence_region.startswith("synthetic:"):
+                mode = RunMode.scenario  # synthetic households and replies
+            else:
+                parser.error(f"--silence-region {args.silence_region}: give --mode (replay or scenario)")
             zone_ids = list(db.scalars(select(Zone.id).where(Zone.region == args.silence_region)))
-            sweepers.append(CaseSweeper(db=db, source=replay_source(args.start, args.end, timezone.utc,
-                                                                    args.silence_region),
-                                        tz=timezone.utc, household_zone_ids=zone_ids))
+            source = replay_source(args.start, args.end, timezone.utc, args.silence_region)
+            # Check-in replies are probe responses, not signals of a data source: no sources to link.
+            run = ensure_run(db, name=source, mode=mode, description=f"Silence sweep of {args.silence_region}",
+                             window_start=args.start, window_end=args.end, source_names=[])
+            sweepers.append(CaseSweeper(db=db, source=source, tz=timezone.utc, household_zone_ids=zone_ids,
+                                        run_id=run.id))
+        db.commit()
         if not sweepers:
             parser.error("give at least one site or --silence-region")
 

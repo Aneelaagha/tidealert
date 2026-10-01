@@ -73,6 +73,19 @@ Each replay writes Cases under a `source` label such as
 `backtest:2017-08-25..2017-09-02:USGS-08074500`. A rerun replaces that label's
 Cases and never touches live Cases or other replays.
 
+Every Case also belongs to a **run** (`cases.run_id` → `runs`). The script
+that produces the Cases registers the run first (`app.services.runs.ensure_run`),
+with its mode set explicitly, never parsed from the label:
+
+| Run | Mode | Sources it reads (`run_sources`) |
+|---|---|---|
+| `backtest:2017-08-25..2017-09-02` (Harvey: all three gauges) | `replay` | USGS 08074500, 08075770, 08076000 records |
+| `backtest:2026-09-02..2026-09-02:synthetic:silence-baseline` | `scenario` | none: check-in replies are probe responses, not signals of a data source |
+| `replay:2026-09-10T14:00..17:00Z:synthetic:listening` | `scenario` | Listening: household replies |
+
+No `live` run exists yet. Rain (AORC) and NWM are not linked to the Harvey
+run because the isolation replay does not read them.
+
 **Replay caveat:** the river level at each step comes from the published USGS
 record. That record includes values estimated after the event, and the rating
 curve is fitted to the whole event. A live system would only have had

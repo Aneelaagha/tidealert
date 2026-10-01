@@ -37,11 +37,13 @@ from app.database import SessionLocal  # noqa: E402
 from app.models import Case, Household, ProbeResponse, Signal, Zone  # noqa: E402
 from app.models.household import AgeBracket  # noqa: E402
 from app.models.probe_response import DepthReported, ProbeChannel, ProbePurpose  # noqa: E402
+from app.models.run import RunMode  # noqa: E402
 from app.models.zone import RiskLevel  # noqa: E402
 from app.services.case_matcher import CaseSweeper, ReplayClock, run_scheduler  # noqa: E402
 from app.services.listening import (  # noqa: E402
     CANT_SEE, HELP, OK, SEEN_OK, TROUBLE, ListeningEngine, ScriptedReply, SimulatedTransport,
 )
+from app.services.runs import ensure_run  # noqa: E402
 from app.services.stage import timesteps  # noqa: E402
 
 REGION = "synthetic:listening"
@@ -92,7 +94,7 @@ def build(db) -> dict:
     zones = {}
     for name, geom in BLOCKS.items():
         z = Zone(id=uuid.uuid5(NS, f"zone-{name}"), name=f"Synthetic listening block {name}", region=REGION,
-                 boundary=from_shape(geom, srid=4326), risk_level=RiskLevel.safe, population_count=20,
+                 boundary=from_shape(geom, srid=4326), risk_level=RiskLevel.unknown, population_count=20,
                  last_updated_at=now)
         db.add(z)
         zones[name] = z
@@ -133,7 +135,10 @@ def main() -> None:
             engine.start_checkin(h, T0)
         db.commit()
 
-        sweeper = CaseSweeper(db=db, source=SOURCE, tz=timezone.utc,
+        run = ensure_run(db, name=SOURCE, mode=RunMode.scenario, description="Synthetic households: listening engine scenario",
+                         window_start=T0, window_end=END, source_names=[engine.source_name()])
+        db.commit()
+        sweeper = CaseSweeper(db=db, source=SOURCE, tz=timezone.utc, run_id=run.id,
                               household_zone_ids=sorted({h.zone_id for h in households.values()}), listening=engine)
         timeline = []
 

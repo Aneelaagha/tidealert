@@ -45,6 +45,9 @@ class Case(Base):
     # Where the case came from, e.g. "backtest:2017-08-25..2017-09-02:USGS-08074500" for a historical
     # replay. Null for live cases. Lets replays be replaced wholesale and kept apart from live cases.
     source: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    # The run (replay / scenario / live) that produced this case; its mode is what the map shows.
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("runs.id", name="fk_cases_run_id_runs"), nullable=False, index=True)
     confidence_word: Mapped[ConfidenceWord] = mapped_column(
         Enum(ConfidenceWord, name="confidence_word"), nullable=False
     )
@@ -67,6 +70,7 @@ class Case(Base):
     escalated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     zone: Mapped["Zone"] = relationship("Zone", back_populates="cases")
+    run: Mapped["Run"] = relationship("Run", back_populates="cases")
     household: Mapped[Optional["Household"]] = relationship("Household", back_populates="cases")
     contributions: Mapped[list["CaseEngineContribution"]] = relationship(
         "CaseEngineContribution", back_populates="case", cascade="all, delete-orphan"

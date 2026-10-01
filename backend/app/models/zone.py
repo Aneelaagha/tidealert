@@ -12,7 +12,8 @@ from app.database import Base
 
 
 class RiskLevel(str, enum.Enum):
-    safe = "safe"
+    unknown = "unknown"  # not assessed: the default, never shown as safe
+    safe = "safe"  # only when an engine asserts it (none does yet)
     elevated = "elevated"
     extreme = "extreme"
 
@@ -32,7 +33,8 @@ class Zone(Base):
     silence_score: Mapped[float] = mapped_column(Float, default=0, nullable=False)
     isolation_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     risk_level: Mapped[RiskLevel] = mapped_column(
-        Enum(RiskLevel, name="risk_level"), default=RiskLevel.safe, nullable=False
+        Enum(RiskLevel, name="risk_level"), default=RiskLevel.unknown, server_default=RiskLevel.unknown.value,
+        nullable=False,
     )
 
     population_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -40,7 +42,8 @@ class Zone(Base):
 
     current_water_depth: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     flood_extent_confirmed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    data_confidence: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Null = not assessed. No engine computes it yet.
+    data_confidence: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     coverage_gaps: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONB, nullable=True)
     typical_resolution_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

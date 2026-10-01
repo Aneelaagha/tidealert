@@ -82,6 +82,14 @@ def _noisy_or(values) -> float:
     return 1.0 - miss
 
 
+def latest_evidence(case: Case, now: datetime):
+    """The most recently confirmed supporting or contradicting contribution visible at `now` (None if none)."""
+    evidence = [c for c in case.contributions
+                if c.direction in (ContributionDirection.supports, ContributionDirection.contradicts)
+                and visible(c, now)]
+    return max(evidence, key=lambda c: _seen(c, now), default=None)
+
+
 def case_confidence(case: Case, now: datetime) -> CaseConfidence:
     evidence = [c for c in case.contributions
                 if c.direction in (ContributionDirection.supports, ContributionDirection.contradicts)

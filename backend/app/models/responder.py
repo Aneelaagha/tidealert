@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from geoalchemy2 import Geometry
-from sqlalchemy import DateTime, Enum, String
+from sqlalchemy import DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,6 +24,11 @@ class Responder(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     role: Mapped[str] = mapped_column(String, nullable=False)
     team_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # A responder that exists only inside one scenario run (synthetic); null = a real responder. Tasks can only be
+    # assigned to responders of their own run (or real ones, for a live run).
+    run_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("runs.id", ondelete="CASCADE", name="fk_responders_run_id_runs"),
+        nullable=True, index=True)
     phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     last_ping_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

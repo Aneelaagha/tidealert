@@ -77,6 +77,8 @@ def main() -> None:
         c["sweeps"] += 1
         c["opened"] += result.opened
         c["contributions"] += result.contributions
+        c["tasks_created"] += result.tasks_created
+        c["tasks_changed"] += result.tasks_changed
 
     with SessionLocal() as db:
         # Sweeps commit every tick; keep tracked cases loaded instead of re-reading them after each commit.
@@ -117,7 +119,8 @@ def main() -> None:
     print(f"Replayed {len(ticks)} sweeps every {args.cadence_minutes} min, {args.start:%Y-%m-%d %H:%M} .. "
           f"{args.end:%Y-%m-%d %H:%M} UTC, in {elapsed:.0f} s")
     for source, c in totals.items():
-        print(f"  {source}: {c['opened']} cases opened, {c['contributions']} contributions over {c['sweeps']} sweeps")
+        print(f"  {source}: {c['opened']} cases opened, {c['contributions']} contributions over {c['sweeps']} sweeps; "
+              f"tasks: {c['tasks_created']} created, {c['tasks_changed']} updates")
 
 
 if __name__ == "__main__":

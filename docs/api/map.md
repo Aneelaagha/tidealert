@@ -1,4 +1,7 @@
-# Map API
+# Map API and page
+
+**Running it:** start the API from `backend/` with
+`../.venv/bin/uvicorn app.main:app`, then open `/` (it redirects to `/ui/`).
 
 This API is read-only. Code: `backend/app/routes/map.py` and
 `backend/app/services/map_state.py`. Tests: `tests/test_map_api.py`, which
@@ -70,3 +73,42 @@ Every zone in the run's regions is returned, with or without a Case.
 - **No live run exists yet**, so `live` mode is not exercised.
 - **Size:** `/map/zones` for the Harvey run is about 5 MB of GeoJSON (about
   650 kB gzipped).
+
+## Page (`frontend/index.html`, `frontend/map.js`)
+
+Plain HTML/JS with MapLibre GL JS 4.7.1 from jsDelivr, served by FastAPI
+`StaticFiles` at `/ui/`. There's no build step.
+
+**What it shows:**
+- a run picker with a mode badge taken from `runs.mode`;
+- a time slider over the run's window, stepping every 15 minutes (the sweep
+  cadence);
+- the freshness banner with the run's caveats;
+- the legend;
+- a zone panel with that zone's Cases and contributions from `/cases`.
+
+**Where the map's content comes from:**
+- **Shapes:** zone outlines from the database geometry.
+- **View:** fitted to the run's extent from `/runs`.
+- **Styles:** fill comes from `risk_level`. The outline comes from the
+  zone's strongest confidence word (dashed for `stale_verify`). Active
+  coverage gaps are hatched with a dashed edge.
+- **Colors:** `COLORS` in `map.js` is the only value-to-color table. A value
+  with no entry draws in magenta and is flagged in the legend as an
+  unstyled value.
+- **Shareable views:** the run and time are kept in the URL (`?run=&at=`).
+
+**Page limitations:**
+- **Basemap:** tiles come from OpenStreetMap's public tile server. That's
+  fine for development, but a deployment needs its own tile source or one
+  allowed by OSM's tile usage policy.
+- **Engines on the map:** contributing engines appear only in the zone
+  panel, not as map symbols.
+- **Slider step:** the 15-minute cadence is assumed in `map.js`; a run
+  doesn't store its cadence.
+- **Each slider stop refetches every zone:** the full zone GeoJSON, about
+  650 kB gzipped and about 0.7 s for Harvey.
+- **Synthetic scenarios** place their blocks near lat/lon 0, on open water
+  in the basemap.
+- **No live mode test:** no live run exists, so the LIVE badge and the
+  slider-less live view are untested.

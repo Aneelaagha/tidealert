@@ -144,8 +144,15 @@ def isolation_confidence(net: RoadNetwork, river_confidence: str, stage_provenan
 
 
 def clear_cases(db: Session, source: str) -> int:
-    """Delete every case (and its contributions) from one source, e.g. before a replay is rerun."""
+    """Delete every case from one source, with its contributions and tasks, e.g. before a replay is rerun."""
     old = list(db.scalars(select(Case).where(Case.source == source)))
+    for case in old:
+        case.task = None  # cases.task_id -> tasks and tasks.case_id -> cases form a cycle: break it first
+    db.flush()
+    for case in old:
+        for task in list(case.tasks):
+            db.delete(task)  # task events cascade
+    db.flush()
     for case in old:
         db.delete(case)  # contributions cascade
     db.flush()

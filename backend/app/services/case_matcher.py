@@ -26,6 +26,11 @@ CaseSweeper.sweep(now) for each gauge. A sweep uses only information as of
   Case; the nominated neighbor's reply supports (TROUBLE), contradicts
   (SEEN_OK) or is neutral (CANT_SEE); cascade steps are procedural.
 
+After the confidence words, the task rules (app.services.task_rules) create
+or update each Case's task: a pending task for a Case with fresh support,
+flagged verify_before_dispatch when its evidence goes stale. Nothing is
+dispatched automatically.
+
 Every contribution carries a direction (supports / contradicts / neutral /
 procedural), the confidence derived by its engine, and when it was observed.
 At the end of each sweep every case's confidence_word is recomputed from its
@@ -57,6 +62,7 @@ from app.models.probe_response import ProbeChannel
 from app.services import isolation_engine as engine
 from app.services import silence_baseline
 from app.services.confidence import case_confidence
+from app.services.task_rules import apply_task_rules
 from app.services.isolation_cases import clear_cases, isolation_confidence, isolation_mechanism
 from app.services.listening import (
     CANT_SEE, SEEN_OK, SOURCE_BASE, TROUBLE, ListeningEngine, corroborated_depth_confidence,
@@ -90,6 +96,8 @@ class SweepResult:
     opened: int = 0
     updated: int = 0
     contributions: int = 0
+    tasks_created: int = 0
+    tasks_changed: int = 0
     events: list = field(default_factory=list)
 
 
@@ -126,6 +134,7 @@ class CaseSweeper:
     _zone_listening_cases: dict = field(default_factory=dict)  # zone_id -> zone Case opened by listening
     _cascade_cases: dict = field(default_factory=dict)  # check-in probe_id -> Case a listening signal attached to
     _cases: list = field(default_factory=list)  # every case this sweeper opened (for the confidence word)
+    _urgent: dict = field(default_factory=dict)  # id(case) -> why its task is urgent (help request, neighbor trouble)
 
     def start(self, replace: bool = True) -> None:
         if replace:
@@ -361,6 +370,7 @@ class CaseSweeper:
             self._household_cases[household.id] = case
             result.opened += 1
         self._contribute(case, Engine.listening, now, fragment, base, SUPPORTS)
+        self._urgent.setdefault(id(case), "household asked for help")
         self._cascade_cases.setdefault(ev.root_probe_id, case)
         result.contributions += 1
 
@@ -402,6 +412,8 @@ class CaseSweeper:
             result.opened += 1
         if case is not None:
             self._contribute(case, Engine.listening, now, fragment, base, direction)
+            if ev.code == TROUBLE:
+                self._urgent.setdefault(id(case), "nominated neighbor reports trouble at the home")
             result.contributions += 1
 
     # ---------------------------------------------------------------- sweep
@@ -413,8 +425,15 @@ class CaseSweeper:
             self._isolation(now, result)
         self._silence(now, result)
         self._listening(events, now, result)
-        for case in self._cases:  # confidence word from decayed evidence as of now
-            case.confidence_word = case_confidence(case, now).word
+        for case in self._cases:  # confidence word from decayed evidence as of now, then the task rules
+            conf = case_confidence(case, now)
+            case.confidence_word = conf.word
+            change = apply_task_rules(case, conf, now, urgent=self._urgent.get(id(case)),
+                                      household=self._households.get(case.household_id))
+            if change == "created":
+                result.tasks_created += 1
+            elif change == "changed":
+                result.tasks_changed += 1
         self.db.commit()
         return result
 

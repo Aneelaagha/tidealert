@@ -43,6 +43,7 @@ from app.services.case_matcher import CaseSweeper, ReplayClock, run_scheduler  #
 from app.services.listening import (  # noqa: E402
     CANT_SEE, HELP, OK, SEEN_OK, TROUBLE, ListeningEngine, ScriptedReply, SimulatedTransport,
 )
+from app.services.isolation_cases import clear_cases  # noqa: E402
 from app.services.runs import ensure_run  # noqa: E402
 from app.services.stage import timesteps  # noqa: E402
 
@@ -76,9 +77,7 @@ _ = CANT_SEE
 def reset(db) -> None:
     zone_ids = list(db.scalars(select(Zone.id).where(Zone.region == REGION)))
     hh = list(db.scalars(select(Household.id).where(Household.zone_id.in_(zone_ids))))
-    for case in db.scalars(select(Case).where(Case.source == SOURCE)):
-        db.delete(case)
-    db.flush()
+    clear_cases(db, SOURCE)
     sig = [s for s in db.scalars(select(ProbeResponse.signal_id).where(ProbeResponse.household_id.in_(hh))) if s]
     db.execute(delete(ProbeResponse).where(ProbeResponse.household_id.in_(hh), ProbeResponse.parent_probe_id.is_not(None)))
     db.execute(delete(ProbeResponse).where(ProbeResponse.household_id.in_(hh)))

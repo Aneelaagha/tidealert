@@ -66,6 +66,8 @@ Evidence an engine keeps confirming is refreshed every sweep. At the end of
 each sweep every Case's `confidence_word` is recomputed with time decay, so
 `stale_verify` is set when no supporting evidence is fresh or the latest
 evidence contradicts the Case. Formulas and guesses: [confidence.md](confidence.md).
+Then the task rules create or update each Case's task
+([task-lifecycle.md](task-lifecycle.md)).
 
 ## Replay labels
 

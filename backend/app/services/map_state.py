@@ -72,6 +72,10 @@ def resolve_at(run: Run, at: Optional[datetime]) -> datetime:
     return at
 
 
+def run_summary_caveats(run: Run) -> list[str]:
+    return [CAVEATS[run.mode], CONFIDENCE_CAVEAT]
+
+
 def run_regions(db: Session, run: Run) -> list[str]:
     return list(db.scalars(select(Zone.region).join(Case, Case.zone_id == Zone.id)
                            .where(Case.run_id == run.id).distinct().order_by(Zone.region)))
@@ -97,7 +101,7 @@ def run_summary(db: Session, run: Run) -> dict:
                      "stale_after_seconds": rs.stale_after_override_seconds or rs.data_source.stale_after_seconds,
                      "stale_after_overridden": rs.stale_after_override_seconds is not None}
                     for rs in sorted(sources, key=lambda rs: rs.data_source.name)],
-        "caveats": [CAVEATS[run.mode], CONFIDENCE_CAVEAT],
+        "caveats": run_summary_caveats(run),
     }
 
 
@@ -188,7 +192,8 @@ class _ZoneCases:
     tasks: list = None  # active task states at `at`
 
 
-def zones_geojson(db: Session, run: Run, at: datetime, bbox: Optional[list[float]] = None) -> dict:
+def zones_geojson(db: Session, run: Run, at: datetime, bbox: Optional[list[float]] = None,
+                  zone_ids: Optional[list] = None) -> dict:
     regions = run_regions(db, run)
     per_zone: dict = {}
     for case in _cases_at(db, run, at):
@@ -208,6 +213,8 @@ def zones_geojson(db: Session, run: Run, at: datetime, bbox: Optional[list[float
                Zone.data_confidence, Zone.coverage_gaps, anchor, geom).where(Zone.region.in_(regions)).order_by(Zone.id)
     if bbox:
         q = q.where(Zone.boundary.op("&&")(func.ST_MakeEnvelope(*bbox, 4326)))
+    if zone_ids is not None:
+        q = q.where(Zone.id.in_(zone_ids))
     features, reasons = [], {}
     for row in db.execute(q):
         risk, risk_note = _risk_as_of(row, run, at)

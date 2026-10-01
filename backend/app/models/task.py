@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from geoalchemy2 import Geometry
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -59,6 +59,8 @@ class Task(Base):
     verify_before_dispatch: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false",
                                                          nullable=False)
     verify_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # When a person last cleared the flag (event time). The engine flags again only on evidence newer than this.
+    verify_cleared_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by_rule: Mapped[str] = mapped_column(String, nullable=False)  # the Case transition that created it
     route_geometry: Mapped[Optional[str]] = mapped_column(
         Geometry(geometry_type="LINESTRING", srid=4326), nullable=True
@@ -74,7 +76,8 @@ class Task(Base):
     case: Mapped["Case"] = relationship("Case", foreign_keys=[case_id], back_populates="tasks")
     assigned_responder: Mapped[Optional["Responder"]] = relationship("Responder", back_populates="tasks")
     events: Mapped[list["TaskEvent"]] = relationship(
-        "TaskEvent", back_populates="task", cascade="all, delete-orphan", order_by="TaskEvent.at")
+        "TaskEvent", back_populates="task", cascade="all, delete-orphan",
+        order_by=lambda: [TaskEvent.at, TaskEvent.recorded_at])
 
 
 class TaskEvent(Base):
@@ -88,6 +91,9 @@ class TaskEvent(Base):
         UUID(as_uuid=True), ForeignKey("tasks.id", ondelete="CASCADE", name="fk_task_events_task_id_tasks"),
         nullable=False, index=True)
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)  # event time
+    # Wall-clock insert time: orders events that share an event time (e.g. a person acting at a scenario's last tick).
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow,
+                                                  server_default=func.now(), nullable=False)
     status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus, name="task_status"), nullable=False)
     priority: Mapped[TaskPriority] = mapped_column(Enum(TaskPriority, name="task_priority"), nullable=False)
     verify_before_dispatch: Mapped[bool] = mapped_column(Boolean, nullable=False)

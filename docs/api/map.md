@@ -13,7 +13,8 @@ need.
 | `GET /runs` | Every run: mode (as registered, never inferred), window, regions, extent, sources, caveats. Also `vocabulary`: every value the map can be styled by, taken from the enums and the stored coverage gaps. |
 | `GET /map/zones?run_id=&at=&bbox=` | GeoJSON of the run's zones as of `at`. Coverage-gap reason texts are listed once in `gap_reasons` and referenced by `reason_id`. |
 | `GET /map/freshness?run_id=&at=` | For each source the run reads: `fresh` / `stale` / `no_data` / `event_driven`, with the last observation and its age. |
-| `GET /cases?run_id=&zone_id=&at=` | The run's Cases opened by `at`, with contributions and confidence as of `at`. |
+| `GET /cases?run_id=&zone_id=&at=` | The run's Cases opened by `at`, with contributions and confidence as of `at`, and their tasks as of `at` (with event history). |
+| `GET /tasks`, `GET /tasks/{id}`, `GET /responders`, and the task actions | See [task-lifecycle.md](../algorithms/task-lifecycle.md). |
 
 ## Time
 
@@ -49,6 +50,15 @@ all 99,699 Case-ticks.
     `/cases`);
   - the engines with supporting evidence, as `engines` and as
     `engine_<name>` flags.
+
+- **Task summary as of `at`**, from `task_events`:
+  - `task_count`: tasks active at `at`;
+  - `task_status`: the most advanced (en_route > assigned > pending);
+  - `task_priority`: the highest;
+  - `task_verify`: whether any is flagged for verification;
+  - `task_kinds`;
+  - `task_anchor`: a point inside the zone (`ST_PointOnSurface`), present
+    only when a task is active.
 
 Every zone in the run's regions is returned, with or without a Case.
 

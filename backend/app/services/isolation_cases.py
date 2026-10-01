@@ -41,6 +41,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Case
+from app.models.responder import ResponderStatus
+from app.models.task import ACTIVE_STATUSES
 from app.services.isolation_engine import MIN_WET_SAMPLES, RoadNetwork, ZoneBoundaries, flooded_edges
 
 log = logging.getLogger(__name__)
@@ -151,6 +153,8 @@ def clear_cases(db: Session, source: str) -> int:
     db.flush()
     for case in old:
         for task in list(case.tasks):
+            if task.assigned_responder is not None and task.status in ACTIVE_STATUSES:
+                task.assigned_responder.status = ResponderStatus.available  # its task is going away
             db.delete(task)  # task events cascade
     db.flush()
     for case in old:

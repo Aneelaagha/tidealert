@@ -13,6 +13,11 @@ Everything here is read from the database; the map adds no values of its own.
 - Case status has no history either: it is the current status.
 - Zones in view are those of the regions the run's Cases are in; zones with no
   Case are returned too, so a block with no signal is shown, not omitted.
+- Tasks are read as of `at` from their event history (task_events): a zone's
+  task summary counts the tasks active at `at`, with the most advanced status
+  (en_route > assigned > pending) and whether any is flagged
+  verify_before_dispatch. `task_anchor` is a point inside the zone for a
+  marker (PostGIS ST_PointOnSurface), present only when a task is active.
 """
 import json
 from dataclasses import dataclass
@@ -22,16 +27,21 @@ from typing import Optional
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Case, Run, RunSource, Signal, Zone
+from app.models import Case, Run, RunSource, Signal, Task, Zone
 from app.models.case import ConfidenceWord
 from app.models.case_engine_contribution import ContributionDirection, Engine
 from app.models.run import RunMode
+from app.models.task import TaskKind, TaskPriority, TaskStatus
 from app.models.zone import RiskLevel
 from app.services.confidence import case_confidence, effective, visible
+from app.services.task_view import task_state
 
 SIMPLIFY_DEG = 0.00002  # ~2 m: zone outlines lose vertices, not shape (2.5 MB -> 1.5 MB for all zones)
 # Strongest first: a zone with several Cases is styled by its strongest confidence word (all are listed).
 WORD_PRIORITY = [ConfidenceWord.corroborated, ConfidenceWord.single_source, ConfidenceWord.stale_verify]
+# Most advanced first: a zone with several active tasks shows the furthest along (all are listed in /cases).
+TASK_STATUS_PRIORITY = [TaskStatus.en_route.value, TaskStatus.assigned.value, TaskStatus.pending.value]
+TASK_PRIORITY_ORDER = [p.value for p in TaskPriority]
 CAVEATS = {
     RunMode.replay: ("Replayed from the published record, which includes values estimated after the event; a live "
                      "system would only have had provisional data at the time."),
@@ -98,13 +108,16 @@ def vocabulary(db: Session) -> dict:
         "risk_level": [v.value for v in RiskLevel], "confidence_word": [v.value for v in ConfidenceWord],
         "engine": [v.value for v in Engine], "direction": [v.value for v in ContributionDirection],
         "mode": [v.value for v in RunMode], "coverage_gap": gap_kinds,
+        "task_status": [v.value for v in TaskStatus], "task_kind": [v.value for v in TaskKind],
+        "task_priority": [v.value for v in TaskPriority],
     }
 
 
 # ---------------------------------------------------------------- cases
 def _cases_at(db: Session, run: Run, at: datetime, zone_id=None) -> list[Case]:
     q = (select(Case).where(Case.run_id == run.id, Case.opened_at <= at)
-         .options(selectinload(Case.contributions)).order_by(Case.opened_at))
+         .options(selectinload(Case.contributions), selectinload(Case.tasks).selectinload(Task.events))
+         .order_by(Case.opened_at))
     if zone_id is not None:
         q = q.where(Case.zone_id == zone_id)
     return list(db.scalars(q))
@@ -126,6 +139,7 @@ def case_detail(case: Case, at: datetime) -> dict:
             "independent_sources": c.independent_sources, "first_observed_at": c.first_observed_at,
             "last_confirmed_at": min(c.observed_at, at),
         } for c in contributions],
+        "tasks": [s for s in (task_state(t, at) for t in sorted(case.tasks, key=lambda t: t.created_at)) if s],
     }
 
 
@@ -170,6 +184,7 @@ class _ZoneCases:
     count: int = 0
     word: Optional[ConfidenceWord] = None
     engines: frozenset = frozenset()
+    tasks: list = None  # active task states at `at`
 
 
 def zones_geojson(db: Session, run: Run, at: datetime, bbox: Optional[list[float]] = None) -> dict:
@@ -183,10 +198,13 @@ def zones_geojson(db: Session, run: Run, at: datetime, bbox: Optional[list[float
             z.word = detail.word
         z.engines = z.engines | {c.engine.value for c in case.contributions
                                  if c.direction == ContributionDirection.supports and visible(c, at)}
+        active = [s for s in (task_state(t, at) for t in case.tasks) if s and s["active"]]
+        z.tasks = (z.tasks or []) + active
 
     geom = func.ST_AsGeoJSON(func.ST_SimplifyPreserveTopology(Zone.boundary, SIMPLIFY_DEG), 6)
+    anchor = func.ST_AsGeoJSON(func.ST_PointOnSurface(Zone.boundary), 6).label("anchor")
     q = select(Zone.id, Zone.name, Zone.region, Zone.population_count, Zone.risk_level, Zone.risk_level_set_at,
-               Zone.data_confidence, Zone.coverage_gaps, geom).where(Zone.region.in_(regions)).order_by(Zone.id)
+               Zone.data_confidence, Zone.coverage_gaps, anchor, geom).where(Zone.region.in_(regions)).order_by(Zone.id)
     if bbox:
         q = q.where(Zone.boundary.op("&&")(func.ST_MakeEnvelope(*bbox, 4326)))
     features, reasons = [], {}
@@ -202,9 +220,25 @@ def zones_geojson(db: Session, run: Run, at: datetime, bbox: Optional[list[float
             "case_count": zc.count, "confidence_word": zc.word.value if zc.word else None,
             "engines": sorted(zc.engines),
             **{f"engine_{e.value}": e.value in zc.engines for e in Engine},
+            **_task_summary(zc.tasks or [], row.anchor if zc.tasks else None),
         }})
     return {"type": "FeatureCollection", "run_id": str(run.id), "mode": run.mode.value, "at": at.isoformat(),
             "gap_reasons": list(reasons), "features": features}
+
+
+def _task_summary(tasks: list[dict], anchor: Optional[str]) -> dict:
+    if not tasks:
+        return {"task_count": 0, "task_status": None, "task_priority": None, "task_verify": False,
+                "task_kinds": [], "task_anchor": None}
+    return {
+        "task_count": len(tasks),
+        "task_status": min((t["status"] for t in tasks), key=lambda s: TASK_STATUS_PRIORITY.index(s)
+                           if s in TASK_STATUS_PRIORITY else len(TASK_STATUS_PRIORITY)),
+        "task_priority": min((t["priority"] for t in tasks), key=TASK_PRIORITY_ORDER.index),
+        "task_verify": any(t["verify_before_dispatch"] for t in tasks),
+        "task_kinds": sorted({t["kind"] for t in tasks}),
+        "task_anchor": json.loads(anchor)["coordinates"],
+    }
 
 
 # ---------------------------------------------------------------- freshness

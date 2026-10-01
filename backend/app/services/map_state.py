@@ -16,7 +16,8 @@ Everything here is read from the database; the map adds no values of its own.
 - Tasks are read as of `at` from their event history (task_events): a zone's
   task summary counts the tasks active at `at`, with the most advanced status
   (en_route > assigned > pending) and whether any is flagged
-  verify_before_dispatch. `task_anchor` is a point inside the zone for a
+  verify_before_dispatch, plus per-task counts (task_awaiting: pending and
+  not flagged; task_flagged). `task_anchor` is a point inside the zone for a
   marker (PostGIS ST_PointOnSurface), present only when a task is active.
 """
 import json
@@ -228,10 +229,14 @@ def zones_geojson(db: Session, run: Run, at: datetime, bbox: Optional[list[float
 
 def _task_summary(tasks: list[dict], anchor: Optional[str]) -> dict:
     if not tasks:
-        return {"task_count": 0, "task_status": None, "task_priority": None, "task_verify": False,
-                "task_kinds": [], "task_anchor": None}
+        return {"task_count": 0, "task_awaiting": 0, "task_flagged": 0, "task_status": None, "task_priority": None,
+                "task_verify": False, "task_kinds": [], "task_anchor": None}
     return {
         "task_count": len(tasks),
+        # Per task, not per zone: pending and not flagged (assignable now), and flagged verify_before_dispatch.
+        "task_awaiting": sum(1 for t in tasks if t["status"] == TaskStatus.pending.value
+                             and not t["verify_before_dispatch"]),
+        "task_flagged": sum(1 for t in tasks if t["verify_before_dispatch"]),
         "task_status": min((t["status"] for t in tasks), key=lambda s: TASK_STATUS_PRIORITY.index(s)
                            if s in TASK_STATUS_PRIORITY else len(TASK_STATUS_PRIORITY)),
         "task_priority": min((t["priority"] for t in tasks), key=TASK_PRIORITY_ORDER.index),

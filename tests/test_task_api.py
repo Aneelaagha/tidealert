@@ -158,8 +158,28 @@ def test_map_zones_carry_task_summaries(client, runs):
     assert len(with_task) == 152
     assert {p["task_status"] for p in with_task} == {"pending"}
     assert all(p["task_verify"] and p["task_priority"] == "low" and len(p["task_anchor"]) == 2 for p in with_task)
+    assert all(p["task_awaiting"] == 0 and p["task_flagged"] == 1 for p in with_task)  # counted per task
     start = client.get("/map/zones", params={"run_id": runs["harvey"]["id"], "at": runs["harvey"]["window_start"]})
     assert sum(f["properties"]["task_count"] for f in start.json()["features"]) == 0
     assert {"task_status", "task_kind", "task_priority"} <= set(runs["vocabulary"])
     cases = client.get("/cases", params={"run_id": runs["harvey"]["id"]}).json()["cases"]
     assert all(len(c["tasks"]) == 1 and c["tasks"][0]["events"] for c in cases)
+
+
+def test_assignment_shows_in_the_zone_summary_from_its_time_on(tx):
+    client, db = tx
+    run = run_named(db, LISTENING)
+    (r1,) = responders(db, run, 1)
+    task = next(t for t in tasks_of(db, run) if t.priority_reason == "household asked for help"
+                and t.case.zone.name.endswith("block B"))
+    zone_id = str(task.case.zone_id)
+    assert client.post(f"/tasks/{task.id}/assign", json={"actor": "d", "responder_id": str(r1.id),
+                                                         "at": "2026-09-10T16:30:00Z"}).status_code == 200
+
+    def block_b(at):
+        feats = client.get("/map/zones", params={"run_id": str(run.id), "at": at}).json()["features"]
+        return next(f["properties"] for f in feats if f["properties"]["zone_id"] == zone_id)
+
+    before, after = block_b("2026-09-10T16:15:00Z"), block_b(END)
+    assert (before["task_status"], before["task_awaiting"]) == ("pending", 1)
+    assert (after["task_status"], after["task_awaiting"], after["task_count"]) == ("assigned", 0, 1)

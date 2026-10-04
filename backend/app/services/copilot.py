@@ -7,20 +7,22 @@ fixed out-of-scope reply, never an answer from general knowledge.
 
 Modes:
 - template: answers built entirely from tool results (app.services.copilot_tools)
-  by fixed templates. The automatic mode when ANTHROPIC_API_KEY is not set, and
-  the only mode until the model path is built (PR 2).
-- model (PR 2): an LLM chooses tools and writes the answer with placeholders
-  that the server fills from tool results.
+  by fixed templates. Used when ANTHROPIC_API_KEY is not set, when the request
+  names an intent (a button: the tool is already chosen and the template is
+  exact), and whenever the model path falls back.
+- model: for free-text questions when ANTHROPIC_API_KEY is set, an LLM chooses
+  tools and writes the answer with placeholders that the server checks and
+  fills from tool results (app.services.copilot_model).
 
 Gaps are stated, never filled: a null value reads "not assessed", a zone with
 no Case says so, an unknown risk level gives the stored reason.
 """
-import os
 from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.services import copilot_model as model
 from app.services import copilot_tools as tools
 
 INTENTS = {
@@ -41,9 +43,12 @@ KEYWORDS = [("explain_confidence", ("why", "confidence", "corroborated", "single
 
 
 def model_status() -> dict:
-    if not os.getenv("ANTHROPIC_API_KEY"):
+    if not model.api_key_set():
         return {"mode": "template", "reason": "ANTHROPIC_API_KEY is not set: answers come from fixed templates"}
-    return {"mode": "template", "reason": "model-backed answers are not built yet (PR 2): fixed templates"}
+    if not model.sdk_available():
+        return {"mode": "template", "reason": "the anthropic package is not installed: answers come from fixed templates"}
+    return {"mode": "model", "reason": f"free-text questions go to {model.MODEL}; every value it states is a "
+                                       "server-filled placeholder. Intent buttons use the fixed templates"}
 
 
 def route(question: str, intent: Optional[str]) -> Optional[str]:
@@ -210,16 +215,62 @@ def _call(db: Session, intent: str, run_id, at, zone_id, case_id) -> tools.ToolR
     return tools.briefing_facts(db, run_id, zone_id, at)
 
 
-def ask(db: Session, run_id, question: str = "", intent: Optional[str] = None, at: Optional[datetime] = None,
-        zone_id=None, case_id=None) -> dict:
-    status = model_status()
-    chosen = route(question, intent)
-    base = {"mode": status["mode"], "mode_reason": status["reason"], "question": question, "intent": chosen}
+def _household_data(results: list[tools.ToolResult]) -> dict:
+    ids = set().union(*(r.household_ids for r in results)) if results else set()
+    real = set().union(*(r.real_household_ids for r in results)) if results else set()
+    return {"households": len(ids), "real": len(real), "may_send_to_external_model": not real}
+
+
+def _template_answer(db: Session, base: dict, chosen: Optional[str], run_id, at, zone_id, case_id) -> dict:
     if chosen is None:
-        return {**base, "answer": OUT_OF_SCOPE, "in_scope": False, "unknowns": [], "tools": []}
+        return {**base, "intent": None, "answer": OUT_OF_SCOPE, "in_scope": False, "unknowns": [], "tools": []}
     result = _call(db, chosen, run_id, at, zone_id, case_id)
     text, unknowns = TEMPLATES[chosen](result)
-    return {**base, "in_scope": True, "answer": text, "unknowns": unknowns, "as_of": result.at,
+    return {**base, "intent": chosen, "in_scope": True, "answer": text, "unknowns": unknowns, "as_of": result.at,
             "run": {k: result.run[k] for k in ("id", "name", "mode")}, "tools": [result.tool],
-            "household_data": {"households": len(result.household_ids), "real": len(result.real_household_ids),
-                               "may_send_to_external_model": result.external_ok}}
+            "household_data": _household_data([result])}
+
+
+def _model_answer(db: Session, base: dict, question: str, run_id, at, zone_id, case_id) -> dict:
+    at = tools.resolve_time(db, run_id, at)  # 404 / 422 exactly as in template mode; one clock for every tool
+    ctx = model.Context(db, run_id, at, zone_id, case_id)
+
+    def call_tool(name: str) -> tools.ToolResult:
+        return _call(db, model.TOOL_INTENTS[name], run_id, at, zone_id, case_id)
+
+    try:
+        a = model.run(ctx, question, call_tool, client=model.make_client(), intents="; ".join(INTENTS.values()))
+    except model.Fallback as fb:
+        chosen = fb.intent or route(question, None)
+        fallen = {**base, "mode": "template", "mode_reason": f"model mode fell back to templates: {fb.reason}"}
+        return _template_answer(db, fallen, chosen, run_id, at, zone_id, case_id)
+    base = {**base, "served_by": a.served_by}
+    if a.out_of_scope:
+        return {**base, "intent": None, "answer": OUT_OF_SCOPE, "in_scope": False, "unknowns": [], "tools": []}
+    first = a.results[0]
+    lines = [f"{_when(first)}:", a.text]
+    if any(r.tool == "briefing_facts" for r in a.results):
+        lines = ["DRAFT RESPONDER BRIEFING. Generated from database state; verify before use.", ""] + lines \
+            + [""] + first.run["caveats"]
+    return {**base, "intent": model.TOOL_INTENTS[first.tool], "in_scope": True, "answer": "\n".join(lines),
+            "unknowns": a.nulls, "as_of": first.at, "run": {k: first.run[k] for k in ("id", "name", "mode")},
+            "tools": [r.tool for r in a.results], "placeholders": a.placeholders,
+            "household_data": _household_data(a.results)}
+
+
+def ask(db: Session, run_id, question: str = "", intent: Optional[str] = None, at: Optional[datetime] = None,
+        zone_id=None, case_id=None, client_ip: Optional[str] = None) -> dict:
+    status = model_status()
+    base = {"mode": status["mode"], "mode_reason": status["reason"], "question": question}
+    if status["mode"] == "model" and not intent and (question or "").strip():
+        wait = model.LIMITER.admit(client_ip or "unknown")
+        if wait is None:
+            return _model_answer(db, base, question, run_id, at, zone_id, case_id)
+        base = {**base, "mode": "template", "retry_model_after_seconds": wait,
+                "mode_reason": f"model mode fell back to templates: rate limit of {model.RATE_LIMIT} model "
+                               f"questions per {model.RATE_WINDOW_SECONDS // 60} minutes reached for this client"}
+        return _template_answer(db, base, route(question, intent), run_id, at, zone_id, case_id)
+    if status["mode"] == "model":
+        base = {**base, "mode": "template", "mode_reason": "an intent was chosen: fixed template"
+                if intent else "no question: fixed template"}
+    return _template_answer(db, base, route(question, intent), run_id, at, zone_id, case_id)

@@ -32,6 +32,8 @@ INTENTS = {
     "explain_confidence": "why the selected Case has its confidence word",
     "briefing": "a draft responder briefing for the selected zone",
 }
+# What each intent needs selected on the map. /copilot/status reports it so the page can say why a button is off.
+NEEDS = {"zone_status": "zone_id", "zone_cases": "zone_id", "briefing": "zone_id", "explain_confidence": "case_id"}
 OUT_OF_SCOPE = ("I can only answer from this run's data: " + "; ".join(INTENTS.values())
                 + ". I don't answer other questions or use outside knowledge.")
 # Keyword routing for free text in template mode (a model routes free text in model mode).
@@ -198,12 +200,11 @@ class CopilotInputError(ValueError):
 
 
 def _call(db: Session, intent: str, run_id, at, zone_id, case_id) -> tools.ToolResult:
-    needs = {"zone_status": "zone_id", "zone_cases": "zone_id", "briefing": "zone_id", "explain_confidence": "case_id"}
-    need = needs.get(intent)
+    need = NEEDS.get(intent)
     if need == "zone_id" and zone_id is None:
         raise CopilotInputError(f"{INTENTS[intent]} needs a zone: select one on the map")
     if need == "case_id" and case_id is None:
-        raise CopilotInputError(f"{INTENTS[intent]} needs a Case: pick one in the zone panel")
+        raise CopilotInputError(f"{INTENTS[intent]} needs a Case: pick one in the Cases panel")
     if intent == "zone_status":
         return tools.zone_status(db, run_id, zone_id, at)
     if intent == "zone_cases":

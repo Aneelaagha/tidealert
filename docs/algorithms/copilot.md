@@ -1,7 +1,7 @@
 # Copilot
 
-Status: **step 2 of 3.** Grounded tools, template answers, and model-backed
-answers for free-text questions. The side-panel UI (step 3) comes next.
+Status: **step 3 of 3.** Grounded tools, template answers, model-backed
+answers for free-text questions, and the copilot panel on the map page.
 
 Code:
 - `backend/app/services/copilot_tools.py` (tools);
@@ -37,7 +37,39 @@ knowledge.
   the run's clock (the map's slider time, default the end of the window) and
   says the run's mode. Every answer reports the `mode` that produced it and
   why (`mode_reason`).
-- `GET /copilot/status` returns the current mode and the intents.
+- `GET /copilot/status` returns the current mode and its reason, the
+  intents, and `needs`: what each intent needs selected (`zone_id` or
+  `case_id`). This is the same table `/copilot/ask` checks, so the page can
+  say why a button is off.
+
+## Panel (map page)
+
+`frontend/src/components/CopilotPanel.tsx` puts the copilot on the map
+page. It calls only `/copilot/status` and `/copilot/ask`; there's no other
+model, SDK or server behind it.
+- **Header:** the mode and its reason from `/copilot/status`. Without a key
+  that reads "TEMPLATE MODE: ANTHROPIC_API_KEY is not set: answers come from
+  fixed templates".
+- **Questions:** the five intent buttons, labelled from the intents. A
+  button is disabled with its reason when its selection is missing, and the
+  hint below groups them (for example "zone status, zone cases, briefing:
+  needs a zone: select one on the map"). A free-text box sends the question
+  with the run, the slider time, the selected zone, and the Case selected in
+  the Cases panel.
+- **Each answer shows:**
+  - its MODEL or TEMPLATE badge, and OUT OF SCOPE when it is;
+  - its intent and its `mode_reason`. A template answer while the copilot
+    is in model mode is labelled "Fell back to templates".
+  - `served_by` when present;
+  - any unknowns;
+  - the household count and how many are real;
+  - when rate limited, the time until model questions are available again.
+- **When the copilot can't answer yet** (a 422: a missing selection, or a
+  time outside the run), the reply is an amber "Can't answer yet" notice
+  with the server's text, not an error. Other failures show their HTTP
+  status in red.
+- **The log is display only:** the backend answers each question on its
+  own, and the panel says so. The log clears when the run changes.
 
 ## Grounding
 

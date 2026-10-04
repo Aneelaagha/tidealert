@@ -24,7 +24,7 @@ class Ask(BaseModel):
 
 @router.get("/status")
 def status():
-    return {**copilot.model_status(), "intents": copilot.INTENTS}
+    return {**copilot.model_status(), "intents": copilot.INTENTS, "needs": copilot.NEEDS}
 
 
 @router.post("/ask")

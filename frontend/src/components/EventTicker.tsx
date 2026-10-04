@@ -8,9 +8,11 @@ import { fmtTime, label } from '../lib/format';
 export const TICKER_LIMIT = 15;
 
 export function latestEvents(tasks: Task[], limit = TICKER_LIMIT) {
+  // Newest first. Events can share a time (an assign and a complete at the same slider time), so ties keep the
+  // task's own stored order, later event first.
   return tasks
-    .flatMap((t) => t.events.map((e) => ({ ...e, task: t })))
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+    .flatMap((t) => t.events.map((e, i) => ({ ...e, task: t, seq: i })))
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || (a.task === b.task ? b.seq - a.seq : 0))
     .slice(0, limit);
 }
 

@@ -71,6 +71,19 @@ def test_replay_runs_refuse_every_action(tx):
         assert r.status_code == 422 and "replay" in r.json()["detail"], (path, r.text)
 
 
+def test_runs_report_the_same_reason_the_actions_refuse_with(tx):
+    """The page disables task actions on a run using /runs, and shows the server's own words."""
+    client, db = tx
+    runs = {r["name"]: r for r in client.get("/runs").json()["runs"]}
+    if HARVEY not in runs or LISTENING not in runs:
+        pytest.skip("Harvey replay and listening scenario needed")
+    assert runs[LISTENING]["task_actions_blocked"] is None
+    reason = runs[HARVEY]["task_actions_blocked"]
+    task = tasks_of(db, run_named(db, HARVEY))[0]
+    r = client.post(f"/tasks/{task.id}/status", json={"actor": "tester", "status": "cancelled"})
+    assert r.status_code == 422 and r.json()["detail"] == reason
+
+
 def test_assign_then_complete_and_read_back_in_time(tx):
     client, db = tx
     run = run_named(db, LISTENING)

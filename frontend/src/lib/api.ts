@@ -14,6 +14,7 @@ export interface Run {
   regions: string[];
   extent: [number, number, number, number] | null;
   caveats: string[];
+  task_actions_blocked: string | null; // the server's reason task actions refuse this run, or null
 }
 
 export interface Vocabulary {
@@ -156,14 +157,33 @@ export class ApiError extends Error {
   }
 }
 
+/** The `detail` FastAPI puts in an error body, as given; the raw body if there is none. */
+function detailOf(body: string): string {
+  try {
+    const d = JSON.parse(body)?.detail;
+    return typeof d === 'string' ? d : d != null ? JSON.stringify(d) : body;
+  } catch {
+    return body;
+  }
+}
+
 export async function get<T>(path: string, params: Params = {}, signal?: AbortSignal): Promise<T> {
   const query = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (v != null) query.set(k, v);
   const qs = query.toString();
   const r = await fetch(qs ? `${path}?${qs}` : path, { signal });
-  if (!r.ok) throw new ApiError(path, r.status, await r.text());
+  if (!r.ok) throw new ApiError(path, r.status, detailOf(await r.text()));
   return r.json() as Promise<T>;
 }
+
+export async function post<T>(path: string, body: unknown): Promise<T> {
+  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw new ApiError(path, r.status, detailOf(await r.text()));
+  return r.json() as Promise<T>;
+}
+
+/** Who acts and when: `at` is the slider time on the run's clock (omitted for a live run: the server uses now). */
+export interface Acting { actor: string; at: string | null; note?: string }
 
 export const api = {
   runs: (signal?: AbortSignal) => get<{ runs: Run[]; vocabulary: Vocabulary }>('/runs', {}, signal),
@@ -178,4 +198,8 @@ export const api = {
   // A live run is served by real responders (run_id omitted); a replay or scenario by its own synthetic ones.
   responders: (run: Run, signal?: AbortSignal) =>
     get<{ responders: Responder[] }>('/responders', run.mode === 'live' ? {} : { run_id: run.id }, signal),
+  assign: (taskId: string, responderId: string, a: Acting) =>
+    post<Task>(`/tasks/${taskId}/assign`, { responder_id: responderId, actor: a.actor, note: a.note ?? '', ...(a.at ? { at: a.at } : {}) }),
+  complete: (taskId: string, a: Acting) =>
+    post<Task>(`/tasks/${taskId}/status`, { status: 'complete', actor: a.actor, note: a.note ?? '', ...(a.at ? { at: a.at } : {}) }),
 };

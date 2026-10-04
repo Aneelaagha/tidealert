@@ -1,17 +1,10 @@
 // The selected zone as of the slider time: its fields from /map/zones, then its Cases from /cases with their
 // contributions and tasks (with each task's full event history).
 
-import { type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, type Case, type Responder, type Task, type ZoneProps } from '../lib/api';
 import { fmtTime, label } from '../lib/format';
-
-const Muted = ({ children }: { children: ReactNode }) => <span className="text-slate-500">{children}</span>;
-
-function Tag({ children, tone = 'plain' }: { children: ReactNode; tone?: 'plain' | 'red' | 'green' | 'amber' }) {
-  const tones = { plain: 'bg-white/5 text-slate-300', red: 'bg-red-950/50 text-red-300',
-                  green: 'bg-emerald-950/50 text-emerald-300', amber: 'bg-amber-950/50 text-amber-300' };
-  return <span className={`mr-1 inline-block rounded px-1.5 py-px text-[10px] ${tones[tone]}`}>{children}</span>;
-}
+import { Muted, Tag } from './ui';
 
 const directionTone = (d: string) => (d === 'supports' ? 'red' : d === 'contradicts' ? 'green' : 'plain');
 
@@ -79,9 +72,10 @@ interface Props {
   zone: ZoneProps | null;
   gapReasons: string[];
   responders: Map<string, Responder>;
+  version: number; // bumped after a task action, so the zone's Cases are read again
 }
 
-export function ZonePanel({ runId, at, zone, gapReasons, responders }: Props) {
+export function ZonePanel({ runId, at, zone, gapReasons, responders, version }: Props) {
   const [cases, setCases] = useState<Case[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,7 +88,7 @@ export function ZonePanel({ runId, at, zone, gapReasons, responders }: Props) {
       .then((body) => setCases(body.cases))
       .catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
     return () => ctl.abort();
-  }, [runId, at, zone?.zone_id, zone?.case_count]);
+  }, [runId, at, zone?.zone_id, zone?.case_count, version]);
 
   if (!zone) return <p className="font-mono text-[11px] text-slate-500">Click a zone to see its Cases and the evidence behind them.</p>;
 

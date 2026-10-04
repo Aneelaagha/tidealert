@@ -10,7 +10,7 @@ need.
 
 | Endpoint | Returns |
 |---|---|
-| `GET /runs` | Every run: mode (as registered, never inferred), window, regions, extent, sources, caveats. Also `vocabulary`: every value the map can be styled by, taken from the enums and the stored coverage gaps. |
+| `GET /runs` | Every run: mode (as registered, never inferred), window, regions, extent, sources, caveats, and `task_actions_blocked` (the exact reason the task actions refuse this run, or null). Also `vocabulary`: every value the map can be styled by, taken from the enums and the stored coverage gaps. |
 | `GET /map/zones?run_id=&at=&bbox=` | GeoJSON of the run's zones as of `at`. Coverage-gap reason texts are listed once in `gap_reasons` and referenced by `reason_id`. |
 | `GET /map/freshness?run_id=&at=` | For each source the run reads: `fresh` / `stale` / `no_data` / `event_driven`, with the last observation and its age. |
 | `GET /cases?run_id=&zone_id=&at=` | The run's Cases opened by `at`, with contributions and confidence as of `at`, and their tasks as of `at` (with event history). |
@@ -119,6 +119,16 @@ carried over.
   contribution's text is labelled "recorded when first observed", since it
   can differ from the refreshed confidence next to it.
 - **Legend.**
+- **Cases panel** (from `/cases` as of the slider time): each Case's
+  confidence word, zone, status, opened time, supporting engines and active
+  task. Filter tabs: open (open and in progress), closed (resolved and false
+  alarm), and all. Strongest word first, then oldest. Selecting a Case
+  selects its zone and opens its task actions.
+- **Responders panel** (from `/responders`, plus `/tasks` for assignments):
+  name, role, team, last ping, location (none recorded today) and the
+  active tasks assigned as of the slider time. The status shown is the
+  responder's **current** status: the database keeps no history of it. A
+  run with no responders says so.
 - **Footer feed:** the run's task events up to the slider time, newest
   first, from `/tasks`. Each entry is a stored event with its own time,
   actor and note.
@@ -151,6 +161,38 @@ carried over.
   tone (muted until sound is turned on) are decoration only. No data drives
   them, and they show no values.
 
+**Task actions (assign, mark complete):**
+- **Where they run:** on scenario and live runs only. On a replay, the
+  buttons are greyed out and the operator bar shows the server's own refusal
+  reason from `/runs` (`task_actions_blocked`), the same text the actions
+  return.
+- **Who acted:** an operator name is required, because there's no login and
+  every event records who acted. The browser remembers it (`localStorage`).
+- **When:** each action is stamped with the slider time; on a live run it's
+  omitted and the server uses now. The server refuses a time before the
+  task's latest event.
+- **Greyed-out buttons:** a button is greyed out with its reason only when
+  the server would certainly refuse:
+  - assign needs a pending, unflagged task and an available responder;
+  - complete needs an assigned or en-route task;
+  - a task flagged verify before dispatch shows the stored note that set
+    the flag (clearing it is API-only).
+
+  Otherwise the server decides. Any 409 or 422 is shown exactly as
+  returned, for example `HTTP 422: at … is before the task's latest event
+  (…)`.
+- **After an action** the page reads everything again: zones, Cases, tasks
+  and responders.
+- **Side effect on the demo data:** actions write real rows. An assign adds
+  a task event, sets the responder to assigned and moves an open Case to
+  `in_progress`. A complete adds an event and frees the responder. The
+  Case's status is left as it is: resolving a Case is a person's call. So
+  trying the actions on the listening or silence scenario changes that
+  scenario until it's rerun (`scripts/listening_demo.py`, or the silence
+  sweep in `scripts/run_case_matcher.py`). The "161 Cases unchanged" check
+  fails until then. Automated tests act only inside rolled-back
+  transactions.
+
 **No invented data, enforced:** `src/test/no-invented-data.test.ts` is a
 permanent part of the test suite. It scans every source file and fails if
 it finds any of these:
@@ -170,9 +212,12 @@ fake a value.
   tile source or one allowed by OSM's tile usage policy.
 - **Engines on the map:** contributing engines appear only in the zone
   panel, not as map symbols.
-- **Read-only for tasks:** the page has no assign or status controls yet.
-  They come in the next step (scenario and live runs only). Task actions
-  are API-only for now (`docs/algorithms/task-lifecycle.md`).
+- **Only assign and complete:** clear-verify, en route, unable to reach,
+  cancel and follow-up tasks are API-only
+  (`docs/algorithms/task-lifecycle.md`).
+- **Case status has no history:** after an assign, a Case reads "in
+  progress" even when the slider is moved back to before the assignment.
+  The task's own status is shown correctly as of the slider time.
 - **No responder markers:** no responder has location data (the API
   exposes only `has_location`, and it's false for all of them). Markers can
   come once locations are populated.

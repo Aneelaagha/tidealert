@@ -52,10 +52,18 @@ def _run_of(db: Session, case: Case) -> Run:
     return db.get(Run, case.run_id)
 
 
-def _writable(run: Run) -> None:
+def read_only_reason(run: Run) -> Optional[str]:
+    """Why people can't act on this run's tasks, or None if they can. /runs reports it so the page can say why."""
     if run.mode == RunMode.replay:
-        raise TaskActionError(422, f"run {run.name!r} is a replay: its tasks show what the engines would have "
-                                   "created; assigning or changing them would invent a dispatch history")
+        return (f"run {run.name!r} is a replay: its tasks show what the engines would have created; assigning or "
+                "changing them would invent a dispatch history")
+    return None
+
+
+def _writable(run: Run) -> None:
+    reason = read_only_reason(run)
+    if reason:
+        raise TaskActionError(422, reason)
 
 
 def _actor(actor: str) -> str:

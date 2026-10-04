@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Run
-from app.services import map_state
+from app.services import map_state, task_actions
 
 router = APIRouter(tags=["map"])
 
@@ -31,9 +31,12 @@ def _at(run: Run, at: Optional[datetime]) -> datetime:
 @router.get("/runs")
 def list_runs(db: Session = Depends(get_db)):
     """Every run with its mode (as registered, never inferred), window, extent, sources and caveats, plus the
-    values the map can be styled by."""
+    values the map can be styled by. `task_actions_blocked` is the reason the task actions refuse this run's tasks
+    (the same text they return), or null when people may act on them."""
     runs = db.scalars(select(Run).order_by(Run.window_start)).all()
-    return {"runs": [map_state.run_summary(db, r) for r in runs], "vocabulary": map_state.vocabulary(db)}
+    return {"runs": [{**map_state.run_summary(db, r), "task_actions_blocked": task_actions.read_only_reason(r)}
+                     for r in runs],
+            "vocabulary": map_state.vocabulary(db)}
 
 
 @router.get("/map/zones")

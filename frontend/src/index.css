@@ -1,0 +1,64 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+@theme {
+  --color-navy-deep: #050914;
+  --color-navy-panel: #0d1526;
+  --color-navy-line: #1a2642;
+  --color-accent-cyan: #00f0ff;
+  --color-danger-red: #ff3b30;
+  --color-warning-orange: #ff9500;
+  --color-safe-green: #34c759;
+  --color-unstyled: #ff00ff;
+
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, "Courier New", monospace;
+}
+
+body {
+  background-color: var(--color-navy-deep);
+  color: #e2e8f0;
+  font-family: var(--font-sans);
+}
+
+.glow-cyan { box-shadow: 0 0 15px rgba(0, 240, 255, 0.4); }
+.glow-red { box-shadow: 0 0 15px rgba(255, 59, 48, 0.4); }
+.glow-orange { box-shadow: 0 0 15px rgba(255, 149, 0, 0.4); }
+.glow-green { box-shadow: 0 0 15px rgba(52, 199, 89, 0.4); }
+
+/* Dot grid texture over the map: decoration only. */
+.cyber-grid {
+  background-image: radial-gradient(circle, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Radar sweep over the map: a rotating line, decoration only (no data drives it). */
+@keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.radar-sweep {
+  position: absolute; left: 50%; top: 50%; width: 150%; height: 1.5px; margin-left: 0;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.35), rgba(34, 211, 238, 0));
+  animation: sweep 8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .radar-sweep { animation: none; display: none; }
+  .animate-marquee { animation: none !important; padding-left: 0 !important; }
+}
+
+@keyframes marquee { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-100%, 0, 0); } }
+.animate-marquee { animation: marquee 40s linear infinite; }
+
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #020617; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+
+.hatch-swatch {
+  background: repeating-linear-gradient(45deg, #8b98a9 0 2px, transparent 2px 6px);
+  border: 2px dashed #8b98a9;
+}
+
+/* MapLibre controls and attribution in the dark theme. */
+.maplibregl-ctrl-group { background: var(--color-navy-panel) !important; border: 1px solid rgba(0, 240, 255, 0.2); }
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
+.maplibregl-ctrl-attrib { background: rgba(5, 9, 20, 0.8) !important; color: #94a3b8; }
+.maplibregl-ctrl-attrib a { color: #cbd5e1; }

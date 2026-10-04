@@ -19,7 +19,7 @@ tidealert/
 │       ├── routes/            # FastAPI routers (CRUD for households, zones)
 │       ├── services/          # engines and data services (isolation engine, ingest, terrain, ...)
 │       └── data/              # (empty, gitignored) cached data pulls
-├── frontend/                  # placeholder
+├── frontend/                  # React + Vite map page (docs/api/map.md)
 ├── notebooks/                 # placeholder for Jupyter validation work
 ├── docs/
 │   ├── algorithms/             # one doc per algorithm (isolation-engine.md)
@@ -34,6 +34,7 @@ tidealert/
 
 - Python 3.11+
 - Docker (for local PostGIS)
+- Node 20+ (to build the map page in `frontend/`; see [docs/api/map.md](docs/api/map.md))
 
 ## Setup
 

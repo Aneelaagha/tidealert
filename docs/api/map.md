@@ -86,18 +86,42 @@ Every zone in the run's regions is returned, with or without a Case.
 - **Size:** `/map/zones` for the Harvey run is about 5 MB of GeoJSON (about
   650 kB gzipped).
 
-## Page (`frontend/index.html`, `frontend/map.js`)
+## Page (`frontend/`)
 
-Plain HTML/JS with MapLibre GL JS 4.7.1 from jsDelivr, served by FastAPI
-`StaticFiles` at `/ui/`. There's no build step.
+A React + TypeScript app built with Vite and styled with Tailwind, using
+MapLibre GL JS 4.7.1 from npm.
+
+**Running it:**
+- **Built:** in `frontend/`, run `npm install` then `npm run build`. FastAPI
+  serves `frontend/dist` at `/ui/`. If `dist` doesn't exist, `/ui/` says how
+  to build it. `dist` is not committed.
+- **Development:** run `npm run dev` (Vite, with hot reload). It proxies the
+  API paths to `http://127.0.0.1:8000`, or to `TIDEALERT_API` if set.
+- **Checks:** `npm run lint` (TypeScript) and `npm test` (vitest).
+
+**Where things are:**
+- `src/lib/api.ts` is the only code that talks to the backend.
+- `src/lib/colors.ts` is the only value-to-color table.
+- `src/lib/time.ts` holds the run clock and the URL state.
+
+The look (dark theme, panels, grid texture, radar sweep) is adapted from a
+design reference. None of the reference's data, simulation or copilot was
+carried over.
 
 **What it shows:**
-- a run picker with a mode badge taken from `runs.mode`;
-- a time slider over the run's window, stepping every 15 minutes (the sweep
-  cadence);
-- the freshness banner with the run's caveats;
-- the legend;
-- a zone panel with that zone's Cases and contributions from `/cases`.
+- **Header:** a run picker with a mode badge taken from `runs.mode`, and a
+  time slider over the run's window, stepping every 15 minutes (the sweep
+  cadence).
+- **Freshness banner** with the run's caveats.
+- **Map,** with a status line counting zones, Cases, tasks and coverage
+  gaps.
+- **Zone panel:** the zone's Cases and contributions from `/cases`. A
+  contribution's text is labelled "recorded when first observed", since it
+  can differ from the refreshed confidence next to it.
+- **Legend.**
+- **Footer feed:** the run's task events up to the slider time, newest
+  first, from `/tasks`. Each entry is a stored event with its own time,
+  actor and note.
 
 **Where the map's content comes from:**
 - **Shapes:** zone outlines from the database geometry.
@@ -105,9 +129,9 @@ Plain HTML/JS with MapLibre GL JS 4.7.1 from jsDelivr, served by FastAPI
 - **Styles:** fill comes from `risk_level`. The outline comes from the
   zone's strongest confidence word (dashed for `stale_verify`). Active
   coverage gaps are hatched with a dashed edge.
-- **Colors:** `COLORS` in `map.js` is the only value-to-color table. A value
-  with no entry draws in magenta and is flagged in the legend as an
-  unstyled value.
+- **Colors:** `COLORS` in `src/lib/colors.ts` is the only value-to-color
+  table. A value with no entry draws in magenta and is flagged in the legend
+  as an unstyled value.
 - **Shareable views:** the run and time are kept in the URL (`?run=&at=`).
 - **Task markers:** one circle per zone with an active task, at the zone's
   `task_anchor`.
@@ -123,21 +147,44 @@ Plain HTML/JS with MapLibre GL JS 4.7.1 from jsDelivr, served by FastAPI
     `task_flagged`).
   - **The zone panel** lists each Case's tasks as of the slider time, with
     the assignee and the full event history.
+- **Decoration:** the grid texture, the radar sweep and the "Sound test"
+  tone (muted until sound is turned on) are decoration only. No data drives
+  them, and they show no values.
+
+**No invented data, enforced:** `src/test/no-invented-data.test.ts` is a
+permanent part of the test suite. It scans every source file and fails if
+it finds any of these:
+- `Math.random`;
+- the wall clock (`Date.now()`, `new Date()`) used as a value;
+- a `fetch` outside `src/lib/api.ts`;
+- an outside host other than the basemap tiles;
+- a hardcoded list of records;
+- any of the design reference's invented concepts or its persona.
+
+It's a lexical check: it catches those patterns, not every possible way to
+fake a value.
 
 **Page limitations:**
-- **Basemap:** tiles come from OpenStreetMap's public tile server. That's
-  fine for development, but a deployment needs its own tile source or one
-  allowed by OSM's tile usage policy.
+- **Basemap:** tiles come from OpenStreetMap's public tile server, darkened
+  in the style. That's fine for development, but a deployment needs its own
+  tile source or one allowed by OSM's tile usage policy.
 - **Engines on the map:** contributing engines appear only in the zone
   panel, not as map symbols.
-- **Read-only for tasks:** the page has no assign or status controls. Task
-  actions are API-only (`docs/algorithms/task-lifecycle.md`).
+- **Read-only for tasks:** the page has no assign or status controls yet.
+  They come in the next step (scenario and live runs only). Task actions
+  are API-only for now (`docs/algorithms/task-lifecycle.md`).
+- **No responder markers:** no responder has location data (the API
+  exposes only `has_location`, and it's false for all of them). Markers can
+  come once locations are populated.
 - **One marker per zone:** a zone's marker summarizes all its active tasks.
   The zone panel has the detail.
-- **Slider step:** the 15-minute cadence is assumed in `map.js`; a run
-  doesn't store its cadence.
+- **Slider step:** the 15-minute cadence is assumed in `src/lib/time.ts`; a
+  run doesn't store its cadence.
 - **Each slider stop refetches every zone:** the full zone GeoJSON, about
-  650 kB gzipped and about 0.7 s for Harvey.
+  650 kB gzipped and about 0.8 s for Harvey. Keyboard stepping commits once
+  the keys pause for 400 ms, not on every key press.
+- **Bundle size:** about 1 MB minified (about 300 kB gzipped), most of it
+  MapLibre.
 - **Synthetic scenarios** place their blocks near lat/lon 0, on open water
   in the basemap.
 - **No live mode test:** no live run exists, so the LIVE badge and the

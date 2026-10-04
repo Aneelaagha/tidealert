@@ -1,0 +1,134 @@
+// The map: the run's zones as of the slider time, styled from each zone's own fields (COLORS), plus one task marker
+// per zone with an active task at the API's task_anchor. Shapes come from the database geometry and the view from
+// the run's extent. The grid texture and radar sweep on top are decoration and never block clicks.
+
+import maplibregl, { type GeoJSONSource, type StyleSpecification } from 'maplibre-gl';
+import { useEffect, useRef, useState } from 'react';
+import type { Run, ZonesResponse } from '../lib/api';
+import { GAP_COLOR, SELECTED_COLOR, TASK_RADIUS, TASK_VERIFY_EDGE, matchColor } from '../lib/colors';
+
+const STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster', tileSize: 256,
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+  },
+  // OSM tiles darkened and desaturated for the dark theme.
+  layers: [{ id: 'osm', type: 'raster', source: 'osm',
+             paint: { 'raster-saturation': -0.85, 'raster-brightness-max': 0.38, 'raster-contrast': 0.1 } }],
+};
+
+const EMPTY = { type: 'FeatureCollection' as const, features: [] };
+
+function hatchImage() {
+  const size = 8, data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    if ((x + y) % size < 2) data.set([139, 152, 169, 210], (y * size + x) * 4);
+  }
+  return { width: size, height: size, data };
+}
+
+function addLayers(map: maplibregl.Map) {
+  map.addSource('zones', { type: 'geojson', data: EMPTY, promoteId: 'zone_id' });
+  map.addImage('hatch', hatchImage());
+  const color = (f: Parameters<typeof matchColor>[0]) => matchColor(f) as maplibregl.ExpressionSpecification;
+  map.addLayer({ id: 'zone-fill', type: 'fill', source: 'zones', paint: {
+    'fill-color': color('risk_level'),
+    'fill-opacity': ['case', ['==', ['get', 'risk_level'], 'unknown'], 0.12, 0.45],
+  } });
+  // Coverage gap: hatched and dashed, so a zone without real signal looks different instead of being left out.
+  map.addLayer({ id: 'zone-gap-hatch', type: 'fill', source: 'zones', filter: ['==', ['get', 'coverage_gap_active'], true],
+    paint: { 'fill-pattern': 'hatch', 'fill-opacity': 0.55 } });
+  map.addLayer({ id: 'zone-edge', type: 'line', source: 'zones',
+    paint: { 'line-color': '#64748b', 'line-width': 0.4, 'line-opacity': 0.7 } });
+  map.addLayer({ id: 'zone-gap-edge', type: 'line', source: 'zones', filter: ['==', ['get', 'coverage_gap_active'], true],
+    paint: { 'line-color': GAP_COLOR, 'line-width': 1, 'line-dasharray': [2, 2] } });
+  map.addLayer({ id: 'case-outline', type: 'line', source: 'zones',
+    filter: ['all', ['>', ['get', 'case_count'], 0], ['!=', ['get', 'confidence_word'], 'stale_verify']],
+    paint: { 'line-color': color('confidence_word'), 'line-width': 3 } });
+  map.addLayer({ id: 'case-outline-stale', type: 'line', source: 'zones',
+    filter: ['all', ['>', ['get', 'case_count'], 0], ['==', ['get', 'confidence_word'], 'stale_verify']],
+    paint: { 'line-color': color('confidence_word'), 'line-width': 2.5, 'line-dasharray': [1.5, 1] } });
+  map.addLayer({ id: 'zone-selected', type: 'line', source: 'zones', filter: ['==', ['get', 'zone_id'], ''],
+    paint: { 'line-color': SELECTED_COLOR, 'line-width': 3 } });
+  map.addSource('tasks', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'task-marker', type: 'circle', source: 'tasks', paint: {
+    'circle-color': color('task_status'),
+    'circle-radius': ['match', ['get', 'task_priority'], ...Object.entries(TASK_RADIUS).flat(), 7] as unknown as maplibregl.ExpressionSpecification,
+    'circle-stroke-color': ['case', ['get', 'task_verify'], TASK_VERIFY_EDGE, '#0f172a'],
+    'circle-stroke-width': ['case', ['get', 'task_verify'], 3, 1.5],
+  } });
+}
+
+interface Props {
+  run: Run | null;
+  zones: ZonesResponse | null;
+  selectedZoneId: string | null;
+  onSelectZone: (zoneId: string | null) => void;
+}
+
+export function ZoneMap({ run, zones, selectedZoneId, onSelectZone }: Props) {
+  const container = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const onSelect = useRef(onSelectZone);
+  onSelect.current = onSelectZone;
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const map = new maplibregl.Map({ container: container.current!, style: STYLE, center: [0, 0], zoom: 1 });
+    map.addControl(new maplibregl.NavigationControl(), 'top-left');
+    // Start on "style.load", not "load": "load" waits for a rendered frame, which a background tab never draws.
+    map.once('style.load', () => {
+      addLayers(map);
+      const pick = (e: maplibregl.MapLayerMouseEvent) => onSelect.current(String(e.features?.[0]?.properties?.zone_id ?? ''));
+      map.on('click', 'task-marker', pick);
+      map.on('click', 'zone-fill', pick);
+      map.on('mouseenter', 'zone-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'zone-fill', () => { map.getCanvas().style.cursor = ''; });
+      setReady(true);
+    });
+    mapRef.current = map;
+    return () => { map.remove(); mapRef.current = null; };
+  }, []);
+
+  // Fit the view to the run's extent when the run changes.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !run?.extent) return;
+    const [w, s, e, n] = run.extent;
+    map.fitBounds([[w, s], [e, n]], { padding: 30, duration: 0 });
+  }, [run?.id, run?.extent]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    (map.getSource('zones') as GeoJSONSource).setData((zones ?? EMPTY) as GeoJSON.FeatureCollection);
+    const withTask = (zones?.features ?? []).filter((f) => f.properties.task_count > 0 && f.properties.task_anchor);
+    (map.getSource('tasks') as GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: withTask.map((f) => ({
+        type: 'Feature', geometry: { type: 'Point', coordinates: f.properties.task_anchor! },
+        properties: { zone_id: f.properties.zone_id, task_status: f.properties.task_status,
+                      task_priority: f.properties.task_priority, task_verify: f.properties.task_verify },
+      })),
+    });
+  }, [zones, ready]);
+
+  useEffect(() => {
+    if (ready) mapRef.current?.setFilter('zone-selected', ['==', ['get', 'zone_id'], selectedZoneId ?? '']);
+  }, [selectedZoneId, ready]);
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-navy-deep">
+      {/* h-full, not absolute: MapLibre's CSS sets position: relative on its container. */}
+      <div ref={container} className="h-full w-full" />
+      <div className="pointer-events-none absolute inset-0 cyber-grid opacity-40" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="radar-sweep" />
+      </div>
+    </div>
+  );
+}

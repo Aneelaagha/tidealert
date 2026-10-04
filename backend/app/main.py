@@ -2,7 +2,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.routes import copilot, households, map, tasks, zones
@@ -18,9 +18,16 @@ app.include_router(tasks.router)
 app.include_router(copilot.router)
 
 
-# The map page (frontend/index.html + map.js): static files that read the API above.
-FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
-app.mount("/ui", StaticFiles(directory=FRONTEND_DIR, html=True), name="ui")
+# The page: the React app in frontend/, built to frontend/dist (`npm run build`), reading the API above.
+FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
+if os.path.isdir(FRONTEND_DIST):
+    app.mount("/ui", StaticFiles(directory=FRONTEND_DIST, html=True), name="ui")
+else:
+    @app.get("/ui/", include_in_schema=False, response_class=HTMLResponse)
+    def ui_not_built():
+        return ("<!doctype html><title>TideAlert</title><p>The page is not built yet. From <code>frontend/</code> run "
+                "<code>npm install</code> then <code>npm run build</code>, and restart the API (or run "
+                "<code>npm run dev</code> for the development server).</p>")
 
 
 @app.get("/", include_in_schema=False)

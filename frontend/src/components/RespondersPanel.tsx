@@ -4,6 +4,7 @@
 import { Users } from 'lucide-react';
 import type { Responder, Run, Task } from '../lib/api';
 import { fmtTime, label } from '../lib/format';
+import { SafetyNote, safetyTag } from './SafetyNote';
 import { Muted, Tag } from './ui';
 
 const STATUS_TONE: Record<string, 'cyan' | 'green' | 'plain'> = { available: 'green', assigned: 'cyan', off_duty: 'plain' };
@@ -48,9 +49,10 @@ export function RespondersPanel({ run, responders, tasks, error }: Props) {
                 </div>
                 <div className="mt-1 text-[10px] text-slate-400">
                   ACTIVE TASKS AT THIS TIME: {mine.length
-                    ? mine.map((t) => <Tag key={t.id} tone="cyan">{label(t.kind)} · {label(t.status)}</Tag>)
+                    ? mine.map((t) => <span key={t.id}><Tag tone="cyan">{label(t.kind)} · {label(t.status)}</Tag>{safetyTag(t.safety)}</span>)
                     : <Muted>none</Muted>}
                 </div>
+                {mine.map((t) => <SafetyNote key={t.id} safety={t.safety} />)}
               </div>
             );
           })}

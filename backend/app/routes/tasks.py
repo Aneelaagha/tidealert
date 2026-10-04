@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.models import Case, Responder, Run, Task
 from app.models.task import TaskStatus
-from app.services import map_state, task_actions, task_view
+from app.services import map_state, safety, task_actions, task_view
 from app.services.task_actions import TaskActionError
 
 router = APIRouter(tags=["tasks"])
@@ -58,6 +58,7 @@ def _task_at(db: Session, task: Task, at: Optional[datetime]) -> dict:
     state = task_view.task_state(task, when)
     if state is None:
         raise HTTPException(status_code=404, detail=f"task did not exist yet at {when.isoformat()}")
+    safety.attach(db, run, when, [(task.case.zone_id, state)])
     return state
 
 
@@ -71,8 +72,11 @@ def list_tasks(run_id: uuid.UUID, at: Optional[datetime] = None, active_only: bo
     except map_state.TimeOutOfWindow as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     tasks = db.scalars(select(Task).join(Case, Task.case_id == Case.id).where(Case.run_id == run.id)
-                       .options(selectinload(Task.events)).order_by(Task.created_at)).all()
-    states = [s for s in (task_view.task_state(t, when) for t in tasks) if s and (s["active"] or not active_only)]
+                       .options(selectinload(Task.events), selectinload(Task.case)).order_by(Task.created_at)).all()
+    pairs = [(t.case.zone_id, s) for t in tasks for s in [task_view.task_state(t, when)]
+             if s and (s["active"] or not active_only)]
+    safety.attach(db, run, when, pairs)
+    states = [s for _, s in pairs]
     return {"run_id": str(run.id), "mode": run.mode.value, "at": when.isoformat(), "tasks": states}
 
 

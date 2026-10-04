@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { Case, Responder, Run } from '../lib/api';
 import { UNSTYLED, colorOf } from '../lib/colors';
 import { fmtTime, label } from '../lib/format';
+import { SafetyNote, safetyTag } from './SafetyNote';
 import { TaskActions } from './TaskActions';
 import { Muted, Tag } from './ui';
 
@@ -83,6 +84,7 @@ export function AlertsPanel({ run, at, cases, error, zoneNames, selectedCaseId, 
                       <span key={t.id} className="mr-2">
                         TASK: <Tag tone="cyan">{label(t.status)}</Tag><Tag>{t.priority}</Tag>
                         {t.verify_before_dispatch && <Tag tone="amber">verify before dispatch</Tag>}
+                        {safetyTag(t.safety)}
                       </span>
                     ))}
                   </div>
@@ -94,6 +96,7 @@ export function AlertsPanel({ run, at, cases, error, zoneNames, selectedCaseId, 
                       ? active.map((t) => (
                           <div key={t.id}>
                             <p className="mt-2 text-[10px] text-slate-400">Task: {label(t.kind)} · {label(t.status)} · {t.priority}</p>
+                            <SafetyNote safety={t.safety} />
                             <TaskActions run={run} task={t} operator={operator} at={at} responders={responders} onDone={onActed} />
                           </div>
                         ))

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Run
-from app.services import map_state, task_actions
+from app.services import map_state, safety, task_actions
 
 router = APIRouter(tags=["map"])
 
@@ -67,5 +67,6 @@ def list_cases(run_id: uuid.UUID, zone_id: Optional[uuid.UUID] = None, at: Optio
     """The run's Cases opened by `at`, with their contributions visible at `at` and confidence as of `at`."""
     run = _run(db, run_id)
     at = _at(run, at)
-    return {"run_id": str(run.id), "mode": run.mode.value, "at": at.isoformat(),
-            "cases": map_state.cases(db, run, at, zone_id)}
+    cases = map_state.cases(db, run, at, zone_id)
+    safety.attach(db, run, at, [(c["zone_id"], t) for c in cases for t in c["tasks"]])  # each task's zone access
+    return {"run_id": str(run.id), "mode": run.mode.value, "at": at.isoformat(), "cases": cases}

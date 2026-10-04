@@ -112,4 +112,40 @@ for the listening run.)
   API-only.
 - **Assignment is manual only:** no proximity, skills or routing.
   `route_geometry` stays empty.
-- **Responder safety monitoring and supply routing:** Week 7.
+- **Supply routing:** Week 7 (route feasibility only).
+
+## Responder safety: zone access (step 1)
+
+`app/services/safety.py` adds a `safety` block to every task state from
+`/tasks`, `/tasks/{id}`, `/cases` and the task actions. It's computed as of
+the slider time from what the isolation engine already stored, in one
+batch per request. Nothing new is measured.
+
+| `zone_access` | When | Warning (active tasks) |
+|---|---|---|
+| `isolated` | the zone's latest isolation evidence at `at` supports isolation (mechanism: stranded or submerged) | **high**: "Zone cut off since T". If nobody is assigned it says so. If the current assignee was assigned before T: **"cut off after the responder was assigned"** (`isolated_after_assignment`). |
+| `reconnected` | the latest isolation evidence is a reconnection | none; the reconnection text is shown, as the optimistic bound, not as "reachable" |
+| `possibly_isolated` | the zone's time-bound "possibly isolated" coverage gap is active | **medium**: "Zone may be cut off since T" |
+| `not_evaluated` | a permanent coverage gap, or the isolation engine never ran on the zone's region (every synthetic scenario zone) | none; the panel says "not a sign it's safe" |
+| `reachable` | evaluated, no gap, never isolated: a dry route exists even if every unknown road is flooded | none |
+
+**What the warnings rest on:**
+- "Reachable only over flooded roads" is the `isolated` state. No
+  route-by-route flood state is stored, so there are no routes to show.
+- When no responder is assigned to an isolated or possibly isolated zone,
+  `assignment_note` says "no assignment to warn about…" rather than staying
+  silent.
+
+**By run:**
+- **Harvey:** every reach-block task carries a real cut-off warning while
+  its zone is isolated, and reads reconnected afterwards. No responders
+  exist and replays refuse assignments, so `isolated_after_assignment`
+  can't occur.
+- **The synthetic scenarios:** read `not_evaluated` throughout.
+
+The after-assignment logic is tested on its own (`tests/test_safety.py`).
+It will be exercised against a real timeline by step 2: synthetic
+responders over Harvey, labelled as a mixed scenario.
+
+The page shows the warnings in the Cases panel, the zone panel and the
+Responders panel. The map is unchanged.

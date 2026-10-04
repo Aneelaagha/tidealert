@@ -54,6 +54,13 @@ describe('no invented data in src/', () => {
     expect(offenders(/=\s*\[\s*\{/)).toEqual([]);
   });
 
+  it('depends on no outside model SDK and has no server of its own (the copilot is /copilot/ask)', () => {
+    const pkg = JSON.parse(readFileSync(join(SRC, '..', 'package.json'), 'utf8'));
+    const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
+    expect(deps.filter((d) => /genai|gemini|openai|anthropic|express|dotenv/i.test(d))).toEqual([]);
+    expect(readdirSync(join(SRC, '..')).filter((f) => /^server\.(ts|js|cjs|mjs)$/.test(f))).toEqual([]);
+  });
+
   it('carries none of the reference app\'s invented concepts or its persona', () => {
     const banned = /aegis|gemini|@google\/genai|txHash|signalDepth|sensorType|waterLevel|floodingTrend|crowdFlow|supplyRoute|donation|personnelLeft|\bfuel\b|satellite|latency|rainIntensity/i;
     expect(offenders(banned)).toEqual([]);

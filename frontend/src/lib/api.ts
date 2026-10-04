@@ -149,6 +149,38 @@ export interface Responder {
   has_location: boolean;
 }
 
+export interface CopilotStatus {
+  mode: 'model' | 'template' | string;
+  reason: string;
+  intents: Record<string, string>; // intent -> what it answers
+  needs: Record<string, 'zone_id' | 'case_id' | string>; // intent -> what must be selected
+}
+
+export interface CopilotAnswer {
+  mode: 'model' | 'template' | string;
+  mode_reason: string;
+  question: string;
+  intent: string | null;
+  in_scope: boolean;
+  answer: string;
+  unknowns: string[];
+  as_of?: string;
+  tools: string[];
+  served_by?: string | null;
+  placeholders?: number;
+  retry_model_after_seconds?: number;
+  household_data?: { households: number; real: number; may_send_to_external_model: boolean };
+}
+
+export interface CopilotQuestion {
+  run_id: string;
+  question: string;
+  intent: string | null;
+  at: string | null;
+  zone_id: string | null;
+  case_id: string | null;
+}
+
 type Params = Record<string, string | null | undefined>;
 
 export class ApiError extends Error {
@@ -200,6 +232,8 @@ export const api = {
     get<{ responders: Responder[] }>('/responders', run.mode === 'live' ? {} : { run_id: run.id }, signal),
   assign: (taskId: string, responderId: string, a: Acting) =>
     post<Task>(`/tasks/${taskId}/assign`, { responder_id: responderId, actor: a.actor, note: a.note ?? '', ...(a.at ? { at: a.at } : {}) }),
+  copilotStatus: (signal?: AbortSignal) => get<CopilotStatus>('/copilot/status', {}, signal),
+  ask: (q: CopilotQuestion) => post<CopilotAnswer>('/copilot/ask', q),
   complete: (taskId: string, a: Acting) =>
     post<Task>(`/tasks/${taskId}/status`, { status: 'complete', actor: a.actor, note: a.note ?? '', ...(a.at ? { at: a.at } : {}) }),
 };

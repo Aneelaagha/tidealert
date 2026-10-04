@@ -129,6 +129,9 @@ carried over.
   active tasks assigned as of the slider time. The status shown is the
   responder's **current** status: the database keeps no history of it. A
   run with no responders says so.
+- **Copilot panel:** questions about the run as of the slider time, from
+  `/copilot/status` and `/copilot/ask`. See
+  [docs/algorithms/copilot.md](../algorithms/copilot.md#panel-map-page).
 - **Footer feed:** the run's task events up to the slider time, newest
   first, from `/tasks`. Each entry is a stored event with its own time,
   actor and note.
@@ -201,7 +204,9 @@ it finds any of these:
 - a `fetch` outside `src/lib/api.ts`;
 - an outside host other than the basemap tiles;
 - a hardcoded list of records;
-- any of the design reference's invented concepts or its persona.
+- any of the design reference's invented concepts or its persona;
+- a model SDK (Gemini, OpenAI, Anthropic), Express or dotenv in
+  `package.json`, or a `server.*` file. The copilot is `/copilot/ask` only.
 
 It's a lexical check: it catches those patterns, not every possible way to
 fake a value.

@@ -29,6 +29,8 @@ def test_without_a_key_the_copilot_uses_templates(client):
     s = client.get("/copilot/status").json()
     assert s["mode"] == "template" and "ANTHROPIC_API_KEY is not set" in s["reason"]
     assert set(s["intents"]) == set(copilot.INTENTS)
+    assert s["needs"] == {"zone_status": "zone_id", "zone_cases": "zone_id", "briefing": "zone_id",
+                          "explain_confidence": "case_id"}  # open_cases needs no selection
 
 
 def test_zone_status_states_exactly_what_the_map_holds(client, runs):

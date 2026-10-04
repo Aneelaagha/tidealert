@@ -4,6 +4,7 @@
 import { Map as MapIcon, UserRound } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertsPanel } from './components/AlertsPanel';
+import { CopilotPanel } from './components/CopilotPanel';
 import { EventTicker } from './components/EventTicker';
 import { FreshnessBanner } from './components/FreshnessBanner';
 import { Header } from './components/Header';
@@ -177,8 +178,13 @@ export default function App() {
         )}
         </div>
 
-        <div className="flex flex-col gap-6 lg:max-h-[600px]">
-          <Panel title="Zone" className="min-h-[260px] flex-1">
+        <div className="flex flex-col gap-6">
+          {run && (
+            <CopilotPanel key={run.id} run={run} at={zones?.at ?? at} zoneId={zone ? selectedZoneId : null}
+                          zoneName={zone?.name ?? null} caseId={selectedCaseId}
+                          caseWord={cases?.find((c) => c.id === selectedCaseId)?.confidence_word ?? null} />
+          )}
+          <Panel title="Zone" className="h-[420px]">
             {run ? <ZonePanel runId={run.id} at={zones?.at ?? at} zone={zone} gapReasons={zones?.gap_reasons ?? []}
                               responders={responders} version={version} />
               : <p className="text-slate-500">loading…</p>}

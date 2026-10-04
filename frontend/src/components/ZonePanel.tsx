@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { api, type Case, type Responder, type Task, type ZoneProps } from '../lib/api';
 import { fmtTime, label } from '../lib/format';
+import { SafetyNote } from './SafetyNote';
 import { Muted, Tag } from './ui';
 
 const directionTone = (d: string) => (d === 'supports' ? 'red' : d === 'contradicts' ? 'green' : 'plain');
@@ -24,6 +25,7 @@ function TaskBlock({ task, responders }: { task: Task; responders: Map<string, R
         {task.status === 'pending' && !task.verify_before_dispatch && <Muted>awaiting assignment</Muted>}
       </p>
       <p className="text-slate-500">{task.created_by_rule}{who ? ` · assigned to ${who}` : ''}</p>
+      {task.active && <SafetyNote safety={task.safety} />}
       <details className="mt-1">
         <summary className="cursor-pointer text-slate-500">History ({task.events.length})</summary>
         <ul className="mt-1 space-y-1.5 pl-3">

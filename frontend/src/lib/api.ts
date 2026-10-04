@@ -98,6 +98,18 @@ export interface TaskEvent {
   assigned_responder_id: string | null;
 }
 
+export interface SafetyWarning { code: string; severity: 'high' | 'medium' | string; since: string | null; text: string }
+
+/** A task's zone access as of the slider time, from the isolation engine's stored state (app.services.safety). */
+export interface Safety {
+  zone_access: 'isolated' | 'reconnected' | 'possibly_isolated' | 'not_evaluated' | 'reachable' | string;
+  since: string | null;
+  mechanism: string | null;
+  reason: string;
+  warnings: SafetyWarning[];
+  assignment_note: string | null;
+}
+
 export interface Task {
   id: string;
   case_id: string;
@@ -110,6 +122,7 @@ export interface Task {
   assigned_responder_id: string | null;
   active: boolean;
   events: TaskEvent[];
+  safety?: Safety; // present on /tasks, /tasks/{id} and /cases
 }
 
 export interface Contribution {

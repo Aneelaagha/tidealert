@@ -17,6 +17,11 @@ describe('the task-event feed', () => {
     expect(events[0].note).toBe('note 2026-09-10T16:00:00Z');
   });
 
+  it('puts the later of two same-time events first', () => {
+    const events = latestEvents([task('a', ['2026-09-02T19:00:00Z', '2026-09-02T19:00:00Z'])]);
+    expect(events.map((e) => e.seq)).toEqual([1, 0]);
+  });
+
   it('is empty when there are no tasks', () => {
     expect(latestEvents([])).toEqual([]);
   });

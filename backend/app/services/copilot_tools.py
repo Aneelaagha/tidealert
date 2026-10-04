@@ -81,6 +81,11 @@ def _run_cases(db: Session, run: Run, at: datetime, zone_id=None, case_id=None) 
     return list(db.scalars(q.order_by(Case.opened_at)))
 
 
+def resolve_time(db: Session, run_id, at: Optional[datetime] = None) -> datetime:
+    """The run's clock at `at` (default: end of its window), as every tool resolves it."""
+    return map_state.resolve_at(_run(db, run_id), at)
+
+
 # ---------------------------------------------------------------- tools
 def run_overview(db: Session, run_id, at: Optional[datetime] = None) -> ToolResult:
     """The run, its clock, its sources' freshness, and counts of Cases and tasks as of `at`."""

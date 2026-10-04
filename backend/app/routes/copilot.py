@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -28,9 +28,10 @@ def status():
 
 
 @router.post("/ask")
-def ask(body: Ask, db: Session = Depends(get_db)):
+def ask(body: Ask, request: Request, db: Session = Depends(get_db)):
+    ip = request.client.host if request.client else None  # the direct peer: no proxy headers are trusted
     try:
-        return copilot.ask(db, body.run_id, body.question, body.intent, body.at, body.zone_id, body.case_id)
+        return copilot.ask(db, body.run_id, body.question, body.intent, body.at, body.zone_id, body.case_id, ip)
     except copilot_tools.NotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except (copilot.CopilotInputError, map_state.TimeOutOfWindow) as exc:

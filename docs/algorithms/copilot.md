@@ -1,11 +1,13 @@
 # Copilot
 
-Status: **step 1 of 3.** Grounded tools and a template-answer endpoint. The
-model-backed answers (step 2) and the side-panel UI (step 3) come next.
+Status: **step 2 of 3.** Grounded tools, template answers, and model-backed
+answers for free-text questions. The side-panel UI (step 3) comes next.
 
 Code:
 - `backend/app/services/copilot_tools.py` (tools);
-- `backend/app/services/copilot.py` (routing and templates);
+- `backend/app/services/copilot.py` (routing, templates, mode choice);
+- `backend/app/services/copilot_model.py` (model mode: tool loop, rejection
+  check, placeholders);
 - `backend/app/routes/copilot.py` (endpoints).
 
 ## Scope
@@ -30,9 +32,11 @@ knowledge.
   - `run_id`;
   - optionally `question`, `intent`, `at`, `zone_id` and `case_id`.
 
-  Without `intent`, the question is routed by keywords in template mode. The
-  answer is stated as of `at` on the run's clock (the map's slider time,
-  default the end of the window) and says the run's mode.
+  Without `intent`, the question goes to the model in model mode, or is
+  routed by keywords in template mode. The answer is stated as of `at` on
+  the run's clock (the map's slider time, default the end of the window) and
+  says the run's mode. Every answer reports the `mode` that produced it and
+  why (`mode_reason`).
 - `GET /copilot/status` returns the current mode and the intents.
 
 ## Grounding
@@ -45,11 +49,64 @@ knowledge.
   assessed". An unknown risk level gives the stored reason, or "not assessed
   by any engine". A zone with no Case says so. Missing inputs return 422,
   and objects not in the run return 404.
-- **Template mode** (automatic when `ANTHROPIC_API_KEY` is not set) builds
-  every answer from tool results with fixed templates.
-- **Model mode** (step 2) will have the model write placeholders that the
-  server fills from tool results, and reject any status word the model
-  writes itself.
+- **Template mode** builds every answer from tool results with fixed
+  templates. It's used when `ANTHROPIC_API_KEY` is not set, when the request
+  names an `intent` (a button has already chosen the tool, and the template
+  is exact), and whenever model mode falls back.
+- **Model mode** (`ANTHROPIC_API_KEY` set, free-text question) is described
+  below.
+
+## Model mode
+
+- **Model:** `claude-opus-5-5` at effort `medium`, through the Messages API
+  with tool use. Server-side refusal fallback is on (`fallbacks: "default"`):
+  if the model declines, the API reruns the request on a fallback model, and
+  the answer reports the model that served it (`served_by`).
+- **Tools:** the five grounded tools (`zone_status`, `zone_cases`,
+  `open_cases`, `explain_confidence`, `briefing_facts`). They take **no
+  arguments**: the zone and Case are the map's selection, so the model can't
+  read beyond it. A missing selection goes back to the model as a tool error,
+  so it can ask the user to select one.
+- **Placeholders:** each tool result gets an id (`t1`, `t2`, ...). The model
+  sees the values, so it can decide what matters, but it writes facts only
+  as `{{t1.risk_level}}`, `{{t1.cases[0].confidence_word}}` and so on. The
+  server fills each one from the stored tool result with the same formatting
+  as the templates (null reads "not assessed"). The server, not the model,
+  writes the "As of ... (REPLAY run)" line, and for a briefing the draft
+  label and run caveats.
+- **Rejection check:** before filling, the model's own words (everything
+  outside placeholders) are rejected if they contain:
+  - a **status word**, in stored form or with spaces. The list is built from
+    the enums: risk levels, confidence words, Case and task statuses, task
+    priorities, household statuses and source freshness. The one exception
+    is the phrase "open Case(s)", which names a question, not a status.
+  - a **digit**. Counts, confidences, times and populations must all be
+    placeholders.
+  - a **copy of any tool string** of 8 or more characters (zone names,
+    inference sentences, rules) that isn't an enum value.
+  - a placeholder that names no tool result, no value, or a group of values,
+    or stray braces.
+- **Fallback to templates:** a rejected answer is never shown. The copilot
+  answers with the template for the first tool the model read (or the
+  keyword route), and `mode_reason` says why. The same fallback covers a
+  refusal from the whole fallback chain, a cut-off answer, an API error, an
+  answer that read no tool, and more than 6 model turns.
+- **Out of scope:** the model replies with a fixed token, and the server
+  returns the fixed out-of-scope reply.
+- **Limits:** these apply only to model calls. Template answers are not
+  counted or limited. Hitting any limit falls back to the template, and
+  `mode_reason` says which limit.
+  - **Per client IP:** 20 model questions per 10 minutes, as a sliding
+    window. A limited answer also reports `retry_model_after_seconds`.
+  - **Per question:** a cap of 60,000 tokens (input plus output, summed over
+    the model's turns). Each turn's `max_tokens` is cut to what's left, and
+    no turn starts with less than 2,048.
+  - **Per question:** at most 8 tool calls and 6 model turns. A turn that
+    would go past the tool-call cap runs none of its tools.
+- **Setup:** `ANTHROPIC_API_KEY` in the repo-root `.env` (loaded by
+  `app/database.py`) or in the environment, plus the `anthropic` package
+  (`requirements.txt`). With either missing, the copilot stays in template
+  mode.
 
 ## Household data and external models
 
@@ -62,14 +119,26 @@ knowledge.
   **defaults to false**, so an unmarked household counts as real. The
   generator scripts set it explicitly.
 - **The guard:** a result that touches any real household has
-  `may_send_to_external_model: false`, and the model path (step 2) refuses to
-  send it. This is checked on every result, not assumed. A test adds an
+  `may_send_to_external_model: false`. The model path never sends it: the
+  question falls back to the template for that tool, and nothing from the
+  result reaches the model. This is checked on every result, not assumed. A test adds an
   unmarked household to a zone and confirms the briefing becomes unsendable.
 
 ## Known limitations
 
-- **No model yet:** template mode only. Free-text questions are routed by
-  keywords.
+- **Model mode is untested against the live API:** the tests drive the
+  tool loop with a scripted stand-in for the API. Tool calling, the
+  rejection check, placeholder filling and every fallback are tested, but
+  how often the real model's answers pass the check is not yet measured.
+- **The rejection check is lexical:** it catches written status words,
+  digits and copied text. It doesn't catch a count spelled out in words
+  ("two Cases"), or a wrong claim made without a value (for example, "this
+  zone has no Cases" when it has some). Values that come through
+  placeholders can't be wrong, since the server fills them.
+- **Strict on purpose:** a digit anywhere in the model's own words (even
+  "Case 1"), or a priority word like "high", rejects the answer.
+  Rejections fall back to templates, so the cost is a plainer answer, not a
+  wrong one.
 - **Recorded text vs. confidence:** a contribution's text is written when the
   evidence is first observed, and evidence the engine keeps re-confirming has
   its confidence updated later. The explanation shows both and says they can
@@ -79,4 +148,12 @@ knowledge.
   from household evidence, the evidence doesn't link each contributing
   household, so all households in the zone are counted (the conservative
   choice).
-- **No rate limiting yet** (step 2, together with the model call).
+- **The rate limit is in process memory:** it resets when the server
+  restarts, and each worker process counts separately. The client IP is the
+  direct peer, and proxy headers (`X-Forwarded-For`) are not trusted, so
+  behind a reverse proxy every user shares the proxy's quota. All of this is
+  fine for one local process. A deployment would need a shared store and a
+  trusted-proxy setting.
+- **The token cap is checked between turns:** the input of the turn that
+  crosses it is already spent, so one question can overrun the cap by up to
+  one turn's input.

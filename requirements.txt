@@ -5,6 +5,7 @@ geoalchemy2
 psycopg2-binary
 pydantic>=2.0
 python-dotenv
+anthropic>=1.11  # copilot model mode (backend/app/services/copilot_model.py)
 alembic
 shapely
 requests

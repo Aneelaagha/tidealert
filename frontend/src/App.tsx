@@ -5,6 +5,7 @@ import { Map as MapIcon, UserRound } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertsPanel } from './components/AlertsPanel';
 import { CopilotPanel } from './components/CopilotPanel';
+import { EthicsPanel } from './components/EthicsPanel';
 import { EventTicker } from './components/EventTicker';
 import { FreshnessBanner } from './components/FreshnessBanner';
 import { Header } from './components/Header';
@@ -71,6 +72,7 @@ export default function App() {
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [operator, setOperator] = useState(storedOperator);
+  const [ethicsOpen, setEthicsOpen] = useState(false);
   const [version, setVersion] = useState(0); // bumped after a task action: everything is read again
   const [status, setStatus] = useState('loading runs…');
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +87,8 @@ export default function App() {
     setSelectedZoneId(null);
     setSelectedCaseId(null);
   }, []);
+
+  const closeEthics = useCallback(() => setEthicsOpen(false), []);
 
   const changeOperator = (v: string) => {
     setOperator(v);
@@ -149,7 +153,9 @@ export default function App() {
   return (
     <div className="flex min-h-screen flex-col pb-6 antialiased selection:bg-cyan-950 selection:text-white">
       <Header runs={runs} run={run} onRun={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, null); }}
-              ticks={ticks} tick={tick} onTickInput={setTick} onTickCommit={() => setAt(ticks.length ? ticks[tick] : null)} />
+              ticks={ticks} tick={tick} onTickInput={setTick} onTickCommit={() => setAt(ticks.length ? ticks[tick] : null)}
+              onEthics={() => setEthicsOpen(true)} />
+      {ethicsOpen && <EthicsPanel run={run} freshness={freshness} vocabulary={vocabulary} onClose={closeEthics} />}
       {run && <FreshnessBanner run={run} freshness={freshness} />}
 
       <main className="mx-auto mt-4 grid w-full max-w-7xl flex-1 grid-cols-1 gap-6 px-6 lg:grid-cols-3">

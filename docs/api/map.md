@@ -15,6 +15,7 @@ need.
 | `GET /map/freshness?run_id=&at=` | For each source the run reads: `fresh` / `stale` / `no_data` / `event_driven`, with the last observation and its age. |
 | `GET /cases?run_id=&zone_id=&at=` | The run's Cases opened by `at`, with contributions and confidence as of `at`, and their tasks as of `at` (with event history). |
 | `GET /tasks`, `GET /tasks/{id}`, `GET /responders`, and the task actions | See [task-lifecycle.md](../algorithms/task-lifecycle.md). |
+| `GET /data-practices` | What the system does with data, computed from the code and the database (see "Data & ethics" below). |
 
 ## Time
 
@@ -129,6 +130,7 @@ carried over.
   active tasks assigned as of the slider time. The status shown is the
   responder's **current** status: the database keeps no history of it. A
   run with no responders says so.
+- **Data & ethics panel** (header button): see "Data & ethics" below.
 - **Copilot panel:** questions about the run as of the slider time, from
   `/copilot/status` and `/copilot/ask`. See
   [docs/algorithms/copilot.md](../algorithms/copilot.md#panel-map-page).
@@ -195,6 +197,27 @@ carried over.
   sweep in `scripts/run_case_matcher.py`). The "161 Cases unchanged" check
   fails until then. Automated tests act only inside rolled-back
   transactions.
+
+**Data & ethics** (`src/components/EthicsPanel.tsx`, from `GET /data-practices`, `/runs` and `/map/freshness`):
+
+1. **Reading the map:** unknown is never safe; words, not percentages; what each mode means; the run clock; magenta.
+2. **This run's data:** its sources with freshness, and its caveats.
+3. **People's data:**
+   - household and responder counts (real and synthetic);
+   - which household fields are personal, and that none is returned by any route;
+   - consent: not collected yet;
+   - no login;
+   - the name-based limit of the data-policy scan, stated on the panel itself;
+   - the routes that can change data.
+4. **The copilot:** its mode and reason, placeholders and rejection, and that real household data is never sent to a model.
+5. **Known gaps,** each with its source.
+
+`GET /data-practices` computes its flags rather than stating them:
+- **Consent** comes from the households table's columns.
+- **Authentication** comes from the routes' dependencies: any FastAPI security scheme, directly or nested.
+- **Exposed personal fields** come from every route's response model.
+
+`tests/test_data_practices.py` pins each known gap to its source. Flag-backed gaps disappear when the flag changes. The tile host must match the one `ZoneMap.tsx` actually loads. A retention process appearing in `backend/` or `scripts/` fails the test. The Case-status gap needs the doc line and no status-history table. And a new gap fails until it has a pin. The panel's own sentences come from those flags (`src/lib/ethics.ts`, tested), not fixed claims.
 
 **No invented data, enforced:** `src/test/no-invented-data.test.ts` is a
 permanent part of the test suite. It scans every source file and fails if

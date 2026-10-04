@@ -15,6 +15,8 @@ export interface Run {
   extent: [number, number, number, number] | null;
   caveats: string[];
   task_actions_blocked: string | null; // the server's reason task actions refuse this run, or null
+  sources: { name: string; category: string; cadence_seconds: number; stale_after_seconds: number | null;
+             stale_after_overridden: boolean }[];
 }
 
 export interface Vocabulary {
@@ -149,6 +151,22 @@ export interface Responder {
   has_location: boolean;
 }
 
+export interface Counts { total: number; real: number; synthetic: number }
+
+export interface DataPractices {
+  households: Counts;
+  responders: Counts;
+  household_fields_stored: string[];
+  personal_fields: string[];
+  personal_fields_exposed: string[];
+  write_routes: string[];
+  consent_collected: boolean;
+  authentication: boolean;
+  response_scan: { method: string; limitation: string };
+  copilot: { mode: string; reason: string; model: string; external_model_rule: string };
+  known_gaps: { id: string; text: string; source: string }[];
+}
+
 export interface CopilotStatus {
   mode: 'model' | 'template' | string;
   reason: string;
@@ -232,6 +250,7 @@ export const api = {
     get<{ responders: Responder[] }>('/responders', run.mode === 'live' ? {} : { run_id: run.id }, signal),
   assign: (taskId: string, responderId: string, a: Acting) =>
     post<Task>(`/tasks/${taskId}/assign`, { responder_id: responderId, actor: a.actor, note: a.note ?? '', ...(a.at ? { at: a.at } : {}) }),
+  dataPractices: (signal?: AbortSignal) => get<DataPractices>('/data-practices', {}, signal),
   copilotStatus: (signal?: AbortSignal) => get<CopilotStatus>('/copilot/status', {}, signal),
   ask: (q: CopilotQuestion) => post<CopilotAnswer>('/copilot/ask', q),
   complete: (taskId: string, a: Acting) =>

@@ -119,3 +119,46 @@ def test_possibly_isolated_is_a_lower_severity_warning_and_closed_tasks_never_wa
 def test_not_evaluated_and_reconnected_give_no_warning():
     for kind in ("not_evaluated", "reconnected", "reachable"):
         assert safety.warnings_for(state([(T, None)]), {**ISOLATED, "zone_access": kind}) == ([], None)
+
+
+# ---------------------------------------------------------------- "since" is the start of the isolation
+def _isolation_rows(db, run):
+    from collections import defaultdict
+    from app.models.case_engine_contribution import CaseEngineContribution as C
+    rows = defaultdict(list)
+    for zone_id, c in db.execute(select(Case.zone_id, C).join(C, C.case_id == Case.id)
+                                 .where(Case.run_id == run.id, C.engine == "isolation",
+                                        C.direction.in_(["supports", "contradicts"]))):
+        rows[zone_id].append(c)
+    return {z: sorted(cs, key=lambda c: c.first_observed_at) for z, cs in rows.items()}
+
+
+def test_since_is_the_start_of_a_multi_row_isolation_not_its_latest_row(runs):
+    """One isolation can carry several "cut off" rows as its mechanism changes ("now submerged", "now stranded").
+    It began at the first of them."""
+    with SessionLocal() as db:
+        run = db.get(Run, runs["harvey"]["id"])
+        zone_id, cs = next((z, cs) for z, cs in sorted(_isolation_rows(db, run).items(), key=lambda kv: str(kv[0]))
+                           if "".join(c.direction.value[0] for c in cs).startswith("sss"))
+        at = cs[2].first_observed_at  # the third "cut off" row is the latest visible: still cut off
+        assert all(c.first_observed_at > at for c in cs[3:])
+        a = safety.zone_access(db, run, at, [zone_id])[str(zone_id)]
+    assert a["zone_access"] == "isolated"
+    assert a["since"] == cs[0].first_observed_at  # the isolation's start, e.g. 08-27 05:45, not 08-28 20:30
+    assert a["mechanism"] == safety._mechanism(cs[2].rule_fragment)  # the latest row's mechanism
+    # Assigned between the start and the latest row: assigned into an already cut-off zone, not cut off after it.
+    s = state([(cs[0].first_observed_at, None), (cs[1].first_observed_at + timedelta(minutes=15), "r1")])
+    (w,), _ = safety.warnings_for(s, a)
+    assert w["code"] == "zone_isolated" and "assigned after that" in w["text"]
+
+
+def test_since_restarts_after_a_reconnection(runs):
+    """Cut off, reconnected, cut off again: the second isolation starts at its own first row."""
+    with SessionLocal() as db:
+        run = db.get(Run, runs["harvey"]["id"])
+        zone_id, cs = next((z, cs) for z, cs in sorted(_isolation_rows(db, run).items(), key=lambda kv: str(kv[0]))
+                           if "csc" in "".join(c.direction.value[0] for c in cs))
+        pattern = "".join(c.direction.value[0] for c in cs)
+        i = pattern.index("cs") + 1  # the first "cut off" row after a reconnection
+        a = safety.zone_access(db, run, cs[i].first_observed_at, [zone_id])[str(zone_id)]
+    assert a["zone_access"] == "isolated" and a["since"] == cs[i].first_observed_at

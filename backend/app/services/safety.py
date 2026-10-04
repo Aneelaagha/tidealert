@@ -3,7 +3,9 @@ sent there be warned about. Computed from what the isolation engine already stor
 
 A zone's access as of `at`:
 - isolated: the latest isolation evidence for the zone visible at `at` supports isolation (the engine found every
-  route to the main road network flooded). "Reachable only over flooded roads" is exactly this state; there is no
+  route to the main road network flooded). It is cut off since the start of that isolation: the first "cut off"
+  row after the latest reconnection, since one isolation can carry several rows as its mechanism changes; the
+  mechanism shown is the latest row's. "Reachable only over flooded roads" is exactly this state; there is no
   stored route-by-route flood state to say more. Mechanism from the evidence: stranded (its own roads dry, every
   way out flooded) or submerged (every bordering road flooded).
 - reconnected: the zone was isolated and the engine's latest evidence is a reconnection (a route to the main road
@@ -55,13 +57,26 @@ def zone_access(db: Session, run: Run, at: datetime, zone_ids) -> dict:
     # Regions the engine ran on in this run (it classifies every zone of a region it runs on).
     evaluated = {region for _, region, _ in rows}
     evaluated |= {z.region for z in zones.values() if isinstance((z.coverage_gaps or {}).get("isolation"), dict)}
-    latest: dict = {}
+    # Each zone's isolation evidence visible at `at`, oldest first.
+    evidence: dict = {}
     for zone_id, _, c in rows:
         zid = str(zone_id)
         if zid in zone_ids and c.first_observed_at <= at and c.direction in (
                 ContributionDirection.supports, ContributionDirection.contradicts):
-            if zid not in latest or c.first_observed_at > latest[zid].first_observed_at:
-                latest[zid] = c
+            evidence.setdefault(zid, []).append(c)
+    latest, episode_start = {}, {}
+    for zid, cs in evidence.items():
+        cs.sort(key=lambda c: c.first_observed_at)
+        latest[zid] = cs[-1]
+        # One isolation can carry several "cut off" rows (the mechanism changes, e.g. "now submerged"). It began at
+        # the first of them after the latest reconnection, not at the latest one.
+        start = None
+        for c in cs:
+            if c.direction == ContributionDirection.contradicts:
+                start = None
+            elif start is None:
+                start = c
+        episode_start[zid] = start
 
     out = {}
     for zid in zone_ids:
@@ -69,7 +84,7 @@ def zone_access(db: Session, run: Run, at: datetime, zone_ids) -> dict:
         gap = (zone.coverage_gaps or {}).get("isolation") if zone else None
         c = latest.get(zid)
         if c is not None and c.direction == ContributionDirection.supports:
-            out[zid] = {"zone_access": "isolated", "since": c.first_observed_at,
+            out[zid] = {"zone_access": "isolated", "since": episode_start[zid].first_observed_at,
                         "mechanism": _mechanism(c.rule_fragment), "reason": c.rule_fragment.split("] ", 1)[-1]}
             continue
         if c is not None:  # the latest isolation evidence is a reconnection

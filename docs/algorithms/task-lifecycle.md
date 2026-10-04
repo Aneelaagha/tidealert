@@ -129,6 +129,14 @@ batch per request. Nothing new is measured.
 | `not_evaluated` | a permanent coverage gap, or the isolation engine never ran on the zone's region (every synthetic scenario zone) | none; the panel says "not a sign it's safe" |
 | `reachable` | evaluated, no gap, never isolated: a dry route exists even if every unknown road is flooded | none |
 
+**"Since" is the start of the isolation:** the first "cut off" row after
+the zone's latest reconnection. One isolation can carry several rows as its
+mechanism changes ("now submerged", "now stranded"); the mechanism shown is
+the latest row's. Step 1 first took "since" from the latest row, which
+moved "since" forward in the middle of an isolation: on Harvey that put it
+24–25 zones late at a given time. A responder assigned during an isolation
+would have been warned "cut off after assignment". Fixed in step 2a.
+
 **What the warnings rest on:**
 - "Reachable only over flooded roads" is the `isolated` state. No
   route-by-route flood state is stored, so there are no routes to show.

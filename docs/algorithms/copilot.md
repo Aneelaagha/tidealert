@@ -142,8 +142,13 @@ model, SDK or server behind it.
 
 ## Household data and external models
 
-- **What's never returned:** household fields the map doesn't show (phone,
-  age bracket, disability, income, language, exact location).
+- **What's never returned, by any route:** per-person fields (household
+  phone, age bracket, disability, income, language and exact location, and a
+  responder's phone). This is the API-wide policy in
+  `app.services.data_policy.PERSONAL_FIELDS`, enforced by
+  `tests/test_data_policy.py`. The test checks every route's response model
+  and actual responses, and fails on any new route until it's reviewed. The
+  household CRUD routes, which used to return all of these, were removed.
 - **Every result reports** which households its data came from (a household
   Case, or a zone Case built from silence or listening evidence) and how many
   are **real**.

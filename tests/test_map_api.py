@@ -1,4 +1,6 @@
 """Map API against the real database (read-only). See tests/conftest.py for the runs it needs."""
+import os
+import re
 from collections import Counter
 
 HARVEY_PEAK = "2017-08-27T18:30:00Z"  # White Oak's peak; sweep-recorded words: 133 single_source (49 + 73 + 11)
@@ -109,9 +111,17 @@ def test_unknown_run_is_404(client):
 
 
 def test_map_page_is_served(client):
+    """The built React page (frontend/dist) if it exists, else a page saying how to build it."""
+    from app.main import FRONTEND_DIST
     page = client.get("/ui/")
-    assert page.status_code == 200 and "maplibre-gl" in page.text and "map.js" in page.text
-    script = client.get("/ui/map.js")
-    assert script.status_code == 200 and "/map/zones" in script.text
-    assert "task-marker" in script.text and "task_anchor" in script.text  # task markers from the API's anchors
+    assert page.status_code == 200
     assert client.get("/", follow_redirects=False).headers["location"] == "/ui/"
+    if not os.path.isdir(FRONTEND_DIST):
+        assert "npm run build" in page.text
+        return
+    assert '<div id="root">' in page.text
+    script = re.search(r'src="(/ui/assets/[^"]+\.js)"', page.text).group(1)
+    bundle = client.get(script)
+    assert bundle.status_code == 200
+    for needle in ("/map/zones", "/map/freshness", "/tasks", "task_anchor", "task-marker"):
+        assert needle in bundle.text  # the page reads the API and draws task markers from its anchors

@@ -8,8 +8,8 @@ Case state, people act on them through the API, and the map page shows them
 - `backend/app/services/task_actions.py` (people's actions);
 - `backend/app/routes/tasks.py` (endpoints).
 
-- the map page (`frontend/map.js`): task markers, legend, and zone-panel
-  task history.
+- the map page (`frontend/`, see [docs/api/map.md](../api/map.md)): task
+  markers, legend, zone-panel task history, and the task-event feed.
 
 ## Rules (from Case state, on the run's clock)
 

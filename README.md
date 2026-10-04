@@ -2,7 +2,8 @@
 
 Backend for TideAlert: a FastAPI + PostGIS service for tracking
 flood-affected households, zones, and relief needs. It has models, schemas,
-basic CRUD routes, and the first engine: the isolation engine, which works out
+read-only map, Case, task and copilot routes (writes only through the reviewed
+task actions; see `backend/app/services/data_policy.py`), and the first engine: the isolation engine, which works out
 when street blocks lose every road route out during a flood, from a single
 USGS gauge ID. See [docs/algorithms/isolation-engine.md](docs/algorithms/isolation-engine.md).
 
@@ -16,7 +17,7 @@ tidealert/
 │       ├── database.py        # SQLAlchemy engine/session for PostgreSQL + PostGIS
 │       ├── models/            # SQLAlchemy 2.0 models (Household, Zone, ZoneNeed)
 │       ├── schemas/           # Pydantic Create/Read/Update schemas
-│       ├── routes/            # FastAPI routers (CRUD for households, zones)
+│       ├── routes/            # FastAPI routers (map, Cases, tasks, copilot; zones read-only)
 │       ├── services/          # engines and data services (isolation engine, ingest, terrain, ...)
 │       └── data/              # (empty, gitignored) cached data pulls
 ├── frontend/                  # React + Vite map page (docs/api/map.md)
@@ -126,7 +127,9 @@ Method, current validated result and known limitations are in
 
 ## Status
 
-Models, Pydantic schemas, CRUD routes for households and zones, Alembic
+Models, Pydantic schemas, read-only zone routes (the household CRUD and zone
+write routes were removed: no route returns a person's details, and only the
+engines set a zone's risk level; enforced by `tests/test_data_policy.py`), Alembic
 migrations, the docker-compose PostGIS setup (host port 5433), and the
 isolation engine (river driver only; the rain driver is not yet validated),
 which opens Cases for confirmed-isolated zones, and the silence engine's

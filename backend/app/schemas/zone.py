@@ -29,29 +29,6 @@ class ZoneBase(BaseModel):
     last_updated_at: datetime
 
 
-class ZoneCreate(ZoneBase):
-    pass
-
-
-class ZoneUpdate(BaseModel):
-    name: Optional[str] = None
-    boundary: Optional[dict[str, Any]] = None
-    region: Optional[str] = None
-    census_geoid: Optional[str] = None
-    block_group_geoid: Optional[str] = None
-    silence_score: Optional[float] = None
-    isolation_minutes: Optional[int] = None
-    risk_level: Optional[RiskLevel] = None
-    population_count: Optional[int] = None
-    registered_count: Optional[int] = None
-    current_water_depth: Optional[float] = None
-    flood_extent_confirmed: Optional[bool] = None
-    data_confidence: Optional[int] = None
-    coverage_gaps: Optional[dict[str, Any]] = None
-    typical_resolution_minutes: Optional[int] = None
-    last_updated_at: Optional[datetime] = None
-
-
 class ZoneRead(ZoneBase):
     model_config = ConfigDict(from_attributes=True)
 

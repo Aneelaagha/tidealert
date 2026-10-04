@@ -1,7 +1,7 @@
 // Header: the run picker and its mode badge (runs.mode, as registered), the slider over the run's clock, and the
 // sound controls. Every label here is either fixed UI text or a value from /runs.
 
-import { Radio, Volume2, VolumeX } from 'lucide-react';
+import { Radio, ShieldCheck, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Run } from '../lib/api';
 import { isMuted, playTestTone, setMuted } from '../lib/audio';
@@ -25,9 +25,10 @@ interface Props {
   tick: number;
   onTickInput: (i: number) => void;
   onTickCommit: () => void;
+  onEthics: () => void;
 }
 
-export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit }: Props) {
+export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit, onEthics }: Props) {
   const [muted, setMutedState] = useState(isMuted());
   const toggle = () => { setMuted(!muted); setMutedState(!muted); };
   // Keyboard stepping commits once the keys pause, not per key press: each commit refetches every zone
@@ -75,6 +76,10 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
       </div>
 
       <div className="flex items-center gap-2 font-mono">
+        <button onClick={onEthics}
+                className="flex cursor-pointer items-center gap-1.5 rounded border border-accent-cyan/40 bg-cyan-950/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-accent-cyan transition hover:bg-cyan-900/50">
+          <ShieldCheck className="h-3.5 w-3.5" /> Data & ethics
+        </button>
         <button onClick={toggle}
                 className={`flex cursor-pointer items-center gap-1.5 rounded border px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest transition ${
                   muted ? 'border-white/10 bg-navy-panel text-slate-400 hover:text-slate-200'

@@ -5,7 +5,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.routes import copilot, map, tasks, zones
+from app.routes import copilot, data_practices, map, tasks, zones
 
 app = FastAPI(title="TideAlert API")
 # /map/zones is ~5 MB of GeoJSON for a Harvey run, ~650 kB gzipped.
@@ -15,6 +15,7 @@ app.include_router(zones.router)
 app.include_router(map.router)
 app.include_router(tasks.router)
 app.include_router(copilot.router)
+app.include_router(data_practices.router)
 
 
 # The page: the React app in frontend/, built to frontend/dist (`npm run build`), reading the API above.

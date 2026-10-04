@@ -3,29 +3,17 @@ field, and only the reviewed routes can write. New routes fail here until they a
 it is added to WRITE_ROUTES, a read route until it is added to the response scan below.
 
 Read-only against the local database (needs the runs in tests/conftest.py)."""
-import typing
-
 import pytest
 from fastapi.routing import APIRoute
-from pydantic import BaseModel
 
 from app.main import app
-from app.services.data_policy import PERSONAL_FIELDS, WRITE_ROUTES
+from app.services.data_policy import PERSONAL_FIELDS, WRITE_ROUTES, flatten_routes, model_fields
 
 READ_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 
-def _flatten(routes):
-    for r in routes:
-        if isinstance(r, APIRoute):
-            yield r
-        elif hasattr(r, "original_router"):  # FastAPI 0.14x keeps include_router()'s routers wrapped
-            assert not getattr(r.include_context, "prefix", ""), "an include_router prefix: join it to the paths here"
-            yield from _flatten(r.original_router.routes)
-
-
 def api_routes() -> list[APIRoute]:
-    return list(_flatten(app.routes))
+    return list(flatten_routes(app.routes))
 
 
 def test_the_route_inventory_is_complete():
@@ -34,23 +22,6 @@ def test_the_route_inventory_is_complete():
     for known in [("GET", "/runs"), ("GET", "/map/zones"), ("GET", "/zones/{zone_id}"), ("POST", "/copilot/ask"),
                   ("POST", "/tasks/{task_id}/assign")]:
         assert known in found, f"{known} missing: api_routes() is not seeing every route"
-
-
-def model_fields(annotation, seen=None) -> set[str]:
-    """Every field name reachable from a response model, through lists, optionals and nested models."""
-    seen = seen if seen is not None else set()
-    names: set[str] = set()
-    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
-        if annotation in seen:
-            return names
-        seen.add(annotation)
-        for name, field in annotation.model_fields.items():
-            names.add(name)
-            names |= model_fields(field.annotation, seen)
-        return names
-    for arg in typing.get_args(annotation):
-        names |= model_fields(arg, seen)
-    return names
 
 
 def keys_in(value, path="") -> set[str]:
@@ -101,11 +72,11 @@ def _calls(client, runs):
         if tasks:
             out.append((f"/tasks/{tasks[0]['id']}", {}))
     return out + [("/runs", {}), ("/responders", {}), ("/zones/", {"limit": 100}), ("/copilot/status", {}),
-                  ("/health", {})]
+                  ("/health", {}), ("/data-practices", {})]
 
 
 SCANNED = {"/runs", "/map/zones", "/map/freshness", "/cases", "/tasks", "/tasks/{task_id}", "/responders",
-           "/zones/", "/zones/{zone_id}", "/copilot/status", "/health", "/", "/ui/"}  # "/" and "/ui/" only redirect or serve the page
+           "/zones/", "/zones/{zone_id}", "/copilot/status", "/health", "/data-practices", "/", "/ui/"}  # "/" and "/ui/" only redirect or serve the page
 
 
 def test_every_read_route_is_scanned():

@@ -26,7 +26,6 @@ RECONSTRUCTED_STAGE_FACTOR and ABOVE_LIBRARY_FACTOR are unvalidated design
 choices. The whole score is a heuristic built from measured inputs, not a
 probability calibrated against case outcomes.
 """
-import glob
 import json
 import logging
 import os
@@ -88,26 +87,39 @@ def isolation_mechanism(
     )
 
 
+# HAND's source agreement at gauges without an NWS map is borrowed from these gauges, and only these: Harvey's two
+# gauges that have both HAND and a usable NWS flood-map library (White Oak HGTT2, Greens Bayou GBHT2). Declared, not
+# discovered, so a new region's pipeline report can't change Harvey's numbers. Adding a gauge here is a deliberate
+# change to every HAND-driven Case and needs its own review.
+HAND_PRIOR_GAUGES = ("08074500", "08076000")
+
 _hand_prior: Optional[tuple[float, str]] = None
 
 
 def hand_agreement_prior() -> tuple[float, str]:
-    """(agreement, provenance) for HAND at gauges without an NWS map: the mean of the median HAND-vs-NWS
-    IoU measured at gauges that have both, from their latest pipeline reports."""
+    """(agreement, provenance) for HAND at gauges without an NWS map: the mean of the median HAND-vs-NWS IoU at
+    HAND_PRIOR_GAUGES, from their latest pipeline reports. If any declared gauge has no measurement, FALLBACK 0.5,
+    naming the missing gauges: never a mean over a partial set."""
     global _hand_prior
     if _hand_prior is None:
-        values = {}
-        for path in glob.glob(os.path.join(DATA_DIR, "usgs-*", "backtest.json")):
-            with open(path) as f:
-                median = (json.load(f).get("hand_vs_nws_iou") or {}).get("event_steps_median")
-            if median is not None:
-                values[os.path.basename(os.path.dirname(path))] = median
-        if values:
+        values, missing = {}, []
+        for site in HAND_PRIOR_GAUGES:
+            path = os.path.join(DATA_DIR, f"usgs-{site}", "backtest.json")
+            median = None
+            if os.path.exists(path):
+                with open(path) as f:
+                    median = (json.load(f).get("hand_vs_nws_iou") or {}).get("event_steps_median")
+            if median is None:
+                missing.append(site)
+            else:
+                values[f"usgs-{site}"] = median
+        if not missing:
             _hand_prior = (float(np.mean(list(values.values()))),
                            "borrowed from " + ", ".join(f"{k} {v:.2f}" for k, v in sorted(values.items())))
         else:
-            log.warning("No HAND-vs-NWS agreement measured at any gauge; FALLBACK source agreement 0.5")
-            _hand_prior = (0.5, "FALLBACK 0.5: no gauge with both HAND and an NWS map has been run")
+            log.warning("No HAND-vs-NWS agreement for declared gauge(s) %s; FALLBACK source agreement 0.5", missing)
+            _hand_prior = (0.5, f"FALLBACK 0.5: no HAND-vs-NWS agreement measured for USGS {', '.join(missing)} "
+                                f"(run scripts/run_isolation_pipeline.py)")
     return _hand_prior
 
 

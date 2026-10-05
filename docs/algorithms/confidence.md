@@ -63,9 +63,15 @@ coverage x source_agreement x stage_provenance x library_range
     that counted any uncovered sample point as "unknown" wrongly zeroed most
     White Oak Cases; fixed before commit.)
 - **`source_agreement`:** 1.0 for an NWS flood-map library. For HAND it is
-  the median HAND-vs-NWS agreement (IoU over flooding timesteps) measured at
-  gauges that have both, borrowed. Today that's 0.67, the mean of White Oak's
-  0.64 and Greens' 0.70.
+  the median HAND-vs-NWS agreement (IoU over flooding timesteps), borrowed
+  from a **declared** set of gauges with both:
+  `isolation_cases.HAND_PRIOR_GAUGES`, which is White Oak and Greens Bayou.
+  That's 0.67, the mean of White Oak's 0.64 and Greens' 0.70.
+  - The set is pinned, not discovered from whatever reports are on disk, so
+    another region's pipeline run can't change Harvey's numbers.
+  - If a declared gauge has no measurement, the result is FALLBACK 0.5,
+    naming the missing gauge, never a mean over part of the set.
+  - Helene's HAND Cases also borrow this Houston-derived value.
 - **`stage_provenance`:** 1.0 when the gauge measured stage at that
   timestep, **0.7 (GUESS)** when stage was reconstructed from estimated
   discharge.

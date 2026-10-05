@@ -30,6 +30,12 @@
 - All 161 non-mixed Case fingerprints identical after rerunning the silence
   sweep and `scripts/listening_demo.py`. The mixed run is excluded; rebuild it
   with `scripts/mixed_harvey_scenario.py`.
+- `scripts/harvey_baseline.py` passes. It checks those 161 fingerprints and
+  every one of their contributions in full (text, confidence, times) against
+  `tests/baselines/harvey/`. The fingerprints alone can't see a change in
+  what a contribution says. Rewrite the baseline (`--write`) only with the
+  owner's approval.
+- The mixed run, rebuilt, is byte-identical to its last snapshot.
 - `pytest` and the frontend's `npm run lint` and `npx vitest run` pass, and
   `npm run build` succeeds.
 - UI changes are checked in a browser against Harvey and both scenarios

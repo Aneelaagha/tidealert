@@ -1,0 +1,4176 @@
+{
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 01338ae7 | 2017-08-27T04:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T15:45:00+00:00",
+   "2017-08-29T15:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-29T15:45:00+00:00] reconnected: a route to the main road network is open again at stage 29.63 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T04:00:00+00:00",
+   "2017-08-29T15:30:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 2 exit roads flooded (1 tertiary, 1 tertiary_link); river level 30.7 ft at stage 30.29 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 0442cf3a | 2017-08-27T07:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T01:30:00+00:00",
+   "2017-08-29T01:30:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-29T01:30:00+00:00] reconnected: a route to the main road network is open again at stage 36.69 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:00:00+00:00",
+   "2017-08-29T01:15:00+00:00",
+   "0.7",
+   1,
+   "submerged: 1/1 boundary roads flooded; river level 37.7 ft at stage 36.92 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 06985706 | 2017-08-27T14:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:00:00+00:00",
+   "2017-08-28T06:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T06:00:00+00:00] reconnected: a route to the main road network is open again at stage 42.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T14:45:00+00:00",
+   "2017-08-28T05:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 1/5 boundary roads dry; 15 exit roads flooded (4 motorway, 4 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 43.7 ft at stage 42.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 0b28e235 | 2017-08-27T08:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T23:00:00+00:00",
+   "2017-08-28T23:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T23:00:00+00:00] reconnected: a route to the main road network is open again at stage 37.61 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T08:45:00+00:00",
+   "2017-08-28T22:45:00+00:00",
+   "0.7",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 38.7 ft at stage 37.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 0dc0d9b0 | 2017-08-27T12:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:45:00+00:00",
+   "2017-08-28T12:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T12:45:00+00:00] reconnected: a route to the main road network is open again at stage 40.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T12:00:00+00:00",
+   "2017-08-28T12:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 6/6 boundary roads flooded; river level 41.7 ft at stage 40.88 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 127096af | 2017-08-27T10:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T16:45:00+00:00",
+   "2017-08-28T16:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T16:45:00+00:00] reconnected: a route to the main road network is open again at stage 39.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T10:45:00+00:00",
+   "2017-08-28T16:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 40.7 ft at stage 39.85 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 13a8f77b | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 7/7 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 17dc2b08 | 2017-08-27T08:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T23:00:00+00:00",
+   "2017-08-28T23:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T23:00:00+00:00] reconnected: a route to the main road network is open again at stage 37.61 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T08:45:00+00:00",
+   "2017-08-28T22:45:00+00:00",
+   "0.7",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 38.7 ft at stage 37.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 18c9c8e2 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-27T16:15:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T16:30:00+00:00",
+   "2017-08-27T23:30:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-27T16:30:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 44.7 ft at stage 43.79 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T23:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-27T23:45:00+00:00] now stranded: stranded: 1/4 boundary roads dry; 15 exit roads flooded (4 motorway, 4 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 43.7 ft at stage 43.70 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 1d96cf82 | 2017-08-27T16:30:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-27T23:45:00+00:00",
+   "2017-08-27T23:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-27T23:45:00+00:00] reconnected: a route to the main road network is open again at stage 43.70 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T16:30:00+00:00",
+   "2017-08-27T23:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 7/7 boundary roads flooded; river level 44.7 ft at stage 43.79 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 2c60f655 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 5/6 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 31aa0229 | 2017-08-27T12:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:45:00+00:00",
+   "2017-08-28T12:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T12:45:00+00:00] reconnected: a route to the main road network is open again at stage 40.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T12:00:00+00:00",
+   "2017-08-28T12:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 1/1 boundary roads flooded; river level 41.7 ft at stage 40.88 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 362df6f6 | 2017-08-27T16:30:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-27T23:45:00+00:00",
+   "2017-08-27T23:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-27T23:45:00+00:00] reconnected: a route to the main road network is open again at stage 43.70 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T16:30:00+00:00",
+   "2017-08-27T23:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 5/5 boundary roads flooded; river level 44.7 ft at stage 43.79 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 37ff322f | 2017-08-27T13:15:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T09:30:00+00:00",
+   "2017-08-28T09:30:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T09:30:00+00:00] reconnected: a route to the main road network is open again at stage 41.68 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T13:15:00+00:00",
+   "2017-08-28T09:15:00+00:00",
+   "0.7",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 42.7 ft at stage 41.79 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 41f2426f | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 11/12 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 43336677 | 2017-08-27T12:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:45:00+00:00",
+   "2017-08-28T12:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T12:45:00+00:00] reconnected: a route to the main road network is open again at stage 40.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T12:00:00+00:00",
+   "2017-08-28T12:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 3/3 boundary roads flooded; river level 41.7 ft at stage 40.88 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 4aa0b760 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 6/6 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 4b06ad72 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 5/5 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 4f830d16 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 5/5 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 4fab8bc4 | 2017-08-27T14:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:00:00+00:00",
+   "2017-08-28T06:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T06:00:00+00:00] reconnected: a route to the main road network is open again at stage 42.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T14:45:00+00:00",
+   "2017-08-28T05:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 2 exit roads flooded (2 residential); river level 43.7 ft at stage 42.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 51e25c64 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 3/3 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 650d77c0 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 7/10 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 67fb2a5a | 2017-08-27T16:30:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-27T23:45:00+00:00",
+   "2017-08-27T23:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-27T23:45:00+00:00] reconnected: a route to the main road network is open again at stage 43.70 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T16:30:00+00:00",
+   "2017-08-27T23:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 10/10 boundary roads flooded; river level 44.7 ft at stage 43.79 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 6aafef5e | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 784ea5a3 | 2017-08-27T16:30:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-27T23:45:00+00:00",
+   "2017-08-27T23:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-27T23:45:00+00:00] reconnected: a route to the main road network is open again at stage 43.70 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T16:30:00+00:00",
+   "2017-08-27T23:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 44.7 ft at stage 43.79 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 7a9c17cc | 2017-08-27T08:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T23:00:00+00:00",
+   "2017-08-28T23:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T23:00:00+00:00] reconnected: a route to the main road network is open again at stage 37.61 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T08:45:00+00:00",
+   "2017-08-28T22:45:00+00:00",
+   "0.7",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 38.7 ft at stage 37.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 80909235 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 861e787e | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/6 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 98716838 | 2017-08-27T04:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T15:45:00+00:00",
+   "2017-08-29T15:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-29T15:45:00+00:00] reconnected: a route to the main road network is open again at stage 29.63 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T04:00:00+00:00",
+   "2017-08-29T15:30:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 2 exit roads flooded (1 tertiary, 1 tertiary_link); river level 30.7 ft at stage 30.29 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block 9c3102ec | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "submerged: 5/5 boundary roads flooded; river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block a3d028e8 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 7/8 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block a7ae7ef7 | 2017-08-27T14:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:00:00+00:00",
+   "2017-08-28T06:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T06:00:00+00:00] reconnected: a route to the main road network is open again at stage 42.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T14:45:00+00:00",
+   "2017-08-28T05:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 4 exit roads flooded (2 secondary, 2 unclassified); river level 43.7 ft at stage 42.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block aaacba4f | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "submerged: 3/3 boundary roads flooded; river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block affa730e | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 5/5 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block b18a325d | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 11/12 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block b656c738 | 2017-08-27T14:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:00:00+00:00",
+   "2017-08-28T06:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T06:00:00+00:00] reconnected: a route to the main road network is open again at stage 42.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T14:45:00+00:00",
+   "2017-08-28T05:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 2/9 boundary roads dry; 4 exit roads flooded (4 secondary); river level 43.7 ft at stage 42.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block b7e958ef | 2017-08-27T16:30:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-27T23:45:00+00:00",
+   "2017-08-27T23:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-27T23:45:00+00:00] reconnected: a route to the main road network is open again at stage 43.70 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T16:30:00+00:00",
+   "2017-08-27T23:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 44.7 ft at stage 43.79 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block bad0dfc5 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 7/19 boundary roads dry; 16 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 3 tertiary, 1 tertiary_link); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block bdcff8e5 | 2017-08-27T13:15:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T09:30:00+00:00",
+   "2017-08-28T09:30:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T09:30:00+00:00] reconnected: a route to the main road network is open again at stage 41.68 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T13:15:00+00:00",
+   "2017-08-28T09:15:00+00:00",
+   "0.7",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 42.7 ft at stage 41.79 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block c648d0e3 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 5/10 boundary roads dry; 17 exit roads flooded (5 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 3 tertiary, 1 tertiary_link); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block c8b0d128 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 6/6 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block d0bc6d8f | 2017-08-27T04:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T15:45:00+00:00",
+   "2017-08-29T15:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-29T15:45:00+00:00] reconnected: a route to the main road network is open again at stage 29.63 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T04:00:00+00:00",
+   "2017-08-29T15:30:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 2 exit roads flooded (1 tertiary, 1 tertiary_link); river level 30.7 ft at stage 30.29 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block d70d79bc | 2017-08-27T14:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:00:00+00:00",
+   "2017-08-28T06:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T06:00:00+00:00] reconnected: a route to the main road network is open again at stage 42.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T14:45:00+00:00",
+   "2017-08-28T05:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 3/5 boundary roads dry; 4 exit roads flooded (2 secondary, 2 unclassified); river level 43.7 ft at stage 42.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block e63be44a | 2017-08-27T14:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:00:00+00:00",
+   "2017-08-28T06:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T06:00:00+00:00] reconnected: a route to the main road network is open again at stage 42.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T14:45:00+00:00",
+   "2017-08-28T05:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 2 exit roads flooded (2 residential); river level 43.7 ft at stage 42.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block eebdb098 | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block f86ae71a | 2017-08-27T09:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T20:00:00+00:00",
+   "2017-08-28T20:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T20:00:00+00:00] reconnected: a route to the main road network is open again at stage 38.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T09:45:00+00:00",
+   "2017-08-28T19:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 2/4 boundary roads dry; 14 exit roads flooded (4 motorway, 3 motorway_link, 3 secondary, 2 secondary_link, 2 tertiary); river level 39.7 ft at stage 38.89 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block fb640f4f | 2017-08-27T14:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:00:00+00:00",
+   "2017-08-28T06:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T06:00:00+00:00] reconnected: a route to the main road network is open again at stage 42.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T14:45:00+00:00",
+   "2017-08-28T05:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 2/9 boundary roads dry; 4 exit roads flooded (4 secondary); river level 43.7 ft at stage 42.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block fd1dc42c | 2017-08-27T14:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:00:00+00:00",
+   "2017-08-28T06:00:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T06:00:00+00:00] reconnected: a route to the main road network is open again at stage 42.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T14:45:00+00:00",
+   "2017-08-28T05:45:00+00:00",
+   "0.7",
+   1,
+   "stranded: 4/4 boundary roads dry; 17 exit roads flooded (4 motorway, 4 motorway_link, 2 residential, 3 secondary, 2 secondary_link, 2 tertiary); river level 43.7 ft at stage 42.74 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08074500 | USGS-08074500 street block fe823172 | 2017-08-27T10:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T16:45:00+00:00",
+   "2017-08-28T16:45:00+00:00",
+   "0.7",
+   1,
+   "[2017-08-28T16:45:00+00:00] reconnected: a route to the main road network is open again at stage 39.67 ft; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T10:45:00+00:00",
+   "2017-08-28T16:30:00+00:00",
+   "0.7",
+   1,
+   "submerged: 7/7 boundary roads flooded; river level 40.7 ft at stage 39.85 ft; NWS flood map library (HGTT2, 25 stages 21.7-45.7 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block 082db8c3 | 2017-08-27T10:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T01:30:00+00:00",
+   "2017-08-28T01:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T01:30:00+00:00] reconnected: a route to the main road network is open again at stage 36.81 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T02:15:00+00:00",
+   "2017-08-28T02:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T02:15:00+00:00] reconnected: a route to the main road network is open again at stage 36.80 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:30:00+00:00",
+   "2017-08-28T06:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T06:30:00+00:00] reconnected: a route to the main road network is open again at stage 36.81 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T10:00:00+00:00",
+   "2017-08-28T01:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 4/9 boundary roads dry; 6 exit roads flooded (3 primary, 2 residential, 1 unclassified); river level 6.1 m at stage 36.84 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T01:45:00+00:00",
+   "2017-08-28T02:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T01:45:00+00:00] isolated again: stranded: 4/9 boundary roads dry; 6 exit roads flooded (3 primary, 2 residential, 1 unclassified); river level 6.1 m at stage 36.82 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T03:45:00+00:00",
+   "2017-08-28T06:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T03:45:00+00:00] isolated again: stranded: 4/9 boundary roads dry; 6 exit roads flooded (3 primary, 2 residential, 1 unclassified); river level 6.1 m at stage 36.84 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block 27e11195 | 2017-08-27T10:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T01:30:00+00:00",
+   "2017-08-28T01:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T01:30:00+00:00] reconnected: a route to the main road network is open again at stage 36.81 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T02:15:00+00:00",
+   "2017-08-28T02:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T02:15:00+00:00] reconnected: a route to the main road network is open again at stage 36.80 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:30:00+00:00",
+   "2017-08-28T06:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T06:30:00+00:00] reconnected: a route to the main road network is open again at stage 36.81 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T10:00:00+00:00",
+   "2017-08-28T01:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 3/3 boundary roads dry; 6 exit roads flooded (3 primary, 2 residential, 1 unclassified); river level 6.1 m at stage 36.84 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T01:45:00+00:00",
+   "2017-08-28T02:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T01:45:00+00:00] isolated again: stranded: 3/3 boundary roads dry; 6 exit roads flooded (3 primary, 2 residential, 1 unclassified); river level 6.1 m at stage 36.82 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T03:45:00+00:00",
+   "2017-08-28T06:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T03:45:00+00:00] isolated again: stranded: 3/3 boundary roads dry; 6 exit roads flooded (3 primary, 2 residential, 1 unclassified); river level 6.1 m at stage 36.84 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block 3cf498ae | 2017-08-27T10:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T01:30:00+00:00",
+   "2017-08-28T01:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T01:30:00+00:00] reconnected: a route to the main road network is open again at stage 36.81 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T02:15:00+00:00",
+   "2017-08-28T02:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T02:15:00+00:00] reconnected: a route to the main road network is open again at stage 36.80 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T06:30:00+00:00",
+   "2017-08-28T06:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T06:30:00+00:00] reconnected: a route to the main road network is open again at stage 36.81 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T10:00:00+00:00",
+   "2017-08-28T01:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 3/5 boundary roads dry; 6 exit roads flooded (3 primary, 2 residential, 1 unclassified); river level 6.1 m at stage 36.84 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T01:45:00+00:00",
+   "2017-08-28T02:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T01:45:00+00:00] isolated again: stranded: 3/5 boundary roads dry; 6 exit roads flooded (3 primary, 2 residential, 1 unclassified); river level 6.1 m at stage 36.82 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T03:45:00+00:00",
+   "2017-08-28T06:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T03:45:00+00:00] isolated again: stranded: 3/5 boundary roads dry; 6 exit roads flooded (3 primary, 2 residential, 1 unclassified); river level 6.1 m at stage 36.84 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block 532288f9 | 2017-08-27T05:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T22:15:00+00:00",
+   "2017-08-29T22:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T22:15:00+00:00] reconnected: a route to the main road network is open again at stage 33.44 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:00:00+00:00",
+   "2017-08-27T06:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 2/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 5.2 m at stage 33.86 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:45:00+00:00",
+   "2017-08-28T22:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-27T06:45:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 5.8 m at stage 35.89 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T22:15:00+00:00",
+   "2017-08-29T22:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-28T22:15:00+00:00] now stranded: stranded: 1/4 boundary roads dry; 3 exit roads flooded (3 residential); river level 5.8 m at stage 35.83 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block 62fffbd9 | 2017-08-27T05:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T22:30:00+00:00",
+   "2017-08-29T22:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T22:30:00+00:00] reconnected: a route to the main road network is open again at stage 33.31 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:00:00+00:00",
+   "2017-08-29T22:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 5/5 boundary roads dry; 2 exit roads flooded (2 secondary); river level 5.2 m at stage 33.86 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block 8195e135 | 2017-08-27T05:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T22:30:00+00:00",
+   "2017-08-29T22:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T22:30:00+00:00] reconnected: a route to the main road network is open again at stage 33.31 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:00:00+00:00",
+   "2017-08-29T22:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 9/9 boundary roads dry; 2 exit roads flooded (2 secondary); river level 5.2 m at stage 33.86 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block 942134d6 | 2017-08-27T05:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T22:15:00+00:00",
+   "2017-08-29T22:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T22:15:00+00:00] reconnected: a route to the main road network is open again at stage 33.44 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:00:00+00:00",
+   "2017-08-27T05:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 2/5 boundary roads dry; 7 exit roads flooded (7 residential); river level 5.2 m at stage 33.86 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:15:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-27T05:15:00+00:00] now submerged: submerged: 5/5 boundary roads flooded; river level 5.4 m at stage 34.48 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T22:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T20:15:00+00:00] now stranded: stranded: 1/5 boundary roads dry; 6 exit roads flooded (6 residential); river level 5.4 m at stage 34.30 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block 9d7ea83e | 2017-08-27T05:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T22:15:00+00:00",
+   "2017-08-29T22:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T22:15:00+00:00] reconnected: a route to the main road network is open again at stage 33.44 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:00:00+00:00",
+   "2017-08-27T05:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 2/5 boundary roads dry; 7 exit roads flooded (7 residential); river level 5.2 m at stage 33.86 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:15:00+00:00",
+   "2017-08-29T19:45:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-27T05:15:00+00:00] now submerged: submerged: 5/5 boundary roads flooded; river level 5.4 m at stage 34.48 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T20:00:00+00:00",
+   "2017-08-29T22:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T20:00:00+00:00] now stranded: stranded: 1/5 boundary roads dry; 7 exit roads flooded (7 residential); river level 5.4 m at stage 34.41 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block b4bf1463 | 2017-08-27T05:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T22:30:00+00:00",
+   "2017-08-29T22:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T22:30:00+00:00] reconnected: a route to the main road network is open again at stage 33.31 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:00:00+00:00",
+   "2017-08-29T22:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 6/6 boundary roads dry; 2 exit roads flooded (2 secondary); river level 5.2 m at stage 33.86 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block c8a473fd | 2017-08-27T05:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T22:15:00+00:00",
+   "2017-08-29T22:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T22:15:00+00:00] reconnected: a route to the main road network is open again at stage 33.44 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:00:00+00:00",
+   "2017-08-27T05:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 4/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 5.2 m at stage 33.86 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T18:30:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-27T05:45:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 5.6 m at stage 35.15 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T18:45:00+00:00",
+   "2017-08-29T22:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T18:45:00+00:00] now stranded: stranded: 1/4 boundary roads dry; 4 exit roads flooded (4 residential); river level 5.5 m at stage 34.85 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08075770 | USGS-08075770 street block d588b4db | 2017-08-27T05:00:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T22:15:00+00:00",
+   "2017-08-29T22:15:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T22:15:00+00:00] reconnected: a route to the main road network is open again at stage 33.44 ft; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:00:00+00:00",
+   "2017-08-27T05:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "stranded: 2/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 5.2 m at stage 33.86 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:15:00+00:00",
+   "2017-08-29T19:45:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-27T05:15:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 5.4 m at stage 34.48 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T20:00:00+00:00",
+   "2017-08-29T22:00:00+00:00",
+   "0.6719324687165067",
+   1,
+   "[2017-08-29T20:00:00+00:00] now stranded: stranded: 2/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 5.4 m at stage 34.41 ft; HAND (snapped channel), constant depth along the gauge's NHD reach; confirmed with unknown roads passable; confidence 0.67 = coverage 1.00 x source 0.67 (HAND, borrowed from usgs-08074500 0.64, usgs-08076000 0.70) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 02f176cf | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 038009e7 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 8/8 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 05772592 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 0731b88d | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 0cddca3b | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 0de05233 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 0fe940fb | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T06:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 1/6 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:15:00+00:00",
+   "2017-08-27T06:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:15:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 59.4 ft at stage 58.48 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:30:00+00:00",
+   "2017-08-27T06:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:30:00+00:00] now stranded: stranded: 1/6 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 57.43 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:45:00+00:00",
+   "2017-08-27T06:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:45:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 59.4 ft at stage 58.69 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:00:00+00:00",
+   "2017-08-27T07:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:00:00+00:00] now stranded: stranded: 1/6 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 58.40 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:15:00+00:00",
+   "2017-08-29T15:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:15:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 59.4 ft at stage 59.07 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T15:15:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T15:15:00+00:00] now stranded: stranded: 1/6 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 58.35 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 11f0e761 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T19:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 3/3 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T19:45:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] now stranded: stranded: 1/3 boundary roads dry; 17 exit roads flooded (2 motorway, 2 motorway_link, 6 residential, 5 secondary, 1 secondary_link, 1 tertiary); river level 62.4 ft at stage 62.38 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 134b3646 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 13c12df8 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 1df251fd | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 1/6 boundary roads dry; 4 exit roads flooded (2 residential, 2 secondary); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 1f006b1e | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 20e9b0fe | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 2101df6d | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T06:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 2/6 boundary roads dry; 17 exit roads flooded (11 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:15:00+00:00",
+   "2017-08-27T06:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:15:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 59.4 ft at stage 58.48 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:30:00+00:00",
+   "2017-08-27T06:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:30:00+00:00] now stranded: stranded: 2/6 boundary roads dry; 17 exit roads flooded (11 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.43 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:45:00+00:00",
+   "2017-08-27T06:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:45:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 59.4 ft at stage 58.69 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:00:00+00:00",
+   "2017-08-27T07:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:00:00+00:00] now stranded: stranded: 2/6 boundary roads dry; 17 exit roads flooded (11 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 58.40 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:15:00+00:00",
+   "2017-08-29T15:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:15:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 59.4 ft at stage 59.07 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T15:15:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T15:15:00+00:00] now stranded: stranded: 2/6 boundary roads dry; 17 exit roads flooded (11 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 58.35 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 210bd221 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 22afc664 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 6/6 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 2dcd16f5 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T06:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 3/3 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:15:00+00:00",
+   "2017-08-27T06:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:15:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 59.4 ft at stage 58.48 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:30:00+00:00",
+   "2017-08-27T06:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:30:00+00:00] now stranded: stranded: 3/3 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 57.43 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:45:00+00:00",
+   "2017-08-27T06:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:45:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 59.4 ft at stage 58.69 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:00:00+00:00",
+   "2017-08-27T07:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:00:00+00:00] now stranded: stranded: 3/3 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 58.40 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:15:00+00:00",
+   "2017-08-29T15:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:15:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 59.4 ft at stage 59.07 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T15:15:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T15:15:00+00:00] now stranded: stranded: 3/3 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 58.35 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 3009169a | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 36f933e6 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 1/19 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 37ca200b | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 3d2937d4 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 17/25 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 40c5822f | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 410e1048 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 45dfac69 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 2/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 4d0b5076 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 6/6 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 4db21a9f | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 518eb0ce | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T08:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T08:45:00+00:00",
+   "2017-08-29T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T08:45:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 60.4 ft at stage 59.50 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:30:00+00:00",
+   "2017-08-29T12:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:30:00+00:00] now stranded: stranded: 1/4 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.39 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:45:00+00:00",
+   "2017-08-29T12:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:45:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 60.4 ft at stage 59.44 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T13:00:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T13:00:00+00:00] now stranded: stranded: 1/4 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.30 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 526037eb | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 11/11 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 5744ec24 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 8/8 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 6267b4d7 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 7/7 boundary roads flooded; river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 66f88e98 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 67506d73 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 6/6 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 6c4e7fb8 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 1/8 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 6f3f40bc | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 6f8f4f77 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 7b340a3d | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 8/8 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 7d2a2316 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 7d7eba34 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 7e7e800f | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T06:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 1/3 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:15:00+00:00",
+   "2017-08-27T06:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:15:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 59.4 ft at stage 58.48 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:30:00+00:00",
+   "2017-08-27T06:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:30:00+00:00] now stranded: stranded: 1/3 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 57.43 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:45:00+00:00",
+   "2017-08-27T06:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:45:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 59.4 ft at stage 58.69 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:00:00+00:00",
+   "2017-08-27T07:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:00:00+00:00] now stranded: stranded: 1/3 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 58.40 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:15:00+00:00",
+   "2017-08-29T15:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:15:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 59.4 ft at stage 59.07 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T15:15:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T15:15:00+00:00] now stranded: stranded: 1/3 boundary roads dry; 3 exit roads flooded (3 residential); river level 58.4 ft at stage 58.35 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 8a67883c | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 8b6a903b | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 6/6 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 8c62507e | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 8d2c3319 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 8e52c9ba | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 7/7 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 9034c123 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T08:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 1/3 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T08:45:00+00:00",
+   "2017-08-29T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T08:45:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 60.4 ft at stage 59.50 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:30:00+00:00",
+   "2017-08-29T12:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:30:00+00:00] now stranded: stranded: 1/3 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.39 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:45:00+00:00",
+   "2017-08-29T12:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:45:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 60.4 ft at stage 59.44 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T13:00:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T13:00:00+00:00] now stranded: stranded: 1/3 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.30 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 90f93aa5 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 6/6 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 914ca519 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 2/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 946ffaba | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T10:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 6/6 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T10:15:00+00:00",
+   "2017-08-29T04:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T10:15:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 61.4 ft at stage 60.53 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T05:00:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T05:00:00+00:00] now stranded: stranded: 1/6 boundary roads dry; 18 exit roads flooded (2 motorway, 2 motorway_link, 8 residential, 5 secondary, 1 tertiary); river level 60.4 ft at stage 60.37 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 97b0d8c8 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 8/8 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block 9cbd9a7c | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a0208e11 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 16/16 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a0d2b098 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a0ff7c8e | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T10:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T10:15:00+00:00",
+   "2017-08-29T04:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T10:15:00+00:00] now submerged: submerged: 5/5 boundary roads flooded; river level 61.4 ft at stage 60.53 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T05:00:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T05:00:00+00:00] now stranded: stranded: 2/5 boundary roads dry; 17 exit roads flooded (2 motorway, 2 motorway_link, 8 residential, 4 secondary, 1 secondary_link); river level 60.4 ft at stage 60.37 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a15ddbeb | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 5/5 boundary roads flooded; river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a1817522 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 7/7 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a1e26931 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a2878573 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a510400e | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/5 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a75d6b3d | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 6/6 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block a96972b7 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T19:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 3/3 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T19:45:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] now stranded: stranded: 3/3 boundary roads dry; 17 exit roads flooded (2 motorway, 2 motorway_link, 6 residential, 5 secondary, 1 secondary_link, 1 tertiary); river level 62.4 ft at stage 62.38 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block ab7ae7c6 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 3/3 boundary roads flooded; river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block ac177496 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block adf9fea6 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/5 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block b3c15289 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T06:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 2/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:15:00+00:00",
+   "2017-08-27T06:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:15:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 59.4 ft at stage 58.48 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:30:00+00:00",
+   "2017-08-27T06:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:30:00+00:00] now stranded: stranded: 2/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.43 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:45:00+00:00",
+   "2017-08-27T06:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:45:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 59.4 ft at stage 58.69 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:00:00+00:00",
+   "2017-08-27T07:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:00:00+00:00] now stranded: stranded: 2/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 58.40 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:15:00+00:00",
+   "2017-08-29T15:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:15:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 59.4 ft at stage 59.07 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T15:15:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T15:15:00+00:00] now stranded: stranded: 2/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 58.35 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block b4f7bb84 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block b9f14203 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block c3c0383b | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T12:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 3/3 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T12:45:00+00:00",
+   "2017-08-28T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T12:45:00+00:00] now submerged: submerged: 3/3 boundary roads flooded; river level 62.4 ft at stage 61.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T20:30:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T20:30:00+00:00] now stranded: stranded: 1/3 boundary roads dry; 17 exit roads flooded (2 motorway, 2 motorway_link, 9 residential, 4 secondary); river level 61.4 ft at stage 61.38 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block c88f873a | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block cb0f2ea5 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T12:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T12:45:00+00:00",
+   "2017-08-28T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T12:45:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 62.4 ft at stage 61.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T20:30:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T20:30:00+00:00] now stranded: stranded: 1/4 boundary roads dry; 17 exit roads flooded (2 motorway, 2 motorway_link, 7 residential, 5 secondary, 1 tertiary); river level 61.4 ft at stage 61.38 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block cb268912 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T12:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 6/6 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T12:45:00+00:00",
+   "2017-08-28T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T12:45:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 62.4 ft at stage 61.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T20:30:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T20:30:00+00:00] now stranded: stranded: 1/6 boundary roads dry; 17 exit roads flooded (2 motorway, 2 motorway_link, 7 residential, 5 secondary, 1 tertiary); river level 61.4 ft at stage 61.38 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block ccd3446f | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 1/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block cf481103 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 8/8 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block d0088482 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T08:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/6 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T08:45:00+00:00",
+   "2017-08-29T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T08:45:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 60.4 ft at stage 59.50 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:30:00+00:00",
+   "2017-08-29T12:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:30:00+00:00] now stranded: stranded: 2/6 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.39 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:45:00+00:00",
+   "2017-08-29T12:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:45:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 60.4 ft at stage 59.44 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T13:00:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T13:00:00+00:00] now stranded: stranded: 2/6 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.30 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block d0f66c25 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block da537fcf | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 8/8 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block dcaedd20 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 3/3 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block e27402cf | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 2/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block e494f809 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T08:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T08:45:00+00:00",
+   "2017-08-29T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T08:45:00+00:00] now submerged: submerged: 5/5 boundary roads flooded; river level 60.4 ft at stage 59.50 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:30:00+00:00",
+   "2017-08-29T12:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:30:00+00:00] now stranded: stranded: 5/5 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.39 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:45:00+00:00",
+   "2017-08-29T12:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:45:00+00:00] now submerged: submerged: 5/5 boundary roads flooded; river level 60.4 ft at stage 59.44 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T13:00:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T13:00:00+00:00] now stranded: stranded: 5/5 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.30 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block e56c76f0 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block e6945335 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T12:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 5/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T12:45:00+00:00",
+   "2017-08-28T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T12:45:00+00:00] now submerged: submerged: 5/5 boundary roads flooded; river level 62.4 ft at stage 61.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-28T20:30:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T20:30:00+00:00] now stranded: stranded: 1/5 boundary roads dry; 17 exit roads flooded (2 motorway, 2 motorway_link, 7 residential, 5 secondary, 1 tertiary); river level 61.4 ft at stage 61.38 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block e69d9e13 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 7/7 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block e8d4c868 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 4/4 boundary roads flooded; river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block e918e3c9 | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "submerged: 5/5 boundary roads flooded; river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block eb04b170 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T06:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 1/6 boundary roads dry; 4 exit roads flooded (2 residential, 2 secondary); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:15:00+00:00",
+   "2017-08-27T06:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:15:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 59.4 ft at stage 58.48 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:30:00+00:00",
+   "2017-08-27T06:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:30:00+00:00] now stranded: stranded: 1/6 boundary roads dry; 4 exit roads flooded (2 residential, 2 secondary); river level 58.4 ft at stage 57.43 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T06:45:00+00:00",
+   "2017-08-27T06:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T06:45:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 59.4 ft at stage 58.69 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:00:00+00:00",
+   "2017-08-27T07:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:00:00+00:00] now stranded: stranded: 1/6 boundary roads dry; 4 exit roads flooded (2 residential, 2 secondary); river level 58.4 ft at stage 58.40 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T07:15:00+00:00",
+   "2017-08-29T15:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T07:15:00+00:00] now submerged: submerged: 6/6 boundary roads flooded; river level 59.4 ft at stage 59.07 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T15:15:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T15:15:00+00:00] now stranded: stranded: 1/6 boundary roads dry; 4 exit roads flooded (2 residential, 2 secondary); river level 58.4 ft at stage 58.35 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 0.70 = coverage 1.00 x source 1.00 (NWS flood map) x stage 0.70 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block ecb91d87 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 10/10 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block ee505a7d | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T08:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 2/5 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T08:45:00+00:00",
+   "2017-08-29T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T08:45:00+00:00] now submerged: submerged: 5/5 boundary roads flooded; river level 60.4 ft at stage 59.50 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:30:00+00:00",
+   "2017-08-29T12:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:30:00+00:00] now stranded: stranded: 2/5 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.39 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:45:00+00:00",
+   "2017-08-29T12:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:45:00+00:00] now submerged: submerged: 5/5 boundary roads flooded; river level 60.4 ft at stage 59.44 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T13:00:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T13:00:00+00:00] now stranded: stranded: 2/5 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.30 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block f08f08d6 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 8/8 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block f11c75ce | 2017-08-27T19:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-28T12:15:00+00:00",
+   "2017-08-28T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-28T12:15:00+00:00] reconnected: a route to the main road network is open again at stage 62.38 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T19:45:00+00:00",
+   "2017-08-28T12:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 2/5 boundary roads dry; 7 exit roads flooded (7 residential); river level 63.4 ft at stage 62.41 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block f182168a | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block f607e19c | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-27T08:30:00+00:00",
+   "1.0",
+   1,
+   "stranded: 2/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T08:45:00+00:00",
+   "2017-08-29T12:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-27T08:45:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 60.4 ft at stage 59.50 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:30:00+00:00",
+   "2017-08-29T12:30:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:30:00+00:00] now stranded: stranded: 1/4 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.39 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T12:45:00+00:00",
+   "2017-08-29T12:45:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T12:45:00+00:00] now submerged: submerged: 4/4 boundary roads flooded; river level 60.4 ft at stage 59.44 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-29T13:00:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T13:00:00+00:00] now stranded: stranded: 1/4 boundary roads dry; 26 exit roads flooded (2 motorway_link, 11 residential, 11 secondary, 2 tertiary); river level 59.4 ft at stage 59.30 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block fe6787e5 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 4/4 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2017-08-25..2017-09-02:USGS-08076000 | USGS-08076000 street block fef4e263 | 2017-08-27T05:45:00+00:00 | ": [
+  [
+   "isolation",
+   "contradicts",
+   "2017-08-29T20:15:00+00:00",
+   "2017-08-29T20:15:00+00:00",
+   "1.0",
+   1,
+   "[2017-08-29T20:15:00+00:00] reconnected: a route to the main road network is open again at stage 57.35 ft; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ],
+  [
+   "isolation",
+   "supports",
+   "2017-08-27T05:45:00+00:00",
+   "2017-08-29T20:00:00+00:00",
+   "1.0",
+   1,
+   "stranded: 8/8 boundary roads dry; 15 exit roads flooded (9 residential, 5 secondary, 1 secondary_link); river level 58.4 ft at stage 57.57 ft; NWS flood map library (GBHT2, 16 stages 52.4-67.4 ft); confirmed with unknown roads passable; confidence 1.00 = coverage 1.00 x source 1.00 (NWS flood map) x stage 1.00 x range 1.00"
+  ]
+ ],
+ "backtest:2026-09-02..2026-09-02:synthetic:silence-baseline | Synthetic probe-test zone | 2026-09-02T14:15:00+00:00 | 363b00b6-20d6-5458-997f-4c104c02771a": [
+  [
+   "silence",
+   "contradicts",
+   "2026-09-02T14:30:00+00:00",
+   "2026-09-02T14:30:00+00:00",
+   "0.8",
+   1,
+   "[2026-09-02T14:30:00+00:00] responded: check-in <id> answered OK by sms after 30 min; confidence 0.80 = source base for a direct sms reply"
+  ],
+  [
+   "silence",
+   "supports",
+   "2026-09-02T14:15:00+00:00",
+   "2026-09-02T14:15:00+00:00",
+   "0.9898635976799077",
+   1,
+   "[2026-09-02T14:15:00+00:00] late: probe <id> unanswered after 15 min; this household's median 87 s, late after 4 min (z +7.6, 30 earlier answers); confidence 0.99 = history 1.00 x strength 0.99 x reliability 1.00"
+  ],
+  [
+   "silence",
+   "supports",
+   "2026-09-02T17:15:00+00:00",
+   "2026-09-02T19:00:00+00:00",
+   "0.9999690397034384",
+   1,
+   "[2026-09-02T17:15:00+00:00] late: probe <id> unanswered after 15 min; this household's median 92 s, late after 4 min (z +7.0, 30 earlier answers); confidence 0.98 = history 1.00 x strength 0.98 x reliability 1.00"
+  ]
+ ],
+ "replay:2026-09-10T14:00..17:00Z:synthetic:listening | Synthetic listening block A | 2026-09-10T14:15:00+00:00 | 38f5b765-dde2-5783-abdd-86804eaca380": [
+  [
+   "listening",
+   "procedural",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T14:15:00+00:00",
+   "0.0",
+   1,
+   "[2026-09-10T14:15:00+00:00] cascade escalated_voice: no SMS reply after 15 min"
+  ],
+  [
+   "listening",
+   "procedural",
+   "2026-09-10T14:30:00+00:00",
+   "2026-09-10T14:30:00+00:00",
+   "0.0",
+   1,
+   "[2026-09-10T14:30:00+00:00] cascade escalated_neighbor: no SMS or voice reply after 30 min; nominated neighbor prompted"
+  ],
+  [
+   "listening",
+   "supports",
+   "2026-09-10T14:45:00+00:00",
+   "2026-09-10T14:45:00+00:00",
+   "0.5",
+   1,
+   "[2026-09-10T14:45:00+00:00] nominated neighbor: confirms the silence: neighbor reports something is wrong at the home (nominated neighbor replied TROUBLE 12 min after the prompt); supports"
+  ],
+  [
+   "silence",
+   "supports",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T17:00:00+00:00",
+   "0.6666666249437845",
+   1,
+   "[2026-09-10T14:15:00+00:00] late: probe <id> unanswered after 15 min; this household's median 2 min, late after 4 min (z +8.5, 20 earlier answers); confidence 0.66 = history 0.67 x strength 1.00 x reliability 1.00"
+  ]
+ ],
+ "replay:2026-09-10T14:00..17:00Z:synthetic:listening | Synthetic listening block A | 2026-09-10T14:15:00+00:00 | 3e4e22ae-745c-55cb-8bfb-11f6ddd7b6f5": [
+  [
+   "listening",
+   "procedural",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T14:15:00+00:00",
+   "0.0",
+   1,
+   "[2026-09-10T14:15:00+00:00] cascade escalated_voice: no SMS reply after 15 min"
+  ],
+  [
+   "silence",
+   "contradicts",
+   "2026-09-10T14:30:00+00:00",
+   "2026-09-10T14:30:00+00:00",
+   "0.85",
+   1,
+   "[2026-09-10T14:30:00+00:00] responded: check-in <id> answered OK by voice after 18 min; confidence 0.85 = source base for a direct voice reply"
+  ],
+  [
+   "silence",
+   "supports",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T14:15:00+00:00",
+   "0.6483091980788795",
+   1,
+   "[2026-09-10T14:15:00+00:00] late: probe <id> unanswered after 15 min; this household's median 119 s, late after 5 min (z +6.6, 20 earlier answers); confidence 0.65 = history 0.67 x strength 0.97 x reliability 1.00"
+  ]
+ ],
+ "replay:2026-09-10T14:00..17:00Z:synthetic:listening | Synthetic listening block A | 2026-09-10T14:15:00+00:00 | 6a31d684-4f84-5257-a8e3-214338aec494": [
+  [
+   "listening",
+   "supports",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T14:15:00+00:00",
+   "0.8",
+   1,
+   "[2026-09-10T14:15:00+00:00] help request: replied HELP by sms; depth follow-up sent; confidence 0.80 = source base (sms)"
+  ],
+  [
+   "listening",
+   "supports",
+   "2026-09-10T14:45:00+00:00",
+   "2026-09-10T14:45:00+00:00",
+   "0.8",
+   1,
+   "[2026-09-10T14:45:00+00:00] reported waist-deep water (corroborates other reports in this block (see the block's case)); confidence 0.80 = source base (sms) x 1 report"
+  ]
+ ],
+ "replay:2026-09-10T14:00..17:00Z:synthetic:listening | Synthetic listening block A | 2026-09-10T14:15:00+00:00 | 8f360dcf-f454-50e7-afbe-f9879e28f4f9": [
+  [
+   "listening",
+   "procedural",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T14:15:00+00:00",
+   "0.0",
+   1,
+   "[2026-09-10T14:15:00+00:00] cascade escalated_voice: no SMS reply after 15 min"
+  ],
+  [
+   "listening",
+   "procedural",
+   "2026-09-10T14:30:00+00:00",
+   "2026-09-10T14:30:00+00:00",
+   "0.0",
+   1,
+   "[2026-09-10T14:30:00+00:00] cascade exhausted: no SMS or voice reply; no nominated neighbor"
+  ],
+  [
+   "silence",
+   "supports",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T17:00:00+00:00",
+   "0.6666666352361659",
+   1,
+   "[2026-09-10T14:15:00+00:00] late: probe <id> unanswered after 15 min; this household's median 100 s, late after 3 min (z +9.3, 20 earlier answers); confidence 0.67 = history 0.67 x strength 1.00 x reliability 1.00"
+  ]
+ ],
+ "replay:2026-09-10T14:00..17:00Z:synthetic:listening | Synthetic listening block A | 2026-09-10T14:15:00+00:00 | ae2eca2d-d659-563d-affd-fa3c3443866a": [
+  [
+   "listening",
+   "contradicts",
+   "2026-09-10T14:45:00+00:00",
+   "2026-09-10T14:45:00+00:00",
+   "0.5",
+   1,
+   "[2026-09-10T14:45:00+00:00] nominated neighbor: explains the silence: neighbor reports the household is OK (case stays open for review) (nominated neighbor replied SEEN_OK 10 min after the prompt); contradicts"
+  ],
+  [
+   "listening",
+   "procedural",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T14:15:00+00:00",
+   "0.0",
+   1,
+   "[2026-09-10T14:15:00+00:00] cascade escalated_voice: no SMS reply after 15 min"
+  ],
+  [
+   "listening",
+   "procedural",
+   "2026-09-10T14:30:00+00:00",
+   "2026-09-10T14:30:00+00:00",
+   "0.0",
+   1,
+   "[2026-09-10T14:30:00+00:00] cascade escalated_neighbor: no SMS or voice reply after 30 min; nominated neighbor prompted"
+  ],
+  [
+   "silence",
+   "supports",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T17:00:00+00:00",
+   "0.6666664669426179",
+   1,
+   "[2026-09-10T14:15:00+00:00] late: probe <id> unanswered after 15 min; this household's median 58 s, late after 2 min (z +9.4, 20 earlier answers); confidence 0.67 = history 0.67 x strength 1.00 x reliability 1.00"
+  ]
+ ],
+ "replay:2026-09-10T14:00..17:00Z:synthetic:listening | Synthetic listening block A | 2026-09-10T14:15:00+00:00 | b38f7127-98d5-52b2-872d-4d3d9dd63bb2": [
+  [
+   "listening",
+   "supports",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T14:15:00+00:00",
+   "0.8",
+   1,
+   "[2026-09-10T14:15:00+00:00] help request: replied HELP by sms; depth follow-up sent; confidence 0.80 = source base (sms)"
+  ],
+  [
+   "listening",
+   "supports",
+   "2026-09-10T14:30:00+00:00",
+   "2026-09-10T14:30:00+00:00",
+   "0.8",
+   1,
+   "[2026-09-10T14:30:00+00:00] reported knee-deep water (single report: visible, does not change the zone); confidence 0.80 = source base (sms) x 1 report"
+  ]
+ ],
+ "replay:2026-09-10T14:00..17:00Z:synthetic:listening | Synthetic listening block A | 2026-09-10T14:45:00+00:00 | ": [
+  [
+   "listening",
+   "supports",
+   "2026-09-10T14:45:00+00:00",
+   "2026-09-10T14:45:00+00:00",
+   "0.72",
+   2,
+   "[2026-09-10T14:45:00+00:00] corroborated depth reports: 2 households reported flood depth within 27 min (knee, waist); at least 2 reached knee; zone risk_level unknown -> extreme; confidence 0.72 = (1 - (1 - 0.80)^2) x disagreement factor"
+  ]
+ ],
+ "replay:2026-09-10T14:00..17:00Z:synthetic:listening | Synthetic listening block B | 2026-09-10T14:15:00+00:00 | f03fe602-0848-5529-89d8-fed4413d2ecc": [
+  [
+   "listening",
+   "supports",
+   "2026-09-10T14:15:00+00:00",
+   "2026-09-10T14:15:00+00:00",
+   "0.8",
+   1,
+   "[2026-09-10T14:15:00+00:00] help request: replied HELP by sms; depth follow-up sent; confidence 0.80 = source base (sms)"
+  ],
+  [
+   "listening",
+   "supports",
+   "2026-09-10T14:30:00+00:00",
+   "2026-09-10T14:30:00+00:00",
+   "0.8",
+   1,
+   "[2026-09-10T14:30:00+00:00] reported ankle-deep water (single report: visible, does not change the zone); confidence 0.80 = source base (sms) x 1 report"
+  ]
+ ]
+}

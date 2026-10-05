@@ -14,8 +14,9 @@ placeholders) contains:
   characters (zone names, inference sentences, rules);
 - a placeholder that names no tool result or no scalar value in it, or stray
   braces.
-A rejected answer is never shown; the copilot falls back to template mode and
-says why. So does a refusal, an API error, a turn limit, and any tool result
+A rejected answer is never shown. The model is told why and rewrites it once
+(MAX_REWRITES); the rewrite goes through the same check, and if it fails too the
+copilot falls back to template mode and says why. So does a refusal, an API error, a turn limit, and any tool result
 that touches a real household (ToolResult.external_ok is false), which is
 never sent to the model.
 
@@ -53,6 +54,7 @@ EFFORT = "medium"
 MAX_TOKENS = 16000
 MAX_ROUNDS = 6  # model turns per question (each may call several tools)
 MAX_TOOL_CALLS = 8  # tool calls per question, over all turns
+MAX_REWRITES = 1  # a rejected answer gets this many rewrites (each checked the same way) before falling back
 TOKEN_CAP = 60000  # input + output tokens per question, over all turns
 MIN_TURN_TOKENS = 2048  # don't start a turn with less output room than this
 RATE_LIMIT = 20  # model questions per client IP ...
@@ -78,11 +80,11 @@ MIN_COPIED = 8
 TOOL_INTENTS = {"zone_status": "zone_status", "zone_cases": "zone_cases", "open_cases": "open_cases",
                 "explain_confidence": "explain_confidence", "briefing_facts": "briefing"}
 _TOOL_DESCRIPTIONS = {
-    "zone_status": "The selected zone as of the map's time: risk level (and why it reads unknown), data "
+    "zone_status": "The selected zone as of the map's time: risk level (and why it isn't assessed), data "
                    "confidence, coverage gaps, Case and task summaries. Needs a selected zone.",
     "zone_cases": "Every Case in the selected zone opened by the map's time, with contributions and tasks. "
                   "Needs a selected zone.",
-    "open_cases": "The run's open and in-progress Cases as of the map's time, strongest confidence first.",
+    "open_cases": "The run's Cases not yet closed as of the map's time, strongest confidence first.",
     "explain_confidence": "Why the selected Case has its confidence word: the rule that decided it and each "
                           "contribution's stored and decayed confidence. Needs a selected Case.",
     "briefing_facts": "Everything a draft responder briefing for the selected zone may state: zone status, its "
@@ -102,7 +104,8 @@ single value or a list of plain values. A null value is filled as "{NOT_ASSESSED
 
 Your own words must never contain: any digit; any of these words, with or without underscores: \
 {", ".join(STATUS_WORDS)}; or any text copied from a tool result (names, sentences, rules). Write those only as \
-placeholders. An answer that breaks this is discarded. The server adds the time and run to the start of every \
+placeholders. An answer that breaks this is discarded. Refer to listed Cases as "these Cases" or "the Cases \
+listed", not by their status, and don't repeat a status word from the question, even to say you can't judge it. The server adds the time and run to the start of every \
 answer, so don't state them.
 
 Answer only: {{intents}}. If the question asks for anything else, or needs outside knowledge, reply with exactly \
@@ -246,6 +249,7 @@ class ModelAnswer:
     placeholders: int = 0
     out_of_scope: bool = False
     served_by: Optional[str] = None
+    rewrites: int = 0  # how many times the answer was rejected and rewritten before it passed
 
 
 def api_key_set() -> bool:
@@ -276,7 +280,7 @@ def run(ctx: Context, question: str, call_tool: Callable[[str], tools.ToolResult
                  f"Selected Case: {'yes' if ctx.case_id else 'none'}.")
     messages = [{"role": "user", "content": f"{selection}\n\nQuestion: {question}"}]
     results: dict[str, tools.ToolResult] = {}
-    first_intent, used_tokens, tool_calls = None, 0, 0
+    first_intent, used_tokens, tool_calls, rewrites = None, 0, 0, 0
     for _ in range(MAX_ROUNDS):
         room = min(MAX_TOKENS, TOKEN_CAP - used_tokens)
         if room < MIN_TURN_TOKENS:
@@ -303,7 +307,17 @@ def run(ctx: Context, question: str, call_tool: Callable[[str], tools.ToolResult
         uses = [b for b in response.content if b.type == "tool_use"]
         if response.stop_reason != "tool_use" or not uses:
             text = "".join(b.text for b in response.content if b.type == "text").strip()
-            return _finish(text, results, first_intent, getattr(response, "model", None))
+            if results and text and text != OUT_OF_SCOPE_TOKEN and rewrites < MAX_REWRITES:
+                try:
+                    check(text, {rid: r.data for rid, r in results.items()})
+                except Rejected as exc:
+                    # Not shown. The model is told why and rewrites once; the rewrite goes through the same check
+                    # in _finish, so nothing it writes is shown unchecked.
+                    rewrites += 1
+                    messages.append({"role": "user", "content": f"Your answer was discarded: {exc}. Rewrite it with "
+                                     "every such value as a placeholder and nothing else changed."})
+                    continue
+            return _finish(text, results, first_intent, getattr(response, "model", None), rewrites)
         tool_calls += len(uses)
         if tool_calls > MAX_TOOL_CALLS:
             raise Fallback(f"tool-call cap reached (the model asked for {tool_calls}; the cap is "
@@ -331,7 +345,7 @@ def run(ctx: Context, question: str, call_tool: Callable[[str], tools.ToolResult
     raise Fallback(f"the model did not finish within {MAX_ROUNDS} turns", first_intent)
 
 
-def _finish(text: str, results: dict, first_intent, served_by) -> ModelAnswer:
+def _finish(text: str, results: dict, first_intent, served_by, rewrites: int = 0) -> ModelAnswer:
     if text == OUT_OF_SCOPE_TOKEN and not results:
         return ModelAnswer(text="", results=[], out_of_scope=True, served_by=served_by)
     if not results:
@@ -342,7 +356,7 @@ def _finish(text: str, results: dict, first_intent, served_by) -> ModelAnswer:
     try:
         check(text, data)
     except Rejected as exc:
-        raise Fallback(f"model answer rejected: {exc}", first_intent)
+        raise Fallback(f"model answer rejected{' after a rewrite' if rewrites else ''}: {exc}", first_intent)
     filled, nulls = fill(text, data)
     return ModelAnswer(text=filled, results=list(results.values()), nulls=nulls,
-                       placeholders=len(PLACEHOLDER.findall(text)), served_by=served_by)
+                       placeholders=len(PLACEHOLDER.findall(text)), served_by=served_by, rewrites=rewrites)

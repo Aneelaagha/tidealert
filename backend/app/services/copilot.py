@@ -245,7 +245,7 @@ def _model_answer(db: Session, base: dict, question: str, run_id, at, zone_id, c
         chosen = fb.intent or route(question, None)
         fallen = {**base, "mode": "template", "mode_reason": f"model mode fell back to templates: {fb.reason}"}
         return _template_answer(db, fallen, chosen, run_id, at, zone_id, case_id)
-    base = {**base, "served_by": a.served_by}
+    base = {**base, "served_by": a.served_by, "rewrites": a.rewrites}
     if a.out_of_scope:
         return {**base, "intent": None, "answer": OUT_OF_SCOPE, "in_scope": False, "unknowns": [], "tools": []}
     first = a.results[0]

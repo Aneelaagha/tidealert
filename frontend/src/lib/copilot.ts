@@ -20,6 +20,7 @@ export function answerLabels(a: CopilotAnswer, statusMode: string) {
     fellBack: a.mode === 'template' && statusMode === 'model',
     reason: a.mode_reason,
     servedBy: a.served_by ?? null,
+    rewritten: (a.rewrites ?? 0) > 0,
     unknowns: a.unknowns ?? [],
     households: a.household_data && a.household_data.households > 0 ? a.household_data : null,
     retryAfter: a.retry_model_after_seconds ?? null,

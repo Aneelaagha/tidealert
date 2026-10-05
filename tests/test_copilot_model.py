@@ -173,8 +173,41 @@ def _fallback(fake, call=lambda name: result(ZONE)):
 
 
 def test_a_rejected_answer_falls_back_to_the_template_of_the_tool_it_read():
-    fb = _fallback(FakeClient(reply(tool_use("zone_status"), stop="tool_use"), reply(text("It is extreme."))))
-    assert "rejected" in fb.reason and fb.intent == "zone_status"
+    """The rewrite states the value again: the guard holds and nothing the model wrote is shown."""
+    fake = FakeClient(reply(tool_use("zone_status"), stop="tool_use"), reply(text("It is extreme.")),
+                      reply(text("The zone is extreme.")))
+    fb = _fallback(fake)
+    assert fb.reason == "model answer rejected after a rewrite: status word written outside a placeholder: 'extreme'"
+    assert fb.intent == "zone_status" and len(fake.requests) == 3
+
+
+# ---------------------------------------------------------------- one rewrite after a rejection
+def test_a_rejected_draft_is_rewritten_once_and_shown_only_after_passing_the_same_check():
+    fake = FakeClient(reply(tool_use("open_cases"), stop="tool_use"),
+                      reply(text("There are {{t1.case_count}} open or in-progress Cases.")),
+                      reply(text("There are {{t1.case_count}} Cases listed.")))
+    a = model.run(CTX, "q", lambda name: result(ZONE), client=fake)
+    assert a.text == "There are 2 Cases listed." and a.rewrites == 1
+    told = fake.requests[2]["messages"][-1]
+    assert told["role"] == "user" and "status word written outside a placeholder: 'open'" in told["content"]
+    assert fake.requests[2]["messages"][-2]["role"] == "assistant"  # the rejected draft stays in the conversation
+
+
+def test_there_is_only_one_rewrite():
+    fake = FakeClient(reply(tool_use("zone_status"), stop="tool_use"), reply(text("It is safe.")),
+                      reply(text("It is safe.")), reply(text("{{t1.risk_level}}")))  # the 4th is never asked for
+    assert "after a rewrite" in _fallback(fake).reason and len(fake.requests) == 3
+
+
+def test_a_passing_answer_is_not_rewritten_and_out_of_scope_is_not_checked():
+    fake = FakeClient(reply(tool_use("zone_status"), stop="tool_use"), reply(text("{{t1.risk_level}}")))
+    assert model.run(CTX, "q", lambda name: result(ZONE), client=fake).rewrites == 0 and len(fake.requests) == 2
+    assert model.run(CTX, "q", lambda name: result(ZONE), client=FakeClient(reply(text("OUT_OF_SCOPE")))).out_of_scope
+
+
+def test_the_tool_descriptions_contain_no_status_word_for_the_model_to_echo():
+    for t in model.TOOLS:
+        assert not model._STATUS_RE.search(t["description"]), t["name"]
 
 
 def test_refusals_errors_cutoffs_and_endless_loops_fall_back():
@@ -273,10 +306,11 @@ def test_with_a_key_free_text_goes_to_the_model_and_values_match_the_map(client,
 def test_with_a_key_a_rejected_answer_returns_the_template(client, runs, fake_key, monkeypatch):
     harvey = runs["harvey"]["id"]
     z = _zone_with_case(client, harvey)
-    use(monkeypatch, FakeClient(reply(tool_use("zone_status"), stop="tool_use"), reply(text("This zone is extreme."))))
+    use(monkeypatch, FakeClient(reply(tool_use("zone_status"), stop="tool_use"), reply(text("This zone is extreme.")),
+                                reply(text("It reads extreme."))))
     body = {"run_id": harvey, "question": "how is this zone?", "zone_id": z["zone_id"], "at": PEAK}
     b = client.post("/copilot/ask", json=body).json()
-    assert b["mode"] == "template" and "rejected: status word" in b["mode_reason"]
+    assert b["mode"] == "template" and "rejected after a rewrite: status word" in b["mode_reason"]
     template = client.post("/copilot/ask", json={**body, "question": "", "intent": "zone_status"}).json()
     assert b["answer"] == template["answer"]
 

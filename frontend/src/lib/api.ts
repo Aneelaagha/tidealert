@@ -198,6 +198,7 @@ export interface CopilotAnswer {
   as_of?: string;
   tools: string[];
   served_by?: string | null;
+  rewrites?: number; // model answers: times a draft was rejected by the check and rewritten before it passed
   placeholders?: number;
   retry_model_after_seconds?: number;
   household_data?: { households: number; real: number; may_send_to_external_model: boolean };

@@ -1,0 +1,33 @@
+{
+ "label": "1w-copilot",
+ "mode": "copilot",
+ "base": "http://127.0.0.1:8010",
+ "duration_s": 60.0,
+ "wall_s": 70.6,
+ "config": {
+  "mode": "copilot",
+  "base": "http://127.0.0.1:8010",
+  "dashboards": 30,
+  "field": 150,
+  "users": 30,
+  "dispatchers": 5,
+  "races": 5,
+  "race_width": 10,
+  "duration": 60.0,
+  "seed": 7,
+  "label": "1w-copilot"
+ },
+ "cycles_started_late": 0,
+ "endpoints": {
+  "copilot/ask": {
+   "n": 180,
+   "p50_ms": 47.7,
+   "p95_ms": 89.2,
+   "p99_ms": 103.3,
+   "max_ms": 108.4,
+   "statuses": {
+    "200": 180
+   }
+  }
+ }
+}

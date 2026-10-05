@@ -1,0 +1,109 @@
+{
+ "label": "1w-writes",
+ "mode": "writes",
+ "base": "http://127.0.0.1:8010",
+ "duration_s": 60.0,
+ "wall_s": 4.2,
+ "config": {
+  "mode": "writes",
+  "base": "http://127.0.0.1:8010",
+  "dashboards": 30,
+  "field": 150,
+  "users": 30,
+  "dispatchers": 5,
+  "races": 5,
+  "race_width": 10,
+  "duration": 60.0,
+  "seed": 7,
+  "label": "1w-writes"
+ },
+ "cycles_started_late": 0,
+ "endpoints": {
+  "tasks/assign": {
+   "n": 142,
+   "p50_ms": 33.4,
+   "p95_ms": 51.1,
+   "p99_ms": 55.6,
+   "max_ms": 96.4,
+   "statuses": {
+    "200": 142
+   }
+  },
+  "tasks/assign (race)": {
+   "n": 50,
+   "p50_ms": 76.8,
+   "p95_ms": 87.9,
+   "p99_ms": 90.7,
+   "max_ms": 92.6,
+   "statuses": {
+    "200": 21,
+    "409": 29
+   }
+  },
+  "tasks/clear-verify": {
+   "n": 147,
+   "p50_ms": 29.8,
+   "p95_ms": 46.6,
+   "p99_ms": 60.1,
+   "max_ms": 60.7,
+   "statuses": {
+    "200": 147
+   }
+  },
+  "tasks/status": {
+   "n": 142,
+   "p50_ms": 33.6,
+   "p95_ms": 53.0,
+   "p99_ms": 93.7,
+   "max_ms": 120.5,
+   "statuses": {
+    "200": 142
+   }
+  }
+ },
+ "writes": {
+  "completed_assign_and_complete": 142,
+  "races": [
+   {
+    "task": "f5126561-d2bf-4c81-967d-b2e3bf4c548a",
+    "concurrent_assigns": 10,
+    "successes": 5,
+    "refusals_409": 5,
+    "other": [],
+    "assignment_events_recorded": 5
+   },
+   {
+    "task": "564a556b-2266-4c84-b14f-2a7544222bdf",
+    "concurrent_assigns": 10,
+    "successes": 4,
+    "refusals_409": 6,
+    "other": [],
+    "assignment_events_recorded": 4
+   },
+   {
+    "task": "8361bc60-26cb-40ff-bb07-1d4e268c3a90",
+    "concurrent_assigns": 10,
+    "successes": 4,
+    "refusals_409": 6,
+    "other": [],
+    "assignment_events_recorded": 4
+   },
+   {
+    "task": "5b089e33-edd4-4e28-ad18-124a9f9fac8a",
+    "concurrent_assigns": 10,
+    "successes": 4,
+    "refusals_409": 6,
+    "other": [],
+    "assignment_events_recorded": 4
+   },
+   {
+    "task": "bfe6243b-7e9e-4b19-ab3f-8c2b7987b242",
+    "concurrent_assigns": 10,
+    "successes": 4,
+    "refusals_409": 6,
+    "other": [],
+    "assignment_events_recorded": 4
+   }
+  ]
+ }
+}

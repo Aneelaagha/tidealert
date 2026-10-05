@@ -1,0 +1,43 @@
+{
+ "label": "1w-panels-1x",
+ "mode": "panels",
+ "base": "http://127.0.0.1:8010",
+ "duration_s": 60.0,
+ "wall_s": 89.9,
+ "config": {
+  "mode": "panels",
+  "base": "http://127.0.0.1:8010",
+  "dashboards": 30,
+  "field": 150,
+  "users": 30,
+  "dispatchers": 5,
+  "races": 5,
+  "race_width": 10,
+  "duration": 60.0,
+  "seed": 7,
+  "label": "1w-panels-1x"
+ },
+ "cycles_started_late": 0,
+ "endpoints": {
+  "cases": {
+   "n": 120,
+   "p50_ms": 87.1,
+   "p95_ms": 128.6,
+   "p99_ms": 168.2,
+   "max_ms": 234.5,
+   "statuses": {
+    "200": 120
+   }
+  },
+  "tasks": {
+   "n": 420,
+   "p50_ms": 69.3,
+   "p95_ms": 115.6,
+   "p99_ms": 140.6,
+   "max_ms": 232.5,
+   "statuses": {
+    "200": 420
+   }
+  }
+ }
+}

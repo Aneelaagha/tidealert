@@ -272,7 +272,10 @@ def freshness(db: Session, run: Run, at: datetime) -> dict:
     for rs in sorted(rows, key=lambda rs: rs.data_source.name):
         src = rs.data_source
         stale_after = rs.stale_after_override_seconds or src.stale_after_seconds
-        last = db.scalar(select(func.max(Signal.observed_at)).where(Signal.source_id == src.id, Signal.observed_at <= at))
+        # The source's own kind of observation only: an ESTIMATED gauge value (stored as inferred) is not a reading,
+        # and must not make a gauge whose feed has stopped look fresh. A model source (inferred by nature) still counts.
+        last = db.scalar(select(func.max(Signal.observed_at)).where(Signal.source_id == src.id, Signal.observed_at <= at,
+                                                                   Signal.signal_type == src.type_default))
         age = (at - last).total_seconds() if last else None
         if last is None:
             status = "no_data"

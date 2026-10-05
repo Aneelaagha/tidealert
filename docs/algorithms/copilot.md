@@ -178,9 +178,18 @@ model, SDK or server behind it.
   - **After:** 9 of 9 answered calls were AI answers (7 on the first draft,
     2 after one rewrite). The 10th call failed because the account's credit
     ran out, not because of the check.
-  - **Not measured after the change:** other questions. A zone question
-    sampled before the change (5 runs) had 1 rejection, on "safe", in "I
-    can't tell you whether it's safe".
+  - **A zone question** (*"What is happening in this zone, and is it safe to
+    send a crew in?"*, 5 runs each):
+    - **before:** 1 grounded AI answer, 3 out-of-scope replies and 1
+      rejection (on "safe", in "I can't tell you whether it's safe");
+    - **after:** 4 grounded AI answers, 1 out-of-scope reply and no
+      rejections. The answers decline the safety call in their own words
+      ("whether it's okay to send a crew in … a decision for your incident
+      command").
+  - **Out-of-scope replies are a separate, known gap:** the model sometimes
+    declines a question its tools could answer. The fix leaves that
+    behaviour alone. The drop from 3 to 1 is a sample of 5, not a measured
+    effect.
 - **The rejection check is lexical:** it catches written status words,
   digits and copied text. It doesn't catch a count spelled out in words
   ("two Cases"), or a wrong claim made without a value (for example, "this

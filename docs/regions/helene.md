@@ -1,9 +1,7 @@
 # Second region: Hurricane Helene, Asheville, NC (September 2024)
 
-Status: **data pulled; study area set; no results yet.** The French Broad gauge
-has passed its dry run. The Swannanoa gauge's results are **gated**: nothing
-from it is run, looked at or reported until the gap-fill fix (a step with no
-data stays "missing", not interpolated) is merged and verified.
+Status: **both gauges run (2026-10-05); results below, not yet interpreted for
+the write-up.** The Swannanoa's gate (the gap-fill fix) is merged and verified.
 
 **Every number below carries the date it was checked.** USGS figures for this
 event were provisional and have been revised since (see "Revised provisional
@@ -67,6 +65,43 @@ reach. A full-basin French Broad run (about 2,446 km², tens of millions of
 - The Swannanoa's full basin (339 km², 2,862 × 2,692 cells at 10 m) failed as
   a single export: HTTP 500 six times in a row. It succeeded as 4 tiles in
   61 s (2026-10-05).
+
+## Results (run 2026-10-05; window 2024-09-25 04:00 to 2024-10-01 04:00 UTC)
+Both gauges run on **HAND (lower confidence)**. Neither has a usable NWS flood
+map (see below).
+
+| | Swannanoa 03451000 | French Broad 03451500 (clipped) |
+|---|---|---|
+| Stage steps (15 min) | 577: 399 measured, 28 from the rating curve, **150 missing** (nothing inferred) | 577: all measured |
+| Peak | 27.33 ft at 19:00 UTC on 27 Sep (a single reading) | 24.67 ft at 21:30 UTC on 27 Sep on the 15-min grid (24.82 ft at 21:38 off-grid) |
+| Road segments | 5,436 | 3,885 |
+| Ever flooded (known) | **48** (0.9%) | **1** |
+| Flooding unknown (outside HAND's reach coverage) | 1,273 (23.4%) | 1,273 (32.8%), the same count by coincidence (checked) |
+| First road floods | 06:45 UTC on 26 Sep, 234 min after the minor-flood alarm | 17:30 UTC on 27 Sep, 1,756 min after the alarm |
+| **Confirmed isolated** | **0 zones** | **0 zones** |
+| Possibly isolated (only if unknown roads flood) | 512 zones, 29,440 people | 170 zones, 8,160 people |
+| Reachable | 148 zones, 10,075 people | 243 zones, 15,112 people |
+| Not connected at base flow | 8 zones, 138 people | 142 zones, 8,629 people |
+| **Cases opened** | **0** | **0** |
+| NFIP claims in the zones' block groups (date of loss, EDT) | 294 in total; 233 on 27 Sep | 73 in total; 59 on 27 Sep |
+
+**What this does and doesn't show:**
+- **No Case opened anywhere,** because no zone is confirmed isolated, and
+  Cases open only on confirmed isolation. The engine's "possibly isolated"
+  bound covers most residents (74% at the Swannanoa, 26% at the French
+  Broad), but it rests on roads whose flooding the engine can't assess.
+- **HAND barely engages near Asheville:** 48 and 1 segments ever flood.
+  This is consistent with the limitations below (steep valleys; HAND's
+  constant-depth assumption; landslides and washouts not modelled), but this
+  run can't separate those causes.
+- **NFIP claims are counts, not rates.** They're located by block group and
+  dated by day, not time, so they can't confirm or refute any single zone.
+- **The French Broad's 142 zones not connected at base flow** come from the
+  city-limits clip cutting the road network. They aren't evaluated, and the
+  report gives the reason.
+- **HAND's confidence here is borrowed from Harvey's Houston libraries**
+  (White Oak and Greens Bayou): no Helene gauge has a usable library to
+  measure it locally.
 
 ## The Swannanoa's flood-map library is refused (checked 2026-10-05)
 NWS publishes a flood-map library for BLTN7, but the engine doesn't use it:

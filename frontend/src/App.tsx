@@ -8,12 +8,15 @@ import { CopilotPanel } from './components/CopilotPanel';
 import { EthicsPanel } from './components/EthicsPanel';
 import { EventTicker } from './components/EventTicker';
 import { FreshnessBanner } from './components/FreshnessBanner';
+import { ConnectionBanner } from './components/ConnectionBanner';
 import { Header } from './components/Header';
 import { Legend } from './components/Legend';
 import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
 import { api, type Case, type Freshness, type Responder, type Run, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
+import { cacheKeepView, dispatch, getConnection, startConnectionWatch } from './lib/connection';
+import { useConnection } from './lib/useConnection';
 import { readUrl, tickIndex, ticksFor, writeUrl } from './lib/time';
 
 function Panel({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
@@ -46,7 +49,7 @@ function OperatorBar({ run, operator, onOperator }: { run: Run; operator: string
   );
 }
 
-function summary(zones: ZonesResponse, seconds: number): string {
+function summary(zones: ZonesResponse, seconds: number | null): string {
   const f = zones.features.map((x) => x.properties);
   const withTask = f.filter((z) => z.task_count > 0);
   const sum = (k: 'task_count' | 'task_awaiting' | 'task_flagged') => withTask.reduce((n, z) => n + z[k], 0);
@@ -54,7 +57,7 @@ function summary(zones: ZonesResponse, seconds: number): string {
   return `${f.length.toLocaleString()} zones · ${f.filter((z) => z.case_count > 0).length} with Cases · `
     + `${sum('task_count')} active tasks in ${withTask.length} zones (${sum('task_awaiting')} awaiting assignment, `
     + `${sum('task_flagged')} flagged verify) · ${f.filter((z) => z.coverage_gap_active).length.toLocaleString()} `
-    + `with an active coverage gap · ${seconds.toFixed(1)} s`;
+    + `with an active coverage gap · ${seconds === null ? 'cached' : `${seconds.toFixed(1)} s`}`;
 }
 
 export default function App() {
@@ -76,6 +79,13 @@ export default function App() {
   const [version, setVersion] = useState(0); // bumped after a task action: everything is read again
   const [status, setStatus] = useState('loading runs…');
   const [error, setError] = useState<string | null>(null);
+
+  const conn = useConnection();
+
+  useEffect(() => startConnectionWatch(), []);
+
+  // The server is back: read the view again, so nothing stale stays on screen.
+  useEffect(() => { if (conn.recoveredAt) setVersion((v) => v + 1); }, [conn.recoveredAt]);
 
   const ticks = useMemo(() => (run ? ticksFor(run) : []), [run]);
 
@@ -128,6 +138,7 @@ export default function App() {
     if (!run) return;
     window.history.replaceState(null, '', writeUrl(run.id, at));
     const ctl = new AbortController(), t0 = performance.now();
+    cacheKeepView(run.id, at); // one view is cached: the one on screen
     setStatus('loading…');
     setError(null);
     setFreshness(null);
@@ -135,7 +146,10 @@ export default function App() {
       .then(([z, f]) => {
         setZones(z);
         setFreshness(f);
-        setStatus(summary(z, (performance.now() - t0) / 1000));
+        // Only a load that came from the server counts as the view's load time (a cached reply arrives offline).
+        const fromServer = getConnection().state === 'online';
+        if (fromServer) dispatch({ type: 'view_loaded', at: Date.now() });
+        setStatus(summary(z, fromServer ? (performance.now() - t0) / 1000 : null));
       })
       .catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
     api.tasks(run.id, at, ctl.signal).then((b) => setTasks(b.tasks))
@@ -156,7 +170,8 @@ export default function App() {
               ticks={ticks} tick={tick} onTickInput={setTick} onTickCommit={() => setAt(ticks.length ? ticks[tick] : null)}
               onEthics={() => setEthicsOpen(true)} />
       {ethicsOpen && <EthicsPanel run={run} freshness={freshness} vocabulary={vocabulary} onClose={closeEthics} />}
-      {run && <FreshnessBanner run={run} freshness={freshness} />}
+      <ConnectionBanner conn={conn} />
+      {run && <FreshnessBanner run={run} freshness={freshness} conn={conn} />}
 
       <main className="mx-auto mt-4 grid w-full max-w-7xl flex-1 grid-cols-1 gap-6 px-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">

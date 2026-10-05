@@ -1,6 +1,8 @@
 // The only place the page talks to the backend. Every value the page shows comes back from one of these calls;
 // the types mirror the FastAPI responses (backend/app/routes, docs/api/map.md) and add nothing of their own.
 
+import { OfflineError, SLOW_TIMEOUT_MS, TIMEOUT_MS, cacheGet, cachePut, dispatch, fetchTimed, isNetworkError } from './connection';
+
 export type Mode = 'replay' | 'scenario' | 'live' | string;
 
 export interface Run {
@@ -231,17 +233,42 @@ function detailOf(body: string): string {
   }
 }
 
+/** GET with a timeout. A network failure (never an HTTP error status) is reported to the connection store, and the
+ *  same request's last response is served from the one-view cache if there is one; otherwise OfflineError. */
 export async function get<T>(path: string, params: Params = {}, signal?: AbortSignal): Promise<T> {
   const query = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (v != null) query.set(k, v);
   const qs = query.toString();
-  const r = await fetch(qs ? `${path}?${qs}` : path, { signal });
+  const url = qs ? `${path}?${qs}` : path;
+  let r: Response;
+  try {
+    r = await fetchTimed(url, {}, SLOW_TIMEOUT_MS[path] ?? TIMEOUT_MS, signal);
+  } catch (e) {
+    if (!isNetworkError(e)) throw e; // the page's own abort
+    dispatch({ type: 'network_failure', at: Date.now() });
+    const hit = cacheGet(url);
+    if (hit) return hit.body as T;
+    throw new OfflineError(path);
+  }
+  dispatch({ type: 'reachable', at: Date.now() });
   if (!r.ok) throw new ApiError(path, r.status, detailOf(await r.text()));
-  return r.json() as Promise<T>;
+  const body = await r.json() as T;
+  cachePut(url, body, Date.now());
+  return body;
 }
 
+/** POST with a timeout. Never cached or queued: offline, writes and questions fail with OfflineError. */
 export async function post<T>(path: string, body: unknown): Promise<T> {
-  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  let r: Response;
+  try {
+    r = await fetchTimed(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+                         TIMEOUT_MS * 15); // a model answer can take most of the server's 60 s model timeout
+  } catch (e) {
+    if (!isNetworkError(e)) throw e;
+    dispatch({ type: 'network_failure', at: Date.now() });
+    throw new OfflineError(path, true);
+  }
+  dispatch({ type: 'reachable', at: Date.now() });
   if (!r.ok) throw new ApiError(path, r.status, detailOf(await r.text()));
   return r.json() as Promise<T>;
 }

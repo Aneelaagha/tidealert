@@ -35,11 +35,15 @@ describe('no invented data in src/', () => {
   });
 
   it('never stamps the wall clock as data (times come from the API and the run clock)', () => {
-    expect(offenders(/Date\.now\s*\(|new Date\s*\(\s*\)/)).toEqual([]);
+    // The one exception is the connection state (offline mode): "offline since" and "loaded at" are times the
+    // browser itself observed, which the API cannot supply. Only these three files read the clock, and only for that.
+    const connection = ['App.tsx', join('lib', 'api.ts'), join('lib', 'connection.ts')];
+    expect(offenders(/Date\.now\s*\(|new Date\s*\(\s*\)/, (p) => connection.includes(p))).toEqual([]);
   });
 
-  it('talks to the backend only through src/lib/api.ts', () => {
-    expect(offenders(/\bfetch\s*\(/, (p) => p === join('lib', 'api.ts'))).toEqual([]);
+  it('talks to the backend only through src/lib/api.ts and the connection layer it sits on', () => {
+    // lib/connection.ts holds the timeout wrapper and the reachability probe that api.ts calls through.
+    expect(offenders(/\bfetch\s*\(/, (p) => p === join('lib', 'api.ts') || p === join('lib', 'connection.ts'))).toEqual([]);
   });
 
   it('names no outside host except the basemap tiles', () => {

@@ -59,7 +59,8 @@ from app.services.river_driver import (  # noqa: E402
     build_river_driver, depth_over_channel, local_zone, river_flood_mask,
 )
 from app.services.rainfall import (  # noqa: E402
-    RESIDUAL_DRAIN_BRACKET, RESIDUAL_DRAIN_FRACTION, aorc_rainfall, drainage_capacity_mm_hr, ponding_levels,
+    RESIDUAL_DRAIN_BRACKET, RESIDUAL_DRAIN_FRACTION, RainfallUnavailable, aorc_rainfall, drainage_capacity_mm_hr,
+    ponding_levels,
 )
 from app.services.stage import StageSeries, fit_event_rating, observed_stage, timesteps  # noqa: E402
 from app.services.street_blocks import basin_segments, generate_zones  # noqa: E402
@@ -165,9 +166,16 @@ def main() -> None:
         zones = list(db.scalars(select(Zone).where(Zone.region == site.region).order_by(Zone.name)))
         zone_geoms = gpd.GeoSeries([to_shape(z.boundary) for z in zones], crs=4326).to_crs(terrain.crs_epsg)
 
-        # Rainfall is ingested as input data; the rain driver produces no isolation output until validated.
-        rain = aorc_rainfall(terrain, start - timedelta(hours=1), end)
-        ingest_rainfall(db, site, rain)
+        # Rainfall is ingested as input data; the rain driver produces no isolation output until validated. When the
+        # source doesn't cover the window (it ends in 2020), the run says so and skips rainfall and the rain-driver
+        # evaluation; the river-driven isolation output doesn't depend on either.
+        try:
+            rain = aorc_rainfall(terrain, start - timedelta(hours=1), end)
+            ingest_rainfall(db, site, rain)
+            rain_missing = None
+        except RainfallUnavailable as exc:
+            rain, rain_missing = None, str(exc)
+            log.warning("USGS %s: %s; rainfall and the rain-driver evaluation are skipped", site.site_id, exc)
 
         times = timesteps(start, end, timedelta(minutes=args.step_minutes))
         rating = fit_event_rating(db, site.site_id)
@@ -205,9 +213,11 @@ def main() -> None:
         engine.update_zone_countdowns(db, bounded, alarm or times[0], site.site_id, river.caveat)
 
         # Rain driver: evaluated against Sentinel-1 below, never used for isolation (engine gate).
-        capacity = drainage_capacity_mm_hr(site)
-        rain_ponding = {frac: ponding_levels(terrain, rain, times, capacity, unknown_blocked, frac)
-                        for frac in (RESIDUAL_DRAIN_FRACTION, *RESIDUAL_DRAIN_BRACKET)}
+        rain_ponding = {}
+        if rain is not None:
+            capacity = drainage_capacity_mm_hr(site)
+            rain_ponding = {frac: ponding_levels(terrain, rain, times, capacity, unknown_blocked, frac)
+                            for frac in (RESIDUAL_DRAIN_FRACTION, *RESIDUAL_DRAIN_BRACKET)}
 
         block_groups = {z.block_group_geoid for z in zones if z.block_group_geoid}
         counties = sorted({bg[:5] for bg in block_groups})
@@ -237,12 +247,16 @@ def main() -> None:
     print(f"  peak {stage.stage_ft[peak_i]:.2f} ft at {fmt(times[peak_i])} [{stage.provenance[peak_i]}]; "
           f"depth over channel {depth[peak_i]:.2f} m via {depth_method}")
     by_day = defaultdict(list)
-    for t, v in zip(rain.times, rain.basin_mean_mm_hr):
-        by_day[(t - timedelta(hours=1)).astimezone(tz).date()].append(float(v))
-    print(f"  rainfall input (AORC; basin-mean total {rain.basin_mean_mm_hr.sum():.0f} mm) by local day, mm "
-          f"(max mm/h): " + "  ".join(f"{d:%m-%d} {sum(v):.0f} ({max(v):.1f})" for d, v in sorted(by_day.items())))
+    if rain is not None:
+        for t, v in zip(rain.times, rain.basin_mean_mm_hr):
+            by_day[(t - timedelta(hours=1)).astimezone(tz).date()].append(float(v))
+        print(f"  rainfall input (AORC; basin-mean total {rain.basin_mean_mm_hr.sum():.0f} mm) by local day, mm "
+              f"(max mm/h): " + "  ".join(f"{d:%m-%d} {sum(v):.0f} ({max(v):.1f})" for d, v in sorted(by_day.items())))
+    else:
+        print(f"  rainfall input: NOT AVAILABLE ({rain_missing})")
     print(f"  base-flow check passed at {fmt(times[0])}")
-    report["rainfall_daily_mm"] = {str(d): sum(v) for d, v in sorted(by_day.items())}
+    report["rainfall_daily_mm"] = {str(d): sum(v) for d, v in sorted(by_day.items())} if rain is not None else None
+    report["rainfall_unavailable"] = rain_missing
     report["depth_method"] = depth_method
     report["thresholds"] = {"values": {"action": th.action_ft, "minor": th.minor_ft, "moderate": th.moderate_ft,
                                        "major": th.major_ft}, "provenance": th.provenance}
@@ -390,36 +404,41 @@ def main() -> None:
     if not s1_results:
         print("  no same-orbit Sentinel-1 pairs found for this basin and window")
 
-    role = "FIT basin (parameters chosen here)" if site.site_id == RAIN_FIT_SITE else \
-        f"HELD-OUT basin (parameters fit on USGS {RAIN_FIT_SITE}; nothing tuned here)"
-    print(f"\nRAIN DRIVER VALIDATION ({role})")
-    print(f"  parameters: depression >= {engine.DEPRESSION_MIN_M} m; drains keep {RESIDUAL_DRAIN_FRACTION:.0%} of "
-          f"{capacity:.1f} mm/h at/above minor stage (bracket {', '.join(f'{f:.0%}' for f in RESIDUAL_DRAIN_BRACKET)}); "
-          f"criterion: Sentinel-1 confirms rain ponding at least as often as the validated river driver")
-    passes = []
-    for line in rain_checks:
-        base = line["model_confirmed"]
-        r = line["rain"][RESIDUAL_DRAIN_FRACTION]
-        bracket = "  ".join(f"{f:.0%}: {line['rain'][f]['model_km2']:.2f} km2 / {pct(line['rain'][f]['confirmed'])}"
-                            for f in RESIDUAL_DRAIN_BRACKET)
-        if base is None:
-            verdict = "no baseline (river driver floods nothing at this scene)"
-        elif r["confirmed"] is None:
-            verdict = "cannot be checked: rain driver ponds nothing at this scene"
-            passes.append(False)
-        else:
-            verdict = "clears" if r["confirmed"] >= base else "BELOW baseline"
-            passes.append(r["confirmed"] >= base)
-        print(f"  {line['acquired_at'][:16]} UTC (drains {'reduced' if line['drains_reduced'] else 'full'}): rain ponding "
-              f"{r['model_km2']:.2f} km2, confirmed {pct(r['confirmed'])}, captures {pct(r['captures'])} of S1 water | "
-              f"river baseline {pct(base)} -> {verdict}   [bracket {bracket}]")
-    cleared = bool(passes) and all(passes)
-    print(f"  VERDICT: {'clears' if cleared else 'does NOT clear (or cannot be checked against)'} the river-driver "
-          f"baseline on this basin. "
-          f"Rain driver stays gated off (RAIN_DRIVER_VALIDATED = {engine.RAIN_DRIVER_VALIDATED}); no rain-driven "
-          f"isolation output.")
-    report["rain_driver_validation"] = {"role": role, "cleared": cleared, "scenes": [
-        {"acquired_at": x["acquired_at"], "river_confirmed": x["model_confirmed"], "rain": x["rain"]} for x in rain_checks]}
+    if rain is None:
+        print(f"\nRAIN DRIVER VALIDATION: not evaluated ({rain_missing}). The rain driver stays gated off "
+              f"(RAIN_DRIVER_VALIDATED = {engine.RAIN_DRIVER_VALIDATED}); no rain-driven isolation output.")
+        report["rain_driver_validation"] = {"evaluated": False, "reason": rain_missing}
+    else:
+        role = "FIT basin (parameters chosen here)" if site.site_id == RAIN_FIT_SITE else \
+            f"HELD-OUT basin (parameters fit on USGS {RAIN_FIT_SITE}; nothing tuned here)"
+        print(f"\nRAIN DRIVER VALIDATION ({role})")
+        print(f"  parameters: depression >= {engine.DEPRESSION_MIN_M} m; drains keep {RESIDUAL_DRAIN_FRACTION:.0%} of "
+              f"{capacity:.1f} mm/h at/above minor stage (bracket {', '.join(f'{f:.0%}' for f in RESIDUAL_DRAIN_BRACKET)}); "
+              f"criterion: Sentinel-1 confirms rain ponding at least as often as the validated river driver")
+        passes = []
+        for line in rain_checks:
+            base = line["model_confirmed"]
+            r = line["rain"][RESIDUAL_DRAIN_FRACTION]
+            bracket = "  ".join(f"{f:.0%}: {line['rain'][f]['model_km2']:.2f} km2 / {pct(line['rain'][f]['confirmed'])}"
+                                for f in RESIDUAL_DRAIN_BRACKET)
+            if base is None:
+                verdict = "no baseline (river driver floods nothing at this scene)"
+            elif r["confirmed"] is None:
+                verdict = "cannot be checked: rain driver ponds nothing at this scene"
+                passes.append(False)
+            else:
+                verdict = "clears" if r["confirmed"] >= base else "BELOW baseline"
+                passes.append(r["confirmed"] >= base)
+            print(f"  {line['acquired_at'][:16]} UTC (drains {'reduced' if line['drains_reduced'] else 'full'}): rain ponding "
+                  f"{r['model_km2']:.2f} km2, confirmed {pct(r['confirmed'])}, captures {pct(r['captures'])} of S1 water | "
+                  f"river baseline {pct(base)} -> {verdict}   [bracket {bracket}]")
+        cleared = bool(passes) and all(passes)
+        print(f"  VERDICT: {'clears' if cleared else 'does NOT clear (or cannot be checked against)'} the river-driver "
+              f"baseline on this basin. "
+              f"Rain driver stays gated off (RAIN_DRIVER_VALIDATED = {engine.RAIN_DRIVER_VALIDATED}); no rain-driven "
+              f"isolation output.")
+        report["rain_driver_validation"] = {"role": role, "cleared": cleared, "scenes": [
+            {"acquired_at": x["acquired_at"], "river_confirmed": x["model_confirmed"], "rain": x["rain"]} for x in rain_checks]}
 
     report.update({
         "stage_provenance": dict(Counter(stage.provenance)),

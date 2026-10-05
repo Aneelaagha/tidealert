@@ -322,6 +322,11 @@ Broad at Asheville (03451500): Asheville city limits within its basin, minus
 the Swannanoa basin, which is 60.0 of 2,446 km². See
 [docs/regions/helene.md](../regions/helene.md).
 
+**Rainfall coverage:** the AORC source (the NWM v2.1 retrospective) ends on
+2020-12-31. For a later event the pipeline reports "rainfall input: NOT
+AVAILABLE" and skips the rain-driver evaluation (`rainfall.RainfallUnavailable`)
+rather than crashing. River-driven isolation is unaffected.
+
 **3DEP downloads** retry a transient failure (5xx, connection or timeout) up
 to 3 times, waiting 10 s then 30 s, because the service returns intermittent
 502s for requests that succeed minutes later.

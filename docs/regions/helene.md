@@ -107,6 +107,17 @@ gaps, because the model fails differently here than in Houston.
   must say it's blind there, not infer.
 - **Ground truth is thin:** NFIP only, about 100 times sparser than Harvey's.
 - **The French Broad covers 2.5% of its basin** (the clip above).
+- **There's no rainfall input for this event.** The pipeline's rainfall source,
+  the NWM v2.1 retrospective's AORC forcing
+  (`noaa-nwm-retrospective-2-1-zarr-pds/precip.zarr`), ends on 2020-12-31
+  (checked 2026-10-05). The pipeline now says so
+  (`rainfall.RainfallUnavailable`) and skips the rainfall summary and the
+  rain-driver evaluation. The river-driven isolation output doesn't depend
+  on either, and the rain driver is gated off anyway. **Future work, not
+  done:** NOAA's AORC v1.1 archive (`noaa-nws-aorc-v1-1-1km`, per-year Zarr)
+  covers 2024 and 2025. Reading it would need a second reader for its
+  layout, for an input that feeds a driver this region can't validate (no
+  Sentinel-1 pass near the peak).
 
 ## Sources
 - USGS, *USGS collecting flood data and repairing streamgages damaged by

@@ -42,6 +42,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 import pyproj
 import requests
 import s3fs
@@ -98,8 +99,22 @@ def drainage_capacity_mm_hr(site: GaugeSite) -> float:
     return float(table[ATLAS14_ROW_60MIN][ATLAS14_COL_2YR]) * MM_PER_INCH
 
 
+class RainfallUnavailable(LookupError):
+    """The rainfall source does not cover the event window (e.g. the NWM v2.1 retrospective ends in 2020)."""
+
+
+def check_coverage(start: datetime, end: datetime, first: datetime, last: datetime) -> None:
+    """Raise RainfallUnavailable unless [start, end] lies inside the source's hourly record [first, last]."""
+    if start < first or end > last:
+        raise RainfallUnavailable(
+            f"no AORC rainfall for {start:%Y-%m-%d %H:%M} .. {end:%Y-%m-%d %H:%M} UTC: the source "
+            f"({AORC_ZARR}) covers {first:%Y-%m-%d} .. {last:%Y-%m-%d}")
+
+
 def aorc_rainfall(terrain: Terrain, start: datetime, end: datetime) -> RainfallSeries:
     ds = xr.open_zarr(s3fs.S3Map(AORC_ZARR, s3=s3fs.S3FileSystem(anon=True)), consolidated=True)
+    first, last = (pd.Timestamp(ds.time.values[i]).tz_localize("UTC").to_pydatetime() for i in (0, -1))
+    check_coverage(start, end, first, last)
     lcc = pyproj.CRS.from_proj4(ds.RAINRATE.attrs["proj4"])
     to_lcc = pyproj.Transformer.from_crs(terrain.crs_epsg, lcc, always_xy=True)
 

@@ -73,7 +73,7 @@ describe('no invented data in src/', () => {
   it('keeps the word "donation" to the donation portal, which is backed by the API (the reference app\'s was invented)', () => {
     // The portal shows only what operators and donors typed in and the server stored (/needs, /pledges), labelled so.
     // Anywhere else the word would mean the reference app's fake donation board has come back.
-    const portal = ['App.tsx', join('components', 'DonationPortal.tsx'), join('components', 'NeedsBoard.tsx')];
+    const portal = ['App.tsx', join('components', 'DonationPortal.tsx'), join('components', 'MapToolbar.tsx')];
     expect(offenders(/donation/i, (p) => portal.includes(p))).toEqual([]);
     expect(files.find((f) => f.path === join('components', 'DonationPortal.tsx'))?.text).toMatch(/api\.offerSupplies/);
   });

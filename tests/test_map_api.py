@@ -31,7 +31,7 @@ def test_runs_have_explicit_modes_and_sources(runs):
 def test_vocabulary_comes_from_the_schema(runs):
     v = runs["vocabulary"]
     assert v["risk_level"][0] == "unknown" and "safe" in v["risk_level"]
-    assert set(v["mode"]) == {"replay", "scenario", "live"}
+    assert set(v["mode"]) == {"replay", "scenario", "live", "mixed"}  # mixed: real event + synthetic layer
     assert set(v["coverage_gap"]) >= {"isolation", "river_driver"}
 
 

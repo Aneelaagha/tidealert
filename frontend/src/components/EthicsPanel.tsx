@@ -7,12 +7,8 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { api, type DataPractices, type Freshness, type Run, type Vocabulary } from '../lib/api';
 import { authenticationLine, consentLine, countLine, exposedLine, personalFieldsByOwner } from '../lib/ethics';
 import { fmtAge, fmtTime, label } from '../lib/format';
+import { MODE_MEANING } from '../lib/modes';
 
-const MODE_MEANING: Record<string, string> = {
-  replay: 'a past event replayed from its recorded data: what the system would have shown at the time',
-  scenario: 'synthetic households and scripted replies: a test, not real people or a real event',
-  live: 'real-time sources (no live run exists yet)',
-};
 
 function Section({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (

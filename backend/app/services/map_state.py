@@ -48,6 +48,8 @@ CAVEATS = {
                      "system would only have had provisional data at the time."),
     RunMode.scenario: "Synthetic households and scripted replies, not real people or a real event.",
     RunMode.live: "No live data sources are connected yet.",
+    RunMode.mixed: ("Mixed scenario: Harvey's real recorded flood and isolation results, with synthetic responders and "
+                    "assignments layered on top. The responders, assignments and anything they cause are not real."),
 }
 CONFIDENCE_CAVEAT = ("Confidence values and words are unvalidated heuristics, not calibrated against outcomes "
                      "(docs/algorithms/confidence.md).")
@@ -73,6 +75,8 @@ def resolve_at(run: Run, at: Optional[datetime]) -> datetime:
 
 
 def run_summary_caveats(run: Run) -> list[str]:
+    if run.mode == RunMode.mixed:  # its flood layer is the replayed record, so the replay caveat applies too
+        return [CAVEATS[RunMode.mixed], CAVEATS[RunMode.replay], CONFIDENCE_CAVEAT]
     return [CAVEATS[run.mode], CONFIDENCE_CAVEAT]
 
 

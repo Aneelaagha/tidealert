@@ -6,12 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Run } from '../lib/api';
 import { isMuted, playTestTone, setMuted } from '../lib/audio';
 import { fmtTime } from '../lib/format';
+import { modeBadge } from '../lib/modes';
 
-const BADGE: Record<string, string> = {
-  replay: 'border-purple-400/60 bg-purple-950/40 text-purple-300',
-  scenario: 'border-warning-orange/60 bg-orange-950/30 text-warning-orange',
-  live: 'border-danger-red/60 bg-red-950/30 text-danger-red',
-};
 
 function span(r: Run) {
   return r.window_start ? `${fmtTime(r.window_start).slice(0, 10)} → ${fmtTime(r.window_end).slice(0, 10)}` : 'live';
@@ -60,8 +56,8 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
         </label>
         {run && (
           <span title={run.caveats.join('\n')}
-                className={`rounded border px-2 py-0.5 text-[10px] font-bold tracking-widest ${BADGE[run.mode] ?? 'border-unstyled bg-unstyled/20 text-unstyled'}`}>
-            {run.mode.toUpperCase()}
+                className={`rounded border px-2 py-0.5 text-[10px] font-bold tracking-widest ${modeBadge(run.mode).className}`}>
+            {modeBadge(run.mode).label}
           </span>
         )}
         <div className="flex min-w-[240px] flex-1 items-center gap-2 rounded border border-navy-line bg-navy-panel px-2.5 py-1">

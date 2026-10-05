@@ -18,6 +18,7 @@ WRITE_ROUTES = frozenset({
     ("POST", "/tasks/{task_id}/status"),
     ("POST", "/tasks/{task_id}/clear-verify"),
     ("POST", "/cases/{case_id}/tasks"),
+    ("POST", "/needs"),  # operator-entered needs; refused on a replay (app.services.needs)
     ("POST", "/copilot/ask"),  # reads only; POST because the question has a body
 })
 

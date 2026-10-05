@@ -46,8 +46,11 @@ def known_gaps(routes) -> list[dict]:
          "text": "Consent is not collected. There is no intake flow, so the system holds no consent records; nothing "
                  "here implies one exists."},
         {"id": "authentication", "when": not authentication(routes), "source": "flag: authentication (route dependencies)",
-         "text": "There is no login. Anyone who can reach the API can read it and take the task actions; the "
-                 "operator name on an action is free text."},
+         "text": "There is no login. Anyone who can reach the API can read it, take the task actions and enter "
+                 "needs on the needs board; the operator name on an action or entry is free text."},
+        {"id": "free_text_notes", "when": True, "source": "code: backend/app/services/needs.py (MAX_NOTE) and backend/app/routes/tasks.py",
+         "text": "Notes on a task action or an entered need are free text. The personal-data scan checks field "
+                 "names, so a person's details typed into a note would not be caught; the page says not to."},
         {"id": "tiles", "when": True, "source": f"code: frontend/src/components/ZoneMap.tsx loads {TILE_HOST}",
          "text": f"Map tiles come from OpenStreetMap's public server ({TILE_HOST}), so it learns which area is "
                  "being viewed."},

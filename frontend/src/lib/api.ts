@@ -94,6 +94,34 @@ export interface SupplyAccess {
   does_not_show: string;
 }
 
+export interface NeedItem { item_type: string; requested: number; fulfilled: number; withdrawn: number; remaining: number }
+export interface NeedEntryRow { id: string; at: string; item_type: string; event: string; quantity: number; actor: string; note: string }
+export interface ZoneNeeds {
+  items: NeedItem[]; events: NeedEntryRow[]; open: number; name: string | null; population: number | null;
+  zone_access: string | null; // only for a zone with an open need
+  access_since: string | null;
+}
+
+/** /needs: what operators say each zone needs as of `at`. Typed in by people; never measured. */
+export interface Needs {
+  run_id: string; mode: Mode; at: string;
+  label: string; // the server's statement of what these entries are
+  writable: boolean; blocked_reason: string | null; // why entries are refused on this run (a replay), or null
+  items: string[]; max_quantity: number; max_note: number;
+  zones: Record<string, ZoneNeeds>;
+  summary: {
+    zones_with_open_needs: number;
+    by_item: Record<string, { zones: number; remaining: number }>;
+    open_in_cut_off_zones: number; open_in_possibly_cut_off_zones: number;
+    cut_off_zone_ids: string[];
+  };
+}
+
+export interface NeedEntryBody {
+  run_id: string; zone_id: string; item_type: string; event: 'requested' | 'fulfilled' | 'withdrawn';
+  quantity: number; actor: string; at: string | null; note?: string;
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -304,6 +332,9 @@ export const api = {
     get<Freshness>('/map/freshness', { run_id: runId, at }, signal),
   supplyAccess: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<SupplyAccess>('/map/supply-access', { run_id: runId, at }, signal),
+  needs: (runId: string, at: string | null, signal?: AbortSignal) =>
+    get<Needs>('/needs', { run_id: runId, at }, signal),
+  enterNeed: (b: NeedEntryBody) => post<ZoneNeeds & { at: string }>('/needs', b),
   cases: (runId: string, zoneId: string | null, at: string | null, signal?: AbortSignal) =>
     get<{ at: string; cases: Case[] }>('/cases', { run_id: runId, zone_id: zoneId, at }, signal),
   tasks: (runId: string, at: string | null, signal?: AbortSignal) =>

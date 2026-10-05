@@ -2,8 +2,9 @@
 // contributions and tasks (with each task's full event history).
 
 import { useEffect, useState } from 'react';
-import { api, type Case, type Responder, type SupplyAccess, type Task, type ZoneProps } from '../lib/api';
+import { api, type Case, type Needs, type Responder, type Run, type SupplyAccess, type Task, type ZoneProps } from '../lib/api';
 import { fmtTime, label } from '../lib/format';
+import { NeedsBlock } from './NeedsBlock';
 import { SafetyNote } from './SafetyNote';
 import { Muted, Tag } from './ui';
 
@@ -90,7 +91,7 @@ function SupplyAccessText({ supply, zoneId, at, error }: { supply: SupplyAccess 
 }
 
 interface Props {
-  runId: string;
+  run: Run;
   at: string | null;
   zone: ZoneProps | null;
   gapReasons: string[];
@@ -98,9 +99,14 @@ interface Props {
   version: number; // bumped after a task action, so the zone's Cases are read again
   supply: SupplyAccess | null; // /map/supply-access for this run and time, or null while it loads
   supplyError: string | null;
+  needs: Needs | null; // /needs for this run and time
+  needsError: string | null;
+  operator: string;
+  onNeedsChanged: () => void;
 }
 
-export function ZonePanel({ runId, at, zone, gapReasons, responders, version, supply, supplyError }: Props) {
+export function ZonePanel({ run, at, zone, gapReasons, responders, version, supply, supplyError, needs, needsError, operator, onNeedsChanged }: Props) {
+  const runId = run.id;
   const [cases, setCases] = useState<Case[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -150,6 +156,7 @@ export function ZonePanel({ runId, at, zone, gapReasons, responders, version, su
           </ul>
         </>
       )}
+      <NeedsBlock run={run} zoneId={zone.zone_id} needs={needs} needsError={needsError} operator={operator} at={at} onChanged={onNeedsChanged} />
       {zone.case_count > 0 && (error ? <p className="text-danger-red">{error}</p>
         : cases ? cases.map((c) => <CaseBlock key={c.id} c={c} responders={responders} />)
         : <p className="text-slate-500">loading Cases…</p>)}

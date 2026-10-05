@@ -51,12 +51,12 @@ from app.models import NfipClaim, Zone  # noqa: E402
 from app.services import isolation_engine as engine  # noqa: E402
 from app.services import sentinel1  # noqa: E402
 from app.services.census import fetch_block_groups  # noqa: E402
-from app.services.fim_library import fetch_fim_extents, iou  # noqa: E402
+from app.services.fim_library import iou  # noqa: E402
 from app.services.gauge_site import GaugeSite, resolve_gauge  # noqa: E402
 from app.services.ingest import ingest_gauge, ingest_rainfall, ingest_roads  # noqa: E402
 from app.services.nfip import pull_claims  # noqa: E402
 from app.services.river_driver import (  # noqa: E402
-    build_river_driver, depth_over_channel, local_zone, river_flood_mask,
+    build_river_driver, depth_over_channel, load_fim_library, local_zone, river_flood_mask,
 )
 from app.services.rainfall import (  # noqa: E402
     RESIDUAL_DRAIN_BRACKET, RESIDUAL_DRAIN_FRACTION, RainfallUnavailable, aorc_rainfall, drainage_capacity_mm_hr,
@@ -182,8 +182,8 @@ def main() -> None:
         stage = observed_stage(db, site.site_id, times, rating)
         depth, depth_method = depth_over_channel(site, stage, terrain)
 
-        fim = fetch_fim_extents(site.fim_mapserver_url).to_crs(terrain.crs_epsg) if site.fim_mapserver_url else None
-        river = build_river_driver(site, terrain, stage, depth, fim)
+        fim, library_refused = load_fim_library(site, terrain.crs_epsg)
+        river = build_river_driver(site, terrain, stage, depth, fim, library_refused)
         log.info("USGS %s: river driver %s [%s]; covers %s", site.site_id, river.method, river.confidence,
                  river.coverage_desc)
 

@@ -106,6 +106,35 @@ wet.
   floods below the lowest library stage. The driver only covers the map's
   largest mapped extent. Outside it the map says nothing, so roads draining to
   the river outside that extent have unknown flooding, even near the gauge.
+  - **Library layers are water-surface elevations** (ft NAVD88), not gage
+    height. `fim_library.in_gauge_stage` subtracts the USGS gauge datum
+    before any comparison.
+  - **The library's own zero datum** (NWPS `inundation.zeroDatum`) must
+    agree with the USGS datum within 0.5 ft, and the gauge datum must be
+    NAVD88. Otherwise the library is refused.
+  - **Harvey is unaffected:** White Oak's and Greens Bayou's gauge datums are
+    0.0 ft, so elevation and stage are the same number there.
+  - **The Swannanoa (BLTN7) shows why it matters.** Its layers run from
+    1,980 to 1,996 ft and its gauge datum is 1,976.37 ft. Before this fix,
+    every gage height read as below the lowest layer, so the map never
+    flooded anything.
+  - **A library must resolve stage.** It's refused when its lowest layer
+    already covers 90% or more of its top layer's extent
+    (`fim_library.check_resolves_stage`). The check is coarse, not
+    calibrated:
+    | Library | Lowest layer as a share of the top layer |
+    |---|---|
+    | HGTT2 (White Oak, Harvey) | 0.12, kept |
+    | GBHT2 (Greens Bayou, Harvey) | 0.02, kept |
+    | **BLTN7 (Swannanoa)** | **0.97, refused** |
+  - **Why BLTN7 fails the check:** its 1,980 ft layer (gage height 3.6 ft;
+    base flow that day was 1.9 ft) already maps 1.05 km² at least 1 ft
+    deep. Identify queries on 60 points found positive depths at every
+    layer, so this is the library's own data, not a rendering artifact.
+    NWS's downloadable grids, which might explain it, return 404.
+  - **A refused library falls back to HAND,** at lower confidence. The
+    caveat states the reason, and so does every Case that quotes it. A
+    gauge with no library keeps its caveat word for word.
 - **HAND (only where NWS publishes no library; lower confidence).** A sample's
   height above nearest drainage is the highest ground on its flow path down to
   the channel, minus the channel elevation. Water must overtop that ground to

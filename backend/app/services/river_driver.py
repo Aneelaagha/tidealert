@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Zone
 from app.services import isolation_engine as engine
-from app.services.fim_library import fetch_fim_extents
+from app.services.fim_library import LibraryRefused, check_resolves_stage, fetch_fim_extents, in_gauge_stage
 from app.services.gauge_site import FEET_TO_METERS, GaugeSite, resolve_gauge
 from app.services.stage import StageSeries, fit_event_rating, observed_stage, timesteps
 from app.services.street_blocks import basin_segments
@@ -108,8 +108,24 @@ def library_level(stages: np.ndarray, stage_ft: np.ndarray) -> np.ndarray:
     return np.where(np.isnan(stage_ft), np.nan, level)
 
 
+def load_fim_library(site: GaugeSite, crs_epsg: int) -> tuple[Optional[gpd.GeoDataFrame], Optional[str]]:
+    """(library, None): the gauge's NWS flood-map library in its own stage (ft above the USGS gauge datum).
+    (None, None): NWS publishes none. (None, reason): NWS publishes one but it was refused (fim_library.LibraryRefused);
+    the river driver then uses HAND and states the reason."""
+    if not site.fim_mapserver_url:
+        return None, None
+    try:
+        fim = in_gauge_stage(fetch_fim_extents(site.fim_mapserver_url), site.site_id, site.gauge_datum_altitude_ft,
+                             site.gauge_vertical_datum, site.fim_zero_datum_ft).to_crs(crs_epsg)
+        check_resolves_stage(fim, site.site_id, site.nws_lid)
+    except LibraryRefused as exc:
+        log.warning("USGS %s: NWS flood-map library refused: %s", site.site_id, exc)
+        return None, str(exc)
+    return fim, None
+
+
 def build_river_driver(site: GaugeSite, terrain: Terrain, stage: StageSeries, depth: np.ndarray,
-                       fim: Optional[gpd.GeoDataFrame]) -> RiverDriver:
+                       fim: Optional[gpd.GeoDataFrame], library_refused: Optional[str] = None) -> RiverDriver:
     if fim is not None:
         stages = np.sort(fim.stage_ft.to_numpy())
         # Coverage is the library's own largest mapped extent (plus one DEM cell for rendering edges):
@@ -131,8 +147,10 @@ def build_river_driver(site: GaugeSite, terrain: Terrain, stage: StageSeries, de
     reach = gauge_nhd_reach(site, terrain)
     drain = terrain.mainstem_drain
     known = (drain >= 0) & reach.ravel()[np.maximum(drain, 0)].reshape(drain.shape)
-    caveat = (f"River flooding from HAND (height above nearest drainage, snapped channel) because NWS publishes no "
-              f"flood-map library for USGS {site.site_id}; assumes constant depth along the reach. Lower confidence.")
+    why = (f"NWS publishes a flood-map library for USGS {site.site_id} but it was refused: {library_refused}"
+           if library_refused else f"NWS publishes no flood-map library for USGS {site.site_id}")
+    caveat = (f"River flooding from HAND (height above nearest drainage, snapped channel) because {why}; assumes "
+              f"constant depth along the reach. Lower confidence.")
     log.warning("USGS %s: %s", site.site_id, caveat)
     return RiverDriver(
         method="HAND (snapped channel), constant depth along the gauge's NHD reach",
@@ -191,8 +209,8 @@ def load_site_context(db: Session, site_id: str, start: datetime = HARVEY_START,
     times = timesteps(start, end, step)
     stage = observed_stage(db, site.site_id, times, fit_event_rating(db, site.site_id))
     depth, _ = depth_over_channel(site, stage, terrain)
-    fim = fetch_fim_extents(site.fim_mapserver_url).to_crs(terrain.crs_epsg) if site.fim_mapserver_url else None
-    river = build_river_driver(site, terrain, stage, depth, fim)
+    fim, refused = load_fim_library(site, terrain.crs_epsg)
+    river = build_river_driver(site, terrain, stage, depth, fim, refused)
     segments = basin_segments(db, site, terrain.crs_epsg, edge_ids)
     zones = list(db.scalars(select(Zone).where(Zone.region == site.region).order_by(Zone.name)))
     zone_geoms = gpd.GeoSeries([to_shape(z.boundary) for z in zones], crs=4326).to_crs(terrain.crs_epsg)

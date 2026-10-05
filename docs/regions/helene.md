@@ -16,10 +16,10 @@ figures").
 | USGS / NWS | 03451500 / AVLN7 | 03451000 / BLTN7 |
 | Upstream basin | 2,446 km² (945 sq mi) | 339 km² (130 sq mi) |
 | NWS flood stages | action 6.5, minor 9.5, moderate 13, major 18 ft | action 9, minor 10, moderate 14.5, major 16.5 ft |
-| NWS flood-map library | **none**, so the river driver uses **HAND** (lower confidence, as at Hunting Bayou) | **yes** (`FIM_bltn7`) |
+| NWS flood-map library | **none**, so the river driver uses **HAND** (lower confidence, as at Hunting Bayou) | **published (`FIM_bltn7`) but refused:** it doesn't resolve stage (see below), so the river driver uses **HAND** (lower confidence) |
 | Gage height, 24 Sep – 3 Oct 2024 | **865 of 865** 15-minute readings; no gap over an hour; peak **24.82 ft** at 2024-09-27 21:38 UTC (113,000 cfs) | gaps across the peak; the peak, **27.33 ft** at 19:00 UTC on 27 Sep, is a **single isolated reading**; then **no gage height for 41 hours** (02:30 UTC on 28 Sep to 19:30 UTC on 29 Sep) |
 | Discharge in that gap | n/a | only sparse 4-hourly values, marked **ESTIMATED** |
-| What it tests | HAND on a clean record | a flood-map library on a gauge whose data feed fails |
+| What it tests | HAND on a clean record | HAND on a gauge whose data feed fails (missing steps stay missing) |
 
 **The Swannanoa basin drains into the French Broad above the Asheville
 gauge.** The French Broad's study area excludes it, so the two regions' street
@@ -68,6 +68,29 @@ reach. A full-basin French Broad run (about 2,446 km², tens of millions of
   a single export: HTTP 500 six times in a row. It succeeded as 4 tiles in
   61 s (2026-10-05).
 
+## The Swannanoa's flood-map library is refused (checked 2026-10-05)
+NWS publishes a flood-map library for BLTN7, but the engine doesn't use it:
+- **Its layers are water-surface elevations,** 1,980 to 1,996 ft NAVD88. The
+  gauge datum is 1,976.37 ft (USGS); NWS's own zero datum is 1,976.29 ft.
+  So the layers span gage heights of **3.6 to 19.6 ft**.
+- **Its extent barely changes across that range:** 1.054 km² at the lowest
+  layer, 1.085 km² at the highest.
+- **Even the lowest layer maps 1.05 km² under at least 1 ft of water,** at a
+  gage height of 3.6 ft. That day's base flow was 1.9 ft; action stage is
+  9 ft. Identify queries at 60 points returned positive depths at every
+  layer, so this is the library's own data, not how the engine reads it.
+- **Used as published, it would flood 84 road segments on the evening of 25
+  Sep,** with the river at 3.8 ft, more than a day before it reached action
+  stage.
+- **Why it behaves this way is unknown.** One possibility is a flat water
+  surface that spreads onto lower ground downstream toward the French Broad
+  confluence; that's unconfirmed. NWS's downloadable depth grids return 404.
+
+**So the Swannanoa uses HAND,** like the French Broad: lower confidence,
+assuming constant depth along the gauge's reach, which fits steep terrain
+worse (see the limitations). Harvey's two libraries pass the same check
+easily.
+
 ## Ground truth (checked 2026-10-04 and 2026-10-05)
 
 | Source | What exists | Usable? |
@@ -104,10 +127,12 @@ gaps, because the model fails differently here than in Houston.
   60 sites serviced by its Asheville field office had peak gage heights
   **exceeding their current ratings**, and that many streamgages were
   "destroyed by floodwaters or damaged by wind and debris" (USGS, 2024-10-04).
-  Stage-to-discharge relationships at the peak are extrapolations. The
-  Swannanoa's flood-map library may not reach its 27.33 ft peak, and above
-  its highest mapped stage the engine applies its lower-confidence
-  above-library factor.
+  Stage-to-discharge relationships at the peak are extrapolations.
+- **Neither gauge has a usable NWS flood map.** The French Broad has none,
+  and the Swannanoa's is refused (above). Both run on HAND, the engine's
+  lower-confidence driver, in the terrain where HAND fits worst. The
+  Swannanoa's library topped out at a gage height of 19.6 ft anyway, well
+  below its 27.33 ft peak.
 - **The Swannanoa's data feed failed.** For 41 hours there is no gage height,
   and only sparse estimated discharge (4-hourly, beyond the 3-hour rating
   cap). With the gap-fill fix, those steps are **missing**: no river level,

@@ -27,7 +27,19 @@ export function FreshnessBanner({ run, freshness }: { run: Run; freshness: Fresh
           })}
           {freshness.note && <span className="text-slate-500">{freshness.note}</span>}
         </>
-      ) : <span className="text-slate-500">loading sources…</span>}
+      ) : (
+        // While loading, the run's own sources hold their place, so the banner doesn't grow when the statuses
+        // arrive and push the page down (a click aimed at the copilot's input could land beside it).
+        <>
+          <b className="text-slate-500">Sources: loading…</b>
+          {run.sources.map((s) => (
+            <span key={s.name} className="inline-flex items-center gap-1.5 text-slate-500">
+              <span className="h-2 w-2 rounded-full bg-slate-700" />
+              {s.name}: <b>loading…</b>
+            </span>
+          ))}
+        </>
+      )}
       {run.caveats.map((c) => <span key={c} className="text-slate-500">{c}</span>)}
     </div>
   );

@@ -161,7 +161,9 @@ export default function App() {
       <main className="mx-auto mt-4 grid w-full max-w-7xl flex-1 grid-cols-1 gap-6 px-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
         <section className="flex flex-col overflow-hidden rounded-lg border border-accent-cyan/20 bg-navy-panel">
-          <div className="flex items-center gap-2 border-b border-accent-cyan/15 bg-navy-deep px-3 py-1.5 font-mono text-[10px] tracking-wider text-slate-400">
+          {/* One line that scrolls sideways rather than wrapping, its thin scrollbar always taking its space: when
+              "loading…" becomes the summary the bar must not grow and push the page down. */}
+          <div className="custom-scrollbar flex items-center gap-2 overflow-x-scroll whitespace-nowrap border-b border-accent-cyan/15 bg-navy-deep px-3 py-1.5 font-mono text-[10px] tracking-wider text-slate-400">
             <MapIcon className="h-3.5 w-3.5 shrink-0 text-accent-cyan" />
             {error ? <span className="text-danger-red">{error}</span> : <span>{status}</span>}
           </div>

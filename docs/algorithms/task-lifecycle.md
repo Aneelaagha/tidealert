@@ -114,6 +114,35 @@ for the listening run.)
   `route_geometry` stays empty.
 - **Supply routing:** Week 7 (route feasibility only).
 
+## Concurrency: row locks on every action
+
+Each action checks a state and then writes: assign checks "pending" and
+"available", complete checks "assigned or en route", clear-verify checks the
+flag, and a follow-up checks "no active task". Without a lock, concurrent
+requests all pass the check and all write. The load test
+([docs/load-test.md](../load-test.md)) found 4–5 of 10 concurrent assigns
+of one task succeeding on 1 worker, and up to 10 of 10 on 4 workers.
+
+Each action now re-reads its rows with `SELECT … FOR UPDATE` before
+checking: `task_actions._lock`. A concurrent request waits, then sees the
+committed state and gets the usual 409.
+
+| Action | Rows locked, in order |
+|---|---|
+| assign | task, then responder |
+| set_status (complete, etc.) | task, then the assigned responder when closing |
+| clear_verify | task |
+| open_follow_up | the Case |
+
+The lock order is always task, then responder, so two actions can't
+deadlock. `_lock` flushes before it re-reads. Otherwise the refresh would
+discard an earlier, uncommitted action in the same transaction: clear-verify
+then assign, as `scripts/mixed_harvey_scenario.py` does.
+
+`tests/test_task_action_races.py` races real threads, each on its own
+database connection with real commits, on a temporary run it creates and
+deletes.
+
 ## Responder safety: zone access (step 1)
 
 `app/services/safety.py` adds a `safety` block to every task state from

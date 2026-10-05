@@ -48,6 +48,18 @@ class TaskActionError(Exception):
         self.status_code, self.detail = status_code, detail
 
 
+def _lock(db: Session, row) -> None:
+    """Re-read `row` with SELECT ... FOR UPDATE: it waits for any other transaction holding the row, then sees its
+    committed state. Every action checks a status and then writes; without this, concurrent requests (in one
+    process or several) all read the same "pending" and all write. Lock order is always task, then responder (or
+    the Case, for a follow-up), so two actions can't wait on each other.
+
+    Flush first: a refresh discards unflushed changes, so a caller doing two actions in one transaction (e.g.
+    clear_verify then assign, as scripts/mixed_harvey_scenario.py does) would otherwise lose the first one."""
+    db.flush()
+    db.refresh(row, with_for_update=True)
+
+
 def _run_of(db: Session, case: Case) -> Run:
     return db.get(Run, case.run_id)
 
@@ -90,6 +102,8 @@ def assign(db: Session, task: Task, responder: Responder, actor: str, at: Option
     run = _run_of(db, case)
     _writable(run)
     actor = _actor(actor)
+    _lock(db, task)
+    _lock(db, responder)
     when = _when(run, task, at)
     if task.status != TaskStatus.pending:
         raise TaskActionError(409, f"task is {task.status.value}; only a pending task can be assigned "
@@ -115,6 +129,9 @@ def set_status(db: Session, task: Task, status: TaskStatus, actor: str, at: Opti
     run = _run_of(db, case)
     _writable(run)
     actor = _actor(actor)
+    _lock(db, task)
+    if status in CLOSED and task.assigned_responder is not None:
+        _lock(db, task.assigned_responder)  # it is freed below
     when = _when(run, task, at)
     allowed = TRANSITIONS.get(status)
     if allowed is None:
@@ -143,6 +160,7 @@ def clear_verify(db: Session, task: Task, actor: str, at: Optional[datetime] = N
     run = _run_of(db, task.case)
     _writable(run)
     actor = _actor(actor)
+    _lock(db, task)
     when = _when(run, task, at)
     if task.status not in ACTIVE_STATUSES or not task.verify_before_dispatch:
         raise TaskActionError(409, "task is not an active task flagged verify_before_dispatch")
@@ -159,6 +177,7 @@ def open_follow_up(db: Session, case: Case, actor: str, at: Optional[datetime] =
     run = _run_of(db, case)
     _writable(run)
     actor = _actor(actor)
+    _lock(db, case)  # two concurrent follow-ups must not both see "no active task"
     when = _when(run, None, at)
     if case.task is not None and case.task.status in ACTIVE_STATUSES:
         raise TaskActionError(409, "the Case already has an active task")

@@ -11,11 +11,12 @@ import { FreshnessBanner } from './components/FreshnessBanner';
 import { ConnectionBanner } from './components/ConnectionBanner';
 import { Header } from './components/Header';
 import { Legend } from './components/Legend';
+import { NeedsBoard } from './components/NeedsBoard';
 import { type Layer, SupplyBar } from './components/SupplyBar';
 import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
-import { api, type Case, type Freshness, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
+import { api, type Case, type Freshness, type Needs, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
 import { cacheKeepView, dispatch, getConnection, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
@@ -81,6 +82,8 @@ export default function App() {
   const [layer, setLayer] = useState<Layer>('risk'); // what the zone fill shows
   const [supply, setSupply] = useState<SupplyAccess | null>(null);
   const [supplyError, setSupplyError] = useState<string | null>(null);
+  const [needs, setNeeds] = useState<Needs | null>(null);
+  const [needsError, setNeedsError] = useState<string | null>(null);
   const [version, setVersion] = useState(0); // bumped after a task action: everything is read again
   const [status, setStatus] = useState('loading runs…');
   const [error, setError] = useState<string | null>(null);
@@ -177,6 +180,17 @@ export default function App() {
     return () => ctl.abort();
   }, [run, at, wantSupply, version]);
 
+  // The operator-entered needs board for this run and time: read again after an entry (version) and with each time.
+  useEffect(() => { setNeeds(null); }, [run?.id]);
+  useEffect(() => {
+    if (!run) return;
+    const ctl = new AbortController();
+    setNeedsError(null);
+    api.needs(run.id, at, ctl.signal).then(setNeeds)
+      .catch((e: Error) => { if (e.name !== 'AbortError') setNeedsError(e.message); });
+    return () => ctl.abort();
+  }, [run, at, version]);
+
   const zoneNames = useMemo(() => new Map((zones?.features ?? []).map((f) => [f.properties.zone_id, f.properties.name])), [zones]);
 
   const zone = selectedZoneId && zones?.run_id === run?.id
@@ -201,6 +215,7 @@ export default function App() {
             {error ? <span className="text-danger-red">{error}{conn.state !== 'online' && zones ? ` The map and panels still show the view as of ${fmtTime(zones.at)}.` : ''}</span> : <span>{status}</span>}
           </div>
           <SupplyBar layer={layer} onLayer={setLayer} supply={supply} error={supplyError} />
+          <NeedsBoard needs={needs} error={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
           <div className="h-[560px]">
             <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply}
                      onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
@@ -227,8 +242,9 @@ export default function App() {
                           caseWord={cases?.find((c) => c.id === selectedCaseId)?.confidence_word ?? null} />
           )}
           <Panel title="Zone" className="h-[420px]">
-            {run ? <ZonePanel runId={run.id} at={zones?.at ?? at} zone={zone} gapReasons={zones?.gap_reasons ?? []}
-                              responders={responders} version={version} supply={supply} supplyError={supplyError} />
+            {run ? <ZonePanel run={run} at={zones?.at ?? at} zone={zone} gapReasons={zones?.gap_reasons ?? []}
+                              responders={responders} version={version} supply={supply} supplyError={supplyError}
+                              needs={needs} needsError={needsError} operator={operator} onNeedsChanged={() => setVersion((v) => v + 1)} />
               : <p className="text-slate-500">loading…</p>}
           </Panel>
           <Panel title="Legend" className="max-h-[300px]">

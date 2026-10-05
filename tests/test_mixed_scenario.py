@@ -15,6 +15,7 @@ from app.models.case_engine_contribution import CaseEngineContribution as C
 from app.services import map_state
 
 ROOT = Path(__file__).resolve().parent.parent
+BEFORE_MIXED = "edb82fd12167"  # the revision before run_mode_mixed (b7e3f0a91c52); later migrations come off with it
 MIXED_CAVEAT = ("Mixed scenario: Harvey's real recorded flood and isolation results, with synthetic responders and "
                 "assignments layered on top. The responders, assignments and anything they cause are not real.")
 
@@ -147,7 +148,7 @@ def test_migration_round_trip_in_a_rolled_back_transaction():
         try:
             # Downgrade refuses while mixed runs exist; re-mark them inside this transaction to exercise the trip.
             connection.execute(text("UPDATE runs SET mode = 'scenario' WHERE mode::text = 'mixed'"))
-            command.downgrade(_alembic(connection), "-1")
+            command.downgrade(_alembic(connection), BEFORE_MIXED)
             assert _modes(connection) == ["replay", "scenario", "live"]
             command.upgrade(_alembic(connection), "head")
             assert _modes(connection) == ["replay", "scenario", "live", "mixed"]
@@ -162,7 +163,7 @@ def test_downgrade_refuses_while_mixed_runs_exist(mixed):
         outer = connection.begin()
         try:
             with pytest.raises(RuntimeError, match="mode 'mixed'"):
-                command.downgrade(_alembic(connection), "-1")
+                command.downgrade(_alembic(connection), BEFORE_MIXED)
         finally:
             outer.rollback()
     with SessionLocal() as db:

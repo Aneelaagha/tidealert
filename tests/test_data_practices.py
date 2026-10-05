@@ -82,7 +82,7 @@ def test_copilot_facts_match_the_copilot(report, client):
 
 
 # ---------------------------------------------------------------- each gap pinned to its source
-PINNED = {"consent", "authentication", "tiles", "retention", "case_status_history", "confidence", "rain_driver",
+PINNED = {"consent", "authentication", "free_text_notes", "tiles", "retention", "case_status_history", "confidence", "rain_driver",
           "response_scan"}
 
 
@@ -136,6 +136,11 @@ def test_rain_driver_gap_follows_the_engine_gate(report, monkeypatch):
     assert "rain_driver" in gaps(report)
     monkeypatch.setattr(isolation_engine, "RAIN_DRIVER_VALIDATED", True)
     assert "rain_driver" not in {g["id"] for g in data_practices.known_gaps(list(flatten_routes(app.routes)))}
+
+
+def test_free_text_notes_gap_is_stated_and_note_length_is_capped(report):
+    from app.services import needs
+    assert "would not be caught" in gaps(report)["free_text_notes"]["text"] and 0 < needs.MAX_NOTE <= 500
 
 
 def test_response_scan_gap_states_the_name_based_blind_spot(report):

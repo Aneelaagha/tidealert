@@ -61,10 +61,18 @@ export function NeedsBlock({ run, zoneId, needs, needsError, operator, at, onCha
                 <li key={i.item_type}>
                   <Tag tone={i.remaining > 0 ? 'amber' : 'green'}>{label(i.item_type)}</Tag>
                   {i.remaining > 0 ? <b>{i.remaining.toLocaleString()} open</b> : <Muted>none open</Muted>}
-                  <Muted> · asked {i.requested.toLocaleString()} · delivered {i.fulfilled.toLocaleString()} · withdrawn {i.withdrawn.toLocaleString()}</Muted>
+                  <Muted> · asked {i.requested.toLocaleString()} · delivered {i.fulfilled.toLocaleString()} · withdrawn {i.withdrawn.toLocaleString()}{i.pledged > 0 ? ` · offered ${i.pledged.toLocaleString()}` : ''}</Muted>
                 </li>
               ))}
             </ul>
+            {z.pledges.length > 0 && (
+              <ul className="mt-1 space-y-0.5 text-slate-400">
+                {z.pledges.map((p) => (
+                  <li key={p.id}><Tag tone={p.status === 'offered' ? 'amber' : p.status === 'received' ? 'green' : 'plain'}>{p.status}</Tag>
+                    {p.donor}: {p.quantity.toLocaleString()} {label(p.item_type)} <Muted>({fmtTime(p.offered_at)})</Muted></li>
+                ))}
+              </ul>
+            )}
             {z.zone_access === 'isolated' && <p className="mt-1 text-danger-red">This zone is cut off{z.access_since ? ` since ${fmtTime(z.access_since)}` : ''}: the engine finds every road route out flooded.</p>}
             {z.zone_access === 'possibly_isolated' && <p className="mt-1 text-warning-orange">This zone may be cut off.</p>}
             <details className="mt-1 text-slate-500">

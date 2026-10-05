@@ -46,11 +46,12 @@ def known_gaps(routes) -> list[dict]:
          "text": "Consent is not collected. There is no intake flow, so the system holds no consent records; nothing "
                  "here implies one exists."},
         {"id": "authentication", "when": not authentication(routes), "source": "flag: authentication (route dependencies)",
-         "text": "There is no login. Anyone who can reach the API can read it, take the task actions and enter "
-                 "needs on the needs board; the operator name on an action or entry is free text."},
-        {"id": "free_text_notes", "when": True, "source": "code: backend/app/services/needs.py (MAX_NOTE) and backend/app/routes/tasks.py",
-         "text": "Notes on a task action or an entered need are free text. The personal-data scan checks field "
-                 "names, so a person's details typed into a note would not be caught; the page says not to."},
+         "text": "There is no login. Anyone who can reach the API can read it, take the task actions, enter needs and "
+                 "offer or close donations on the needs board; the operator or donor name is free text."},
+        {"id": "free_text_notes", "when": True, "source": "code: backend/app/services/pledges.py (CONTACT) and backend/app/services/needs.py (MAX_NOTE)",
+         "text": "Notes on a task action, an entered need or a donation offer, and a donor's displayed name, are free "
+                 "text. The personal-data scan checks field names, so a person's details typed into one would not be "
+                 "caught. Donation offers refuse an email, link or phone number, but that check is lexical."},
         {"id": "tiles", "when": True, "source": f"code: frontend/src/components/ZoneMap.tsx loads {TILE_HOST}",
          "text": f"Map tiles come from OpenStreetMap's public server ({TILE_HOST}), so it learns which area is "
                  "being viewed."},

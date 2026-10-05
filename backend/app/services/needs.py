@@ -21,7 +21,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import NeedEvent, Run, Zone
+from app.models import NeedEvent, Pledge, Run, Zone
 from app.models.need_event import NeedEventKind
 from app.models.run import RunMode
 from app.models.zone_need import ItemType
@@ -63,8 +63,14 @@ def _fold(events: list[NeedEvent]) -> list[dict]:
     return sorted(items.values(), key=lambda i: i["item_type"])
 
 
+def open_pledged(db: Session, run_id, zone_id, item_type: ItemType) -> int:
+    """Quantity offered for this item in this zone and not yet closed (as of now: the write-time check)."""
+    return sum(db.scalars(select(Pledge.quantity).where(Pledge.run_id == run_id, Pledge.zone_id == zone_id,
+                                                        Pledge.item_type == item_type, Pledge.closed_at.is_(None))))
+
+
 def record(db: Session, run: Run, zone_id, item_type: ItemType, event: NeedEventKind, quantity: int, actor: str,
-           at: Optional[datetime] = None, note: str = "") -> NeedEvent:
+           at: Optional[datetime] = None, note: str = "", pledged_exempt: int = 0) -> NeedEvent:
     reason = read_only_reason(run)
     if reason:
         raise NeedError(422, reason)
@@ -94,9 +100,15 @@ def record(db: Session, run: Run, zone_id, item_type: ItemType, event: NeedEvent
         raise NeedError(422, f"at {when.isoformat()} is before this item's latest entry in the zone "
                              f"({prior[-1].at.isoformat()})")
     remaining = _fold(prior)[0]["remaining"] if prior else 0
-    if event != NeedEventKind.requested and quantity > remaining:
-        raise NeedError(409, f"only {remaining} of {item_type.value} is still open in this zone; cannot "
-                             f"{event.value.removesuffix('ed') if event == NeedEventKind.fulfilled else 'withdraw'} {quantity}")
+    if event != NeedEventKind.requested:
+        # Offered supplies are spoken for: fulfilling or withdrawing may not eat into an open pledge (receiving a
+        # pledge passes its own quantity as pledged_exempt, because that pledge is what is being fulfilled).
+        free = remaining - open_pledged(db, run.id, zone.id, item_type) + pledged_exempt
+        if quantity > free:
+            held = remaining - free + pledged_exempt
+            raise NeedError(409, f"only {max(free, 0)} of {item_type.value} is still open and unpledged in this zone "
+                                 f"({remaining} open, {held} of it pledged); cannot "
+                                 f"{'fulfil' if event == NeedEventKind.fulfilled else 'withdraw'} {quantity}")
     row = NeedEvent(run_id=run.id, zone_id=zone.id, item_type=item_type, event=event, quantity=quantity,
                     actor=actor, at=when, note=note or None)
     db.add(row)
@@ -106,7 +118,8 @@ def record(db: Session, run: Run, zone_id, item_type: ItemType, event: NeedEvent
 
 def zone_state(db: Session, run: Run, zone_id, at: datetime) -> dict:
     """One zone's items and entries as of `at` (the response to an entry)."""
-    return needs_as_of(db, run, at, [zone_id])["zones"].get(str(zone_id), {"items": [], "events": [], "open": 0})
+    return needs_as_of(db, run, at, [zone_id])["zones"].get(str(zone_id), {"items": [], "events": [], "open": 0,
+                                                                          "pledges": []})
 
 
 def needs_as_of(db: Session, run: Run, at: datetime, only_zones=None) -> dict:
@@ -122,6 +135,24 @@ def needs_as_of(db: Session, run: Run, at: datetime, only_zones=None) -> dict:
         items = _fold(events)
         zones[zid] = {"items": items, "events": [_event(e) for e in events],
                       "open": sum(i["remaining"] for i in items)}
+    pq = select(Pledge).where(Pledge.run_id == run.id, Pledge.offered_at <= at).order_by(Pledge.offered_at,
+                                                                                         Pledge.created_at)
+    if only_zones is not None:
+        pq = pq.where(Pledge.zone_id.in_(only_zones))
+    pledges_by_zone: dict[str, list[dict]] = defaultdict(list)
+    for p in db.scalars(pq):
+        closed = p.closed_at is not None and p.closed_at <= at  # a pledge closed after `at` was still open at `at`
+        pledges_by_zone[str(p.zone_id)].append({
+            "id": str(p.id), "donor": p.donor, "item_type": p.item_type.value, "quantity": p.quantity,
+            "offered_at": p.offered_at.isoformat(), "note": p.note or "",
+            "status": p.closed_kind.value if closed else "offered",
+            "closed_at": p.closed_at.isoformat() if closed else None, "closed_by": p.closed_by if closed else None})
+    for zid, v in zones.items():
+        v["pledges"] = pledges_by_zone.get(zid, [])
+        for i in v["items"]:
+            i["pledged"] = sum(p["quantity"] for p in v["pledges"]
+                               if p["item_type"] == i["item_type"] and p["status"] == "offered")
+            i["unpledged"] = max(i["remaining"] - i["pledged"], 0)
     names = {str(z.id): z for z in db.scalars(select(Zone).where(Zone.id.in_(list(zones))))} if zones else {}
     open_zones = [z for z, v in zones.items() if v["open"] > 0]
     access = safety.zone_access(db, run, at, open_zones) if open_zones else {}
@@ -135,15 +166,20 @@ def needs_as_of(db: Session, run: Run, at: datetime, only_zones=None) -> dict:
     for zid in open_zones:
         for i in zones[zid]["items"]:
             if i["remaining"] > 0:
-                s = by_item.setdefault(i["item_type"], {"zones": 0, "remaining": 0})
+                s = by_item.setdefault(i["item_type"], {"zones": 0, "remaining": 0, "pledged": 0, "unpledged": 0})
                 s["zones"] += 1
                 s["remaining"] += i["remaining"]
+                s["pledged"] += i["pledged"]
+                s["unpledged"] += i["unpledged"]
     cut_off = [z for z in open_zones if zones[z]["zone_access"] == "isolated"]
     maybe = [z for z in open_zones if zones[z]["zone_access"] == "possibly_isolated"]
     reason = read_only_reason(run)
+    open_pledges_in = lambda zs: sum(1 for z in zs for p in zones[z]["pledges"] if p["status"] == "offered")  # noqa: E731
     return {"run_id": str(run.id), "mode": run.mode.value, "at": at.isoformat(), "label": LABEL,
             "writable": reason is None, "blocked_reason": reason, "items": [i.value for i in ItemType],
             "max_quantity": MAX_QUANTITY, "max_note": MAX_NOTE, "zones": zones,
             "summary": {"zones_with_open_needs": len(open_zones), "by_item": by_item,
                         "open_in_cut_off_zones": len(cut_off), "open_in_possibly_cut_off_zones": len(maybe),
+                        "open_pledges": open_pledges_in(zones),
+                        "open_pledges_in_cut_off_zones": open_pledges_in(cut_off),
                         "cut_off_zone_ids": sorted(cut_off, key=lambda z: -zones[z]["open"])[:8]}}

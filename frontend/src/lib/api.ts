@@ -94,10 +94,18 @@ export interface SupplyAccess {
   does_not_show: string;
 }
 
-export interface NeedItem { item_type: string; requested: number; fulfilled: number; withdrawn: number; remaining: number }
+export interface NeedItem {
+  item_type: string; requested: number; fulfilled: number; withdrawn: number; remaining: number;
+  pledged: number; unpledged: number; // offered by donors and still open / open and not offered
+}
+/** A donor's offer of supplies against a need, as of the board's time. Typed in; nothing checks it is real. */
+export interface Pledge {
+  id: string; donor: string; item_type: string; quantity: number; offered_at: string; note: string;
+  status: 'offered' | 'received' | 'withdrawn'; closed_at: string | null; closed_by: string | null;
+}
 export interface NeedEntryRow { id: string; at: string; item_type: string; event: string; quantity: number; actor: string; note: string }
 export interface ZoneNeeds {
-  items: NeedItem[]; events: NeedEntryRow[]; open: number; name: string | null; population: number | null;
+  items: NeedItem[]; events: NeedEntryRow[]; pledges: Pledge[]; open: number; name: string | null; population: number | null;
   zone_access: string | null; // only for a zone with an open need
   access_since: string | null;
 }
@@ -111,11 +119,15 @@ export interface Needs {
   zones: Record<string, ZoneNeeds>;
   summary: {
     zones_with_open_needs: number;
-    by_item: Record<string, { zones: number; remaining: number }>;
+    by_item: Record<string, { zones: number; remaining: number; pledged: number; unpledged: number }>;
+    open_pledges: number; open_pledges_in_cut_off_zones: number;
     open_in_cut_off_zones: number; open_in_possibly_cut_off_zones: number;
     cut_off_zone_ids: string[];
   };
 }
+
+export interface PledgeOfferBody { run_id: string; zone_id: string; item_type: string; quantity: number; donor: string; at: string | null; note?: string }
+export interface PledgeCloseBody { kind: 'received' | 'withdrawn'; actor: string; at: string | null; note?: string }
 
 export interface NeedEntryBody {
   run_id: string; zone_id: string; item_type: string; event: 'requested' | 'fulfilled' | 'withdrawn';
@@ -335,6 +347,8 @@ export const api = {
   needs: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<Needs>('/needs', { run_id: runId, at }, signal),
   enterNeed: (b: NeedEntryBody) => post<ZoneNeeds & { at: string }>('/needs', b),
+  offerSupplies: (b: PledgeOfferBody) => post<ZoneNeeds & { at: string; pledge_id: string }>('/pledges', b),
+  closePledge: (id: string, b: PledgeCloseBody) => post<ZoneNeeds & { at: string }>(`/pledges/${id}/close`, b),
   cases: (runId: string, zoneId: string | null, at: string | null, signal?: AbortSignal) =>
     get<{ at: string; cases: Case[] }>('/cases', { run_id: runId, zone_id: zoneId, at }, signal),
   tasks: (runId: string, at: string | null, signal?: AbortSignal) =>

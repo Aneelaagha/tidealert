@@ -5,7 +5,7 @@ import { canEnter } from '../lib/needs';
 const needs = (over: Partial<Needs> = {}): Needs => ({
   run_id: 'r', mode: 'mixed', at: 't', label: 'Entered by an operator', writable: true, blocked_reason: null,
   items: ['water'], max_quantity: 1000, max_note: 300, zones: {},
-  summary: { zones_with_open_needs: 0, by_item: {}, open_in_cut_off_zones: 0, open_in_possibly_cut_off_zones: 0, cut_off_zone_ids: [] },
+  summary: { zones_with_open_needs: 0, by_item: {}, open_in_cut_off_zones: 0, open_in_possibly_cut_off_zones: 0, cut_off_zone_ids: [], open_pledges: 0, open_pledges_in_cut_off_zones: 0 },
   ...over,
 });
 

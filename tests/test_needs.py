@@ -76,7 +76,8 @@ def test_the_mixed_run_accepts_entries_and_the_replay_never_shows_them(tx):
     zone = a_zone(client, mixed, "isolated")  # the replay and the mixed run share zones
     r = enter(client, mixed, zone, quantity=40)
     assert r.status_code == 201, r.text
-    assert r.json()["items"] == [{"item_type": "water", "requested": 40, "fulfilled": 0, "withdrawn": 0, "remaining": 40}]
+    assert r.json()["items"] == [{"item_type": "water", "requested": 40, "fulfilled": 0, "withdrawn": 0, "remaining": 40,
+                                    "pledged": 0, "unpledged": 40}]
     assert "Not measured" in r.json()["label"]
     assert zone in client.get("/needs", params={"run_id": str(mixed.id), "at": PEAK}).json()["zones"]
     assert client.get("/needs", params={"run_id": str(harvey.id), "at": PEAK}).json()["zones"] == {}
@@ -106,7 +107,8 @@ def test_a_need_in_a_cut_off_zone_is_counted_as_one(tx):
     assert d["zones"][cut]["zone_access"] == "isolated" and d["zones"][reach]["zone_access"] == "reachable"
     s = d["summary"]
     assert s["zones_with_open_needs"] == 2 and s["open_in_cut_off_zones"] == 1 and s["cut_off_zone_ids"] == [cut]
-    assert s["by_item"] == {"water": {"zones": 1, "remaining": 5}, "food": {"zones": 1, "remaining": 7}}
+    assert s["by_item"] == {"water": {"zones": 1, "remaining": 5, "pledged": 0, "unpledged": 5},
+                          "food": {"zones": 1, "remaining": 7, "pledged": 0, "unpledged": 7}}
 
 
 def test_a_closed_need_is_no_longer_open_or_flagged(tx):

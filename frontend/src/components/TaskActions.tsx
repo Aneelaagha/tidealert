@@ -4,6 +4,7 @@
 import { CheckCircle2, Send } from 'lucide-react';
 import { useState } from 'react';
 import { ApiError, api, type Responder, type Run, type Task } from '../lib/api';
+import { OfflineError } from '../lib/connection';
 import { fmtTime } from '../lib/format';
 import { canAssign, canComplete } from '../lib/taskActions';
 
@@ -32,7 +33,7 @@ export function TaskActions({ run, task, operator, at, responders, onDone }: Pro
       setResponderId('');
       onDone();
     } catch (e) {
-      setError(e instanceof ApiError ? `HTTP ${e.status}: ${e.detail}` : String(e));
+      setError(e instanceof ApiError ? `HTTP ${e.status}: ${e.detail}` : e instanceof OfflineError ? e.message : String(e));
     } finally {
       setBusy(false);
     }

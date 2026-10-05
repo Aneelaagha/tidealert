@@ -14,7 +14,7 @@ says so.
 - **Keeps the last view on screen.** Each request's last response for the current run and slider time is held in
   memory and served when the same request fails at the network level.
 - **Says so.** A banner above the page shows "Offline since HH:MM" and when the view was loaded. The status line
-  reads "cached" instead of a load time.
+  keeps the load time of the view it describes; a view re-served from the cache reads "cached" instead of a load time.
 - **Recovers.** Any HTTP response returns the page to online and the view is read again from the server.
 
 ## Source freshness while offline
@@ -34,7 +34,8 @@ If freshness was never loaded, the banner says "not loaded before the connection
   sent. A queued action could be applied later against a view that has moved on.
 - **A request not loaded before the outage** (a different run, a different slider time, a zone not yet opened) fails
   with an offline message. Only one view is cached (the run and time on screen), so moving the slider offline shows
-  that the new view isn't available rather than a nearest guess.
+  that the new view isn't available rather than a nearest guess. The slider moves, but the map and panels keep the
+  view they had, and the status line says so ("still show the view as of ...").
 - **Reloading the page offline** is not supported: the cache is in memory only (no service worker, no IndexedDB).
 
 ## Limits of the tests

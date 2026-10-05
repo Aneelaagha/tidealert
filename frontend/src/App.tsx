@@ -17,6 +17,7 @@ import { ZonePanel } from './components/ZonePanel';
 import { api, type Case, type Freshness, type Responder, type Run, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
 import { cacheKeepView, dispatch, getConnection, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
+import { fmtTime } from './lib/format';
 import { readUrl, tickIndex, ticksFor, writeUrl } from './lib/time';
 
 function Panel({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
@@ -180,7 +181,7 @@ export default function App() {
               "loading…" becomes the summary the bar must not grow and push the page down. */}
           <div className="custom-scrollbar flex items-center gap-2 overflow-x-scroll whitespace-nowrap border-b border-accent-cyan/15 bg-navy-deep px-3 py-1.5 font-mono text-[10px] tracking-wider text-slate-400">
             <MapIcon className="h-3.5 w-3.5 shrink-0 text-accent-cyan" />
-            {error ? <span className="text-danger-red">{error}</span> : <span>{status}</span>}
+            {error ? <span className="text-danger-red">{error}{conn.state !== 'online' && zones ? ` The map and panels still show the view as of ${fmtTime(zones.at)}.` : ''}</span> : <span>{status}</span>}
           </div>
           <div className="h-[560px]">
             <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId}

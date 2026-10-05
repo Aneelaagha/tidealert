@@ -5,6 +5,7 @@
 import { CornerDownLeft, Cpu, Terminal } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { ApiError, api, type CopilotAnswer, type CopilotStatus, type Run } from '../lib/api';
+import { OfflineError } from '../lib/connection';
 import { answerLabels, intentAvailability } from '../lib/copilot';
 import { fmtTime, label } from '../lib/format';
 import { Tag } from './ui';
@@ -84,7 +85,7 @@ export function CopilotPanel({ run, at, zoneId, zoneName, caseId, caseWord }: Pr
       setEntries((xs) => xs.map((x) => (x.id === id ? { ...x, answer } : x)));
     } catch (e) {
       const update = e instanceof ApiError && e.status === 422 ? { notice: e.detail }
-        : { error: e instanceof ApiError ? `HTTP ${e.status}: ${e.detail}` : String(e) };
+        : { error: e instanceof ApiError ? `HTTP ${e.status}: ${e.detail}` : e instanceof OfflineError ? e.message : String(e) };
       setEntries((xs) => xs.map((x) => (x.id === id ? { ...x, ...update } : x)));
     } finally {
       setBusy(false);

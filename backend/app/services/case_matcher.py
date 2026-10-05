@@ -52,6 +52,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import AsyncIterator, Callable, Optional
 
+import numpy as np
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -98,6 +99,7 @@ class SweepResult:
     contributions: int = 0
     tasks_created: int = 0
     tasks_changed: int = 0
+    missing_steps: int = 0  # isolation sweeps skipped because the gauge had no usable stage
     events: list = field(default_factory=list)
 
 
@@ -182,6 +184,12 @@ class CaseSweeper:
         ctx = self.ctx
         i = ctx.times.index(now)
         level = float(ctx.river.level[i])
+        if np.isnan(level):
+            # No gage height and no usable discharge at this step (app.services.stage, "missing"). Record nothing:
+            # a NaN level reads as "every road dry", which would open no Case but would RECONNECT every tracked one.
+            # Existing evidence is left to decay; the source reads stale.
+            result.missing_steps += 1
+            return
         state = engine.isolation_step(ctx.net, ctx.bounds, ctx.evaluated, level)
         for k, zone in enumerate(ctx.zones):
             tracked = self._zone_cases.get(zone.id)

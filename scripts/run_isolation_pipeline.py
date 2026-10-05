@@ -62,7 +62,7 @@ from app.services.rainfall import (  # noqa: E402
     RESIDUAL_DRAIN_BRACKET, RESIDUAL_DRAIN_FRACTION, RainfallUnavailable, aorc_rainfall, drainage_capacity_mm_hr,
     ponding_levels,
 )
-from app.services.stage import StageSeries, fit_event_rating, observed_stage, timesteps  # noqa: E402
+from app.services.stage import MAX_RATING_GAP, StageSeries, fit_event_rating, observed_stage, timesteps  # noqa: E402
 from app.services.street_blocks import basin_segments, generate_zones  # noqa: E402
 from app.services.terrain import Terrain, build_terrain, download_dem  # noqa: E402
 
@@ -191,6 +191,10 @@ def main() -> None:
         net = engine.build_network(segments, terrain, np.array([], dtype=np.int64), river.threshold, river.known)
 
         # Standing check: at the first timestep the river must be at base flow and nothing may flood.
+        if stage.missing[0]:
+            raise engine.BaseFlowFloodingError(
+                f"Event window starts at {fmt(times[0])} with no usable stage (no gage height, no discharge within "
+                f"the rating gap): the base-flow check needs data at the first step")
         if stage.stage_ft[0] >= site.thresholds.minor_ft:
             raise engine.BaseFlowFloodingError(
                 f"Event window starts at {fmt(times[0])} with stage {stage.stage_ft[0]:.2f} ft, already at/above "
@@ -241,9 +245,11 @@ def main() -> None:
         crossed = stage.first_crossing(value) if value is not None else None
         print(f"  {label:8s} {'' if value is None else f'{value:6.2f} ft'}  [{prov}]  first reached {fmt(crossed)}")
     n_rating = stage.provenance.count("rating")
-    peak_i = int(np.argmax(stage.stage_ft))
-    print(f"  stage steps: {len(times)} ({len(times) - n_rating} measured, {n_rating} from rating curve on "
-          f"USGS discharge incl. {gauge_counts['estimated']} ESTIMATED values)")
+    n_missing = stage.provenance.count("missing")
+    peak_i = int(np.nanargmax(stage.stage_ft))  # never a missing step
+    print(f"  stage steps: {len(times)} ({len(times) - n_rating - n_missing} measured, {n_rating} from rating curve on "
+          f"USGS discharge incl. {gauge_counts['estimated']} ESTIMATED values, {n_missing} MISSING: no gage height and "
+          f"no discharge within {MAX_RATING_GAP}; nothing is inferred at those steps)")
     print(f"  peak {stage.stage_ft[peak_i]:.2f} ft at {fmt(times[peak_i])} [{stage.provenance[peak_i]}]; "
           f"depth over channel {depth[peak_i]:.2f} m via {depth_method}")
     by_day = defaultdict(list)

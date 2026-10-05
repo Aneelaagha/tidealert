@@ -8,7 +8,19 @@ trust:
 2. "rating":   where the gauge did not record stage, USGS discharge (measured
    or ESTIMATED) interpolated to the timestep and converted to stage through
    a rating curve fitted to this event's own measured (discharge, stage)
-   pairs.
+   pairs. Only between two discharge values at most MAX_RATING_GAP apart.
+3. "missing":  neither: no gage height within MAX_INTERP_GAP and no discharge
+   pair within MAX_RATING_GAP. The stage is NaN, and nothing downstream may
+   treat it as a level: the river driver floods nothing, the case matcher
+   records no new isolation or reconnection evidence, and the gauge reads
+   stale. A step is never filled across a long gap (e.g. the Swannanoa's
+   41-hour outage during Helene).
+
+MAX_RATING_GAP = 3 h is not a physical constant. It is derived from Harvey:
+the widest discharge gap Harvey's rating-filled steps bridge is 150 min (White
+Oak; Greens and Hunting 60 min), and 3 h is the smallest round value above it,
+so Harvey's results are unchanged. A different cap for Harvey on its own
+scientific grounds would be a separate, deliberate decision.
 
 The rating curve ignores hysteresis (rising and falling limbs share a curve)
 and above the highest measured pair it extrapolates in log-discharge.
@@ -25,6 +37,7 @@ from app.models import DataSource, Signal
 from app.models.data_source import SignalType
 
 MAX_INTERP_GAP = timedelta(minutes=30)
+MAX_RATING_GAP = timedelta(hours=3)  # derived from Harvey's widest bridged gap (150 min); see the module docstring
 
 
 def usgs_source_name(site_id: str) -> str:
@@ -35,7 +48,11 @@ def usgs_source_name(site_id: str) -> str:
 class StageSeries:
     times: list[datetime]
     stage_ft: np.ndarray
-    provenance: list[str]  # "observed" | "rating"
+    provenance: list[str]  # "observed" | "rating" | "missing" (stage NaN)
+
+    @property
+    def missing(self) -> np.ndarray:
+        return np.isnan(self.stage_ft)
 
     def first_crossing(self, threshold_ft: float) -> Optional[datetime]:
         """First time stage reaches the threshold, interpolated between timesteps."""
@@ -46,6 +63,8 @@ class StageSeries:
         if i == 0:
             return self.times[0]
         h0, h1 = self.stage_ft[i - 1], self.stage_ft[i]
+        if np.isnan(h0):  # the step before is missing: the crossing is known only to this step
+            return self.times[i]
         frac = (threshold_ft - h0) / (h1 - h0)
         return self.times[i - 1] + (self.times[i] - self.times[i - 1]) * frac
 
@@ -116,6 +135,7 @@ def observed_stage(db: Session, site_id: str, times: list[datetime], rating: Rat
     h_t, h = _series(db, source, "gage_height_ft", measured_only=True)
     q_t, q = _series(db, source, "discharge_cfs")  # includes ESTIMATED values
     gap = MAX_INTERP_GAP.total_seconds()
+    q_gap = MAX_RATING_GAP.total_seconds()
 
     stages, provenance = [], []
     for t in times:
@@ -127,7 +147,14 @@ def observed_stage(db: Session, site_id: str, times: list[datetime], rating: Rat
         if exact or (before_ok and after_ok):
             stages.append(float(np.interp(ts, h_t, h)))
             provenance.append("observed")
-        else:
+            continue
+        j = np.searchsorted(q_t, ts)
+        q_exact = j < len(q_t) and q_t[j] == ts
+        q_bracketed = 0 < j < len(q_t) and q_t[j] - q_t[j - 1] <= q_gap
+        if q_exact or q_bracketed:
             stages.append(float(rating(np.array([np.interp(ts, q_t, q)]))[0]))
             provenance.append("rating")
+        else:
+            stages.append(float("nan"))
+            provenance.append("missing")
     return StageSeries(times=times, stage_ft=np.array(stages), provenance=provenance)

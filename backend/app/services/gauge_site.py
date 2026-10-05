@@ -1,7 +1,8 @@
 """Resolve everything the isolation pipeline needs from a USGS gauge ID alone.
 
 - NHDPlus COMID, reach and location: NLDI crosswalk for nwissite/USGS-{site}.
-- Study area: the gauge's upstream drainage basin from NLDI's basin endpoint.
+- Study area: the gauge's upstream drainage basin from NLDI's basin endpoint, or a registered clip of it
+  (app.services.study_area; the full basin is kept so the cut can be stated).
 - Gauge datum and time zone: USGS monitoring-location record (altitude of
   gauge datum and vertical datum, so stage can be converted to water-surface
   elevation; standard-time zone and whether daylight saving applies).
@@ -19,6 +20,8 @@ import numpy as np
 import requests
 from shapely.geometry import Point, shape
 from shapely.geometry.base import BaseGeometry
+
+from app.services import study_area
 
 log = logging.getLogger(__name__)
 
@@ -64,9 +67,15 @@ class GaugeSite:
     nws_time_zone: Optional[str]
     usgs_time_zone: Optional[str]  # standard-time abbreviation from the USGS site record, e.g. "CST"
     usgs_uses_dst: Optional[bool]
+    # Set when only part of the basin is modelled (app.services.study_area): the full basin, and the cut stated.
+    full_basin: Optional[BaseGeometry] = None
+    study_area_note: Optional[str] = None
+    study_area_label: Optional[str] = None
 
     @property
     def region(self) -> str:
+        if self.study_area_label:
+            return f"USGS-{self.site_id} basin, {self.study_area_label}"
         return f"USGS-{self.site_id} basin"
 
     def stage_to_wse_m(self, stage_ft: np.ndarray) -> Optional[np.ndarray]:
@@ -132,8 +141,8 @@ def _thresholds(site_id: str, nwps: Optional[dict]) -> FloodThresholds:
 def resolve_gauge(site_id: str) -> GaugeSite:
     feature = _get(f"{NLDI}/nwissite/USGS-{site_id}", f="json")["features"][0]
     props = feature["properties"]
-    basin_features = _get(f"{NLDI}/nwissite/USGS-{site_id}/basin", simplified="false", f="json")["features"]
-    basin = shape(basin_features[0]["geometry"])
+    basin = _basin(site_id)
+    study_basin, study = study_area.apply(site_id, basin, basin_of=_basin)
 
     location = _get(f"{USGS_OGC}/monitoring-locations/items/USGS-{site_id}", f="json")["properties"]
 
@@ -148,7 +157,7 @@ def resolve_gauge(site_id: str) -> GaugeSite:
         name=props["name"],
         point=shape(feature["geometry"]),
         comid=int(props["comid"]),
-        basin=basin,
+        basin=study_basin,
         gauge_datum_altitude_ft=location.get("altitude"),
         gauge_vertical_datum=location.get("vertical_datum"),
         nws_lid=nwps["lid"] if nwps else None,
@@ -157,4 +166,13 @@ def resolve_gauge(site_id: str) -> GaugeSite:
         nws_time_zone=(nwps or {}).get("timeZone"),
         usgs_time_zone=location.get("time_zone_abbreviation"),
         usgs_uses_dst={"Y": True, "N": False}.get(location.get("uses_daylight_savings")),
+        full_basin=study.full_basin if study else None,
+        study_area_note=study.note if study else None,
+        study_area_label=study.clip.label if study else None,
     )
+
+
+def _basin(site_id: str) -> BaseGeometry:
+    """The gauge's upstream drainage basin from NLDI."""
+    features = _get(f"{NLDI}/nwissite/USGS-{site_id}/basin", simplified="false", f="json")["features"]
+    return shape(features[0]["geometry"])

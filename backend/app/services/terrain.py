@@ -36,6 +36,7 @@ jumping; cells that leave the grid without reaching a drainage cell get NaN.
 """
 import logging
 import os
+import time
 from dataclasses import dataclass
 
 import geopandas as gpd
@@ -55,6 +56,8 @@ DEM_URL = "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/
 DEM_TARGET_RES_M = 10.0
 DEM_MAX_PIXELS = 4000  # per side, per 3DEP export request
 DEM_BUFFER_M = 1000.0
+DEM_ATTEMPTS = 3  # 3DEP export attempts on transient failure (5xx, connection, timeout)
+DEM_BACKOFF_S = 10.0  # waits 10 s, then 30 s
 STREAM_BURN_M = 10.0
 CHANNEL_SNAP_RADIUS_M = 30.0
 # pysheds default D8 codes: N, NE, E, SE, S, SW, W, NW.
@@ -116,6 +119,28 @@ def flowlines(comid: int, mode: str) -> gpd.GeoDataFrame:
     return gdf[["comid", "geometry"]]
 
 
+def _get_with_retry(url: str, params: dict, site_id: str, attempts: int = DEM_ATTEMPTS,
+                    sleep=time.sleep) -> requests.Response:
+    """The 3DEP service returns intermittent 502/503s (and 500s under load) for requests that succeed minutes later.
+    Retry transient failures a bounded number of times with backoff; anything else, or the last failure, raises."""
+    for attempt in range(1, attempts + 1):
+        try:
+            resp = requests.get(url, params=params, timeout=900)
+            if resp.status_code < 500:
+                resp.raise_for_status()
+                return resp
+            error: Exception = requests.HTTPError(f"{resp.status_code} from 3DEP", response=resp)
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            error = exc
+        if attempt == attempts:
+            raise error
+        wait = DEM_BACKOFF_S * 3 ** (attempt - 1)
+        log.warning("USGS %s: 3DEP export failed (%s); retry %d of %d in %.0f s", site_id, error, attempt,
+                    attempts - 1, wait)
+        sleep(wait)
+    raise AssertionError("unreachable")
+
+
 def download_dem(site: GaugeSite, path: str) -> None:
     epsg = utm_epsg(site.point.x, site.point.y)
     basin_utm = gpd.GeoSeries([site.basin], crs=4326).to_crs(epsg).iloc[0]
@@ -124,21 +149,17 @@ def download_dem(site: GaugeSite, path: str) -> None:
     if res > DEM_TARGET_RES_M:
         log.warning("USGS %s: basin too large for one 3DEP export; DEM resolution %.1f m", site.site_id, res)
     width, height = int(np.ceil((xmax - xmin) / res)), int(np.ceil((ymax - ymin) / res))
-    resp = requests.get(
-        DEM_URL,
-        params={
-            "bbox": f"{xmin},{ymin},{xmin + width * res},{ymin + height * res}",
-            "bboxSR": epsg,
-            "imageSR": epsg,
-            "size": f"{width},{height}",
-            "format": "tiff",
-            "pixelType": "F32",
-            "interpolation": "RSP_BilinearInterpolation",
-            "f": "image",
-        },
-        timeout=900,
-    )
-    resp.raise_for_status()
+    params = {
+        "bbox": f"{xmin},{ymin},{xmin + width * res},{ymin + height * res}",
+        "bboxSR": epsg,
+        "imageSR": epsg,
+        "size": f"{width},{height}",
+        "format": "tiff",
+        "pixelType": "F32",
+        "interpolation": "RSP_BilinearInterpolation",
+        "f": "image",
+    }
+    resp = _get_with_retry(DEM_URL, params, site.site_id)
     if not resp.content.startswith((b"II*\x00", b"MM\x00*")):
         raise RuntimeError(f"3DEP did not return a GeoTIFF: {resp.content[:200]!r}")
     with open(path + ".tmp", "wb") as f:

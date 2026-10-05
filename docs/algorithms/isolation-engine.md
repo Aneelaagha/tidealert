@@ -305,6 +305,27 @@ a passing result. What would make it testable, as the concrete next step:
 
 AORC rainfall is still ingested and printed as input data.
 
+## Study-area clips
+
+By default a gauge's study area is its whole upstream basin (NLDI). A
+registered clip (`app.services.study_area`) can limit it to a documented
+boundary:
+- **What the clip changes:** everything downstream reads the clipped basin
+  (the DEM, HAND, roads and street blocks). The site keeps the full basin,
+  and its region name says it's clipped.
+- **Other gauges' basins:** a clip can exclude them, so two gauges in one run
+  never model the same street block twice.
+- **Reproducible:** the clipped polygon is cached with its sources.
+
+Harvey's three gauges aren't clipped. The only clip so far is the French
+Broad at Asheville (03451500): Asheville city limits within its basin, minus
+the Swannanoa basin, which is 60.0 of 2,446 km². See
+[docs/regions/helene.md](../regions/helene.md).
+
+**3DEP downloads** retry a transient failure (5xx, connection or timeout) up
+to 3 times, waiting 10 s then 30 s, because the service returns intermittent
+502s for requests that succeed minutes later.
+
 ## Known limitations and assumptions
 
 - **Tunnels are not exempt from flooding.** Spec §2 exempted bridges and

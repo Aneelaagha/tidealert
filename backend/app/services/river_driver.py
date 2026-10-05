@@ -63,7 +63,7 @@ def depth_over_channel(site: GaugeSite, stage: StageSeries, terrain: Terrain) ->
         return wse - terrain.gauge_channel_elev_m, (
             f"stage + gauge datum ({site.gauge_datum_altitude_ft} ft NAVD88) - DEM channel "
             f"elevation at gauge ({terrain.gauge_channel_elev_m:.2f} m)")
-    base = float(stage.stage_ft.min())
+    base = float(np.nanmin(stage.stage_ft))  # a missing step (NaN) must not make every depth NaN
     log.warning("USGS %s: gauge datum is %s, not NAVD88; FALLBACK depth = stage above the event's lowest "
                 "stage (%.2f ft)", site.site_id, site.gauge_vertical_datum, base)
     return (stage.stage_ft - base) * FEET_TO_METERS, f"FALLBACK: stage above event minimum {base:.2f} ft"
@@ -99,6 +99,15 @@ def fim_first_stage(terrain: Terrain, fim: gpd.GeoDataFrame) -> np.ndarray:
     return first
 
 
+def library_level(stages: np.ndarray, stage_ft: np.ndarray) -> np.ndarray:
+    """The library layer in effect at each step: the next mapped stage up (NWS's convention); -inf below the lowest
+    layer (nothing floods); NaN where the stage is missing. Without the NaN rule, searchsorted puts NaN past the end
+    and picks the TOP layer, drawing the largest mapped flood at exactly the steps with no data."""
+    idx = np.minimum(np.searchsorted(stages, stage_ft, side="left"), len(stages) - 1)
+    level = np.where(stage_ft < stages[0], -np.inf, stages[idx])
+    return np.where(np.isnan(stage_ft), np.nan, level)
+
+
 def build_river_driver(site: GaugeSite, terrain: Terrain, stage: StageSeries, depth: np.ndarray,
                        fim: Optional[gpd.GeoDataFrame]) -> RiverDriver:
     if fim is not None:
@@ -108,8 +117,7 @@ def build_river_driver(site: GaugeSite, terrain: Terrain, stage: StageSeries, de
         coverage_geom = fim.geometry.iloc[int(np.argmax(fim.stage_ft))].buffer(abs(terrain.transform.a))
         known = rasterize([(coverage_geom, 1)], out_shape=terrain.dem.shape, transform=terrain.transform,
                           fill=0).astype(bool) & terrain.in_basin
-        idx = np.minimum(np.searchsorted(stages, stage.stage_ft, side="left"), len(stages) - 1)
-        level = np.where(stage.stage_ft < stages[0], -np.inf, stages[idx])
+        level = library_level(stages, stage.stage_ft)
         n_above = int((stage.stage_ft > stages[-1]).sum())
         if n_above:
             log.warning("USGS %s: stage exceeds the NWS library's highest stage (%.1f ft) for %d steps; the "

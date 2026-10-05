@@ -305,6 +305,32 @@ a passing result. What would make it testable, as the concrete next step:
 
 AORC rainfall is still ingested and printed as input data.
 
+## Missing stage steps
+
+`app.services.stage` gives each 15-minute step one of three provenances:
+- **observed:** gage height within 30 min on both sides;
+- **rating:** USGS discharge interpolated between two readings at most
+  **3 hours** apart, then converted through the event's rating curve;
+- **missing:** neither. The stage is NaN.
+
+**The 3-hour cap is not a physical constant.** It's derived from Harvey: the
+widest discharge gap Harvey's rating-filled steps bridge is 150 min (White
+Oak; Greens and Hunting 60 min). So Harvey's results are unchanged.
+
+**A missing step is never filled, and nothing downstream treats it as a
+level:**
+- the flood-map driver gives it no layer (before, NaN selected the *top*
+  layer, the largest mapped flood);
+- the HAND fallback's depth baseline ignores it;
+- the case matcher records **no** evidence at it. Before, a NaN level read as
+  "every road dry", which would have reconnected every tracked Case.
+  Existing evidence decays instead;
+- the pipeline reports how many steps are missing, never names one as the
+  peak, and refuses a window that starts with one.
+
+This was built for the Swannanoa (Helene), whose gauge recorded no gage height
+for 41 hours.
+
 ## Study-area clips
 
 By default a gauge's study area is its whole upstream basin (NLDI). A

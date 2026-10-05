@@ -103,8 +103,12 @@ gaps, because the model fails differently here than in Houston.
   its highest mapped stage the engine applies its lower-confidence
   above-library factor.
 - **The Swannanoa's data feed failed.** For 41 hours there is no gage height,
-  and only sparse estimated discharge. Pending the gap-fill fix, the system
-  must say it's blind there, not infer.
+  and only sparse estimated discharge (4-hourly, beyond the 3-hour rating
+  cap). With the gap-fill fix, those steps are **missing**: no river level,
+  no new isolation or reconnection evidence. The system says it's blind
+  there rather than inferring. Its freshness banner is a separate change
+  (counting only measured readings), under its own review because it also
+  changes Harvey's banner.
 - **Ground truth is thin:** NFIP only, about 100 times sparser than Harvey's.
 - **The French Broad covers 2.5% of its basin** (the clip above).
 - **There's no rainfall input for this event.** The pipeline's rainfall source,

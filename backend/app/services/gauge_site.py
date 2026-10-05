@@ -71,6 +71,9 @@ class GaugeSite:
     full_basin: Optional[BaseGeometry] = None
     study_area_note: Optional[str] = None
     study_area_label: Optional[str] = None
+    # The NWS flood-map library's own zero datum (ft NAVD88, NWPS inundation.zeroDatum): a cross-check on the USGS
+    # datum when converting the library's water-surface elevations to stage (app.services.fim_library).
+    fim_zero_datum_ft: Optional[float] = None
 
     @property
     def region(self) -> str:
@@ -169,7 +172,13 @@ def resolve_gauge(site_id: str) -> GaugeSite:
         full_basin=study.full_basin if study else None,
         study_area_note=study.note if study else None,
         study_area_label=study.clip.label if study else None,
+        fim_zero_datum_ft=_fim_zero_datum(inundation),
     )
+
+
+def _fim_zero_datum(inundation: dict) -> Optional[float]:
+    zero = inundation.get("zeroDatum") or {}
+    return float(zero["value"]) if zero.get("datum") == "NAVD88" and zero.get("value") is not None else None
 
 
 def _basin(site_id: str) -> BaseGeometry:

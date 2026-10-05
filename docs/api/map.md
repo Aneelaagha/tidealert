@@ -70,6 +70,17 @@ Every zone in the run's regions is returned, with or without a Case.
 - **Rule:** a source is `stale` when `at` minus its last observation is more
   than `stale_after_seconds`. The run's override (`run_sources`) takes
   precedence over the source's own value.
+- **Only the source's own kind of observation counts:** a signal whose type
+  matches the source's `type_default`. For a USGS gauge (measured), a value
+  USGS marks **ESTIMATED** (stored as inferred) is not a reading, so a gauge
+  whose sensor has stopped reads `stale` even while estimates continue. A
+  model source (inferred by nature) still counts its own values.
+  - **Harvey:** White Oak (08074500) reads stale from 08-27 18:30 UTC, its
+    last measured reading, for the rest of the window. Hunting (08075770)
+    reads stale after 08-31 22:00. Their isolation Cases still update from
+    rating-reconstructed stage, already scored down (factor 0.7).
+  - **Helene:** the Swannanoa (03451000) reads stale through its 41-hour
+    outage, instead of "fresh" for an hour after each 4-hourly estimate.
 - **Event-driven sources** (cadence 0, e.g. household replies) are reported
   with their age but never judged fresh or stale.
 - **Runs that read no source recorded as signals** (the synthetic silence

@@ -44,8 +44,11 @@ The gauge lies inside the modelled area. **Why:**
 and nothing outside it is assessed. The clip is `app.services.study_area`; its
 polygon is cached in `backend/app/data/usgs-03451500/study_area.json`.
 
-**Future work, not done:** tiling the 3DEP download would allow the full basin
-at 10 m.
+**Tiled 3DEP downloads now exist** (built for the Swannanoa; see the isolation
+engine doc), so the 3DEP request limit is no longer the obstacle. **The French
+Broad stays clipped, as decided:** this region tests HAND near the gauged
+reach. A full-basin French Broad run (about 2,446 km², tens of millions of
+10 m cells for the HAND build) is **future work, not done.**
 
 **Dry run of the data stages, clipped (2026-10-05):**
 
@@ -57,10 +60,13 @@ at 10 m.
 | Street blocks | 555, with 31,901 residents, 4 s |
 | Total | 45 s; peak memory about 0.6 GB |
 
-**3DEP reliability:** the service returned intermittent HTTP 502s even for this
-small request, which succeeded minutes later. `download_dem` now retries a
-transient failure (5xx, connection or timeout) up to 3 times, waiting 10 s
-then 30 s.
+**3DEP reliability:**
+- The service returned intermittent HTTP 502s even for this small request,
+  which succeeded minutes later. `download_dem` now retries a transient
+  failure (5xx, connection or timeout) up to 3 times, waiting 10 s then 30 s.
+- The Swannanoa's full basin (339 km², 2,862 × 2,692 cells at 10 m) failed as
+  a single export: HTTP 500 six times in a row. It succeeded as 4 tiles in
+  61 s (2026-10-05).
 
 ## Ground truth (checked 2026-10-04 and 2026-10-05)
 

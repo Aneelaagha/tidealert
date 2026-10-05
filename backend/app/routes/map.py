@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Run
-from app.services import map_state, safety, task_actions
+from app.services import map_state, safety, supply_access, task_actions
 
 router = APIRouter(tags=["map"])
 
@@ -59,6 +59,14 @@ def map_zones(run_id: uuid.UUID, at: Optional[datetime] = None,
 def map_freshness(run_id: uuid.UUID, at: Optional[datetime] = None, db: Session = Depends(get_db)):
     run = _run(db, run_id)
     return map_state.freshness(db, run, _at(run, at))
+
+
+@router.get("/map/supply-access")
+def map_supply_access(run_id: uuid.UUID, at: Optional[datetime] = None, db: Session = Depends(get_db)):
+    """Every zone's access from the main road network as of `at`: route feasibility only (app.services.supply_access).
+    Kept apart from /map/zones so that response, the page's largest, does not grow."""
+    run = _run(db, run_id)
+    return supply_access.supply_access(db, run, _at(run, at))
 
 
 @router.get("/cases")

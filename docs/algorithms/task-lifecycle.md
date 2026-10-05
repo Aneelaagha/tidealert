@@ -112,7 +112,7 @@ for the listening run.)
   API-only.
 - **Assignment is manual only:** no proximity, skills or routing.
   `route_geometry` stays empty.
-- **Supply routing:** Week 7 (route feasibility only).
+- **Supply routing:** route feasibility only, built as supply access (`supply-access.md`); no routes or origins.
 
 ## Concurrency: row locks on every action
 

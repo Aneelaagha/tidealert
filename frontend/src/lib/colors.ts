@@ -4,11 +4,15 @@
 
 export const UNSTYLED = '#ff00ff';
 
-export const COLORS: Record<'risk_level' | 'confidence_word' | 'task_status', Record<string, string | null>> = {
+export const COLORS: Record<'risk_level' | 'confidence_word' | 'task_status' | 'supply_access', Record<string, string | null>> = {
   // Fill. unknown is a neutral grey at low opacity: "not assessed", never green.
   risk_level: { unknown: '#9aa0a6', safe: '#34c759', elevated: '#ff9500', extreme: '#ff3b30' },
   // Case outline; stale_verify is also dashed. Kept clear of the UNSTYLED magenta.
   confidence_word: { corroborated: '#00f0ff', single_source: '#4f8cff', stale_verify: '#a1887f' },
+  // The supply-access layer's fill (zone access from the main road network). not_evaluated is the same neutral grey as
+  // unknown risk: not assessed, never green. reconnected is the optimistic bound, so it is not the reachable green.
+  supply_access: { isolated: '#ff3b30', possibly_isolated: '#ff9500', reconnected: '#5ac8fa', reachable: '#34c759',
+                   not_evaluated: '#9aa0a6' },
   // Task marker fill. pending is white (hollow): nobody is on it yet.
   task_status: { pending: '#ffffff', assigned: '#4f8cff', en_route: '#34c759',
                  complete: null, unable_to_reach: null, cancelled: null },

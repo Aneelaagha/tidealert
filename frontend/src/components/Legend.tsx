@@ -2,7 +2,7 @@
 // in UNSTYLED magenta and flagged, so the legend can't hide a state the map draws.
 
 import type { ReactNode } from 'react';
-import type { Vocabulary } from '../lib/api';
+import type { SupplyAccess, Vocabulary } from '../lib/api';
 import { TASK_RADIUS, TASK_VERIFY_EDGE, UNSTYLED, colorOf } from '../lib/colors';
 import { label } from '../lib/format';
 
@@ -16,7 +16,7 @@ function Heading({ children }: { children: ReactNode }) {
   return <div className="mt-2.5 mb-0.5 text-[10px] uppercase tracking-wider text-slate-500 first:mt-0">{children}</div>;
 }
 
-export function Legend({ vocabulary }: { vocabulary: Vocabulary }) {
+export function Legend({ vocabulary, supply }: { vocabulary: Vocabulary; supply: SupplyAccess | null }) {
   return (
     <div className="font-mono text-[11px] text-slate-300">
       <Heading>Fill: zone risk level (unknown = not assessed, never shown as safe)</Heading>
@@ -28,6 +28,21 @@ export function Legend({ vocabulary }: { vocabulary: Vocabulary }) {
           </Row>
         );
       })}
+
+      {supply && (
+        <>
+          <Heading>Fill, when the map is coloured by supply access (route feasibility from the main road network only)</Heading>
+          {supply.states.map((v) => {
+            const c = colorOf('supply_access', v);
+            return (
+              <Row key={v} swatch={<span className="h-3.5 w-5 shrink-0 border border-white/20" style={{ background: c ?? UNSTYLED }} />}>
+                {supply.labels[v] ?? v}{c ? null : <Unstyled />}
+              </Row>
+            );
+          })}
+          <p className="py-0.5 text-slate-500">{supply.does_not_show}</p>
+        </>
+      )}
 
       <Heading>Outline: strongest Case confidence word in the zone</Heading>
       {vocabulary.confidence_word.map((v) => {

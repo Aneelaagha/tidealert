@@ -2,7 +2,7 @@
 // contributions and tasks (with each task's full event history).
 
 import { useEffect, useState } from 'react';
-import { api, type Case, type Responder, type Task, type ZoneProps } from '../lib/api';
+import { api, type Case, type Responder, type SupplyAccess, type Task, type ZoneProps } from '../lib/api';
 import { fmtTime, label } from '../lib/format';
 import { SafetyNote } from './SafetyNote';
 import { Muted, Tag } from './ui';
@@ -68,6 +68,27 @@ function CaseBlock({ c, responders }: { c: Case; responders: Map<string, Respond
   );
 }
 
+const supplyTone = (s: string) => (s === 'isolated' ? 'red' : s === 'possibly_isolated' ? 'amber' : s === 'reachable' ? 'green' : s === 'reconnected' ? 'cyan' : 'plain');
+
+/** One zone's supply access: the state, since when, the engine's reason, and what the state does not mean. */
+function SupplyAccessText({ supply, zoneId, at, error }: { supply: SupplyAccess | null; zoneId: string; at: string | null; error: string | null }) {
+  if (error) return <span className="text-danger-red">{error}</span>;
+  const z = supply && supply.at === at ? supply.zones[zoneId] : undefined;
+  if (!supply || (at && supply.at !== at)) return <Muted>loading…</Muted>;
+  if (!z) return <Muted>not in the answer</Muted>;
+  return (
+    <>
+      <Tag tone={supplyTone(z.zone_access)}>{supply.labels[z.zone_access] ?? z.zone_access}</Tag>
+      {z.since && <Muted>since {fmtTime(z.since)}{z.mechanism ? ` (${z.mechanism})` : ''}</Muted>}
+      <div className="text-slate-500">{supply.reasons[z.reason_id].split('; confidence')[0]}</div>
+      <details className="text-slate-500">
+        <summary className="cursor-pointer">What this does not show</summary>
+        {supply.does_not_show}
+      </details>
+    </>
+  );
+}
+
 interface Props {
   runId: string;
   at: string | null;
@@ -75,9 +96,11 @@ interface Props {
   gapReasons: string[];
   responders: Map<string, Responder>;
   version: number; // bumped after a task action, so the zone's Cases are read again
+  supply: SupplyAccess | null; // /map/supply-access for this run and time, or null while it loads
+  supplyError: string | null;
 }
 
-export function ZonePanel({ runId, at, zone, gapReasons, responders, version }: Props) {
+export function ZonePanel({ runId, at, zone, gapReasons, responders, version, supply, supplyError }: Props) {
   const [cases, setCases] = useState<Case[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,6 +130,8 @@ export function ZonePanel({ runId, at, zone, gapReasons, responders, version }: 
         <dd>{zone.case_count}{zone.confidence_word && ` · strongest: ${zone.confidence_word}`}</dd>
         <dt className="text-slate-500">Engines</dt>
         <dd>{zone.engines.length ? zone.engines.map((e) => <Tag key={e}>{e}</Tag>) : <Muted>none</Muted>}</dd>
+        <dt className="text-slate-500">Supply access</dt>
+        <dd><SupplyAccessText supply={supply} zoneId={zone.zone_id} at={at} error={supplyError} /></dd>
         <dt className="text-slate-500">Active tasks</dt>
         <dd>{zone.task_count
           ? `${zone.task_count} (most advanced: ${label(zone.task_status)}) · ${zone.task_awaiting} awaiting assignment · ${zone.task_flagged} flagged verify`

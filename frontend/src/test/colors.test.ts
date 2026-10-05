@@ -25,3 +25,23 @@ describe('the color table', () => {
     }
   });
 });
+
+describe('the supply-access colors', () => {
+  const states = ['isolated', 'possibly_isolated', 'reconnected', 'reachable', 'not_evaluated'];
+
+  it('colors every state the server can return, none in the unstyled magenta', () => {
+    for (const s of states) {
+      expect(colorOf('supply_access', s), s).toBeTypeOf('string');
+      expect(colorOf('supply_access', s)).not.toEqual(UNSTYLED);
+    }
+  });
+
+  it('never draws "not assessed" or "reconnected" in the reachable color', () => {
+    expect(colorOf('supply_access', 'not_evaluated')).not.toEqual(colorOf('supply_access', 'reachable'));
+    expect(colorOf('supply_access', 'reconnected')).not.toEqual(colorOf('supply_access', 'reachable'));
+  });
+
+  it('draws an unexpected state magenta', () => {
+    expect(colorOf('supply_access', 'open_road')).toBeUndefined();
+  });
+});

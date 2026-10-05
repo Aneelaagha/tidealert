@@ -35,6 +35,7 @@ function AnswerCard({ a, statusMode }: { a: CopilotAnswer; statusMode: string })
         {l.outOfScope && <Tag tone="amber">OUT OF SCOPE</Tag>}
         {a.intent && <Tag>{label(a.intent)}</Tag>}
         {l.servedBy && <span className="text-[9.5px] text-slate-500">served by {l.servedBy}</span>}
+        {l.rewritten && <span className="text-[9.5px] text-slate-500">· first draft rejected by the check; rewritten</span>}
       </div>
       <p className="mb-1.5 text-[9.5px] text-slate-500">{l.fellBack ? 'Fell back to templates: ' : ''}{l.reason}</p>
       <div className="whitespace-pre-line font-sans text-[11px]">{a.answer}</div>

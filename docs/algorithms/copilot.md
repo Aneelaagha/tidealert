@@ -118,7 +118,12 @@ model, SDK or server behind it.
     inference sentences, rules) that isn't an enum value.
   - a placeholder that names no tool result, no value, or a group of values,
     or stray braces.
-- **Fallback to templates:** a rejected answer is never shown. The copilot
+- **One rewrite:** a rejected answer is never shown. The model is told
+  why ("status word written outside a placeholder: 'open'") and rewrites it
+  once. The rewrite goes through the same check; the response's `rewrites`
+  field and the panel ("first draft rejected by the check; rewritten") say
+  when this happened.
+- **Fallback to templates:** if the rewrite is rejected too, the copilot
   answers with the template for the first tool the model read (or the
   keyword route), and `mode_reason` says why. The same fallback covers a
   refusal from the whole fallback chain, a cut-off answer, an API error, an
@@ -163,10 +168,19 @@ model, SDK or server behind it.
 
 ## Known limitations
 
-- **Model mode is untested against the live API:** the tests drive the
-  tool loop with a scripted stand-in for the API. Tool calling, the
-  rejection check, placeholder filling and every fallback are tested, but
-  how often the real model's answers pass the check is not yet measured.
+- **Measured against the live API (2026-10-05), on one question:** *"Summarize
+  the situation for the incoming shift: how many Cases need attention and
+  where?"*, asked 10 times on the Harvey run.
+  - **Before the rewrite and the reworded tool descriptions:** 4 of 10 were
+    AI answers; 6 were rejected, every one on "open". The model was
+    describing the open_cases tool's scope ("open or in-progress Cases"),
+    which the tool's own description had put in its mouth.
+  - **After:** 9 of 9 answered calls were AI answers (7 on the first draft,
+    2 after one rewrite). The 10th call failed because the account's credit
+    ran out, not because of the check.
+  - **Not measured after the change:** other questions. A zone question
+    sampled before the change (5 runs) had 1 rejection, on "safe", in "I
+    can't tell you whether it's safe".
 - **The rejection check is lexical:** it catches written status words,
   digits and copied text. It doesn't catch a count spelled out in words
   ("two Cases"), or a wrong claim made without a value (for example, "this

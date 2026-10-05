@@ -35,6 +35,8 @@ describe('answer labels', () => {
     const l = answerLabels(answer({ mode: 'model', served_by: 'claude-opus-5-5', unknowns: ['t1.data_confidence'],
       household_data: { households: 7, real: 0, may_send_to_external_model: true } }), 'model');
     expect([l.badge, l.servedBy, l.unknowns, l.households?.real]).toEqual(['MODEL', 'claude-opus-5-5', ['t1.data_confidence'], 0]);
+    expect(l.rewritten).toBe(false);
+    expect(answerLabels(answer({ mode: 'model', rewrites: 1 }), 'model').rewritten).toBe(true);
     expect(answerLabels(answer({ household_data: { households: 0, real: 0, may_send_to_external_model: true } }), 'template').households).toBeNull();
   });
 

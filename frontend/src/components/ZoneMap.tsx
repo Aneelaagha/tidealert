@@ -4,7 +4,7 @@
 
 import maplibregl, { type GeoJSONSource, type StyleSpecification } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
-import type { Run, ZonesResponse } from '../lib/api';
+import type { Run, SupplyAccess, ZonesResponse } from '../lib/api';
 import { GAP_COLOR, SELECTED_COLOR, TASK_RADIUS, TASK_VERIFY_EDGE, matchColor } from '../lib/colors';
 
 const STYLE: StyleSpecification = {
@@ -68,9 +68,17 @@ interface Props {
   zones: ZonesResponse | null;
   selectedZoneId: string | null;
   onSelectZone: (zoneId: string | null) => void;
+  layer: 'risk' | 'supply'; // what the zone fill shows
+  supply: SupplyAccess | null; // the supply-access answer for the same run and time (needed when layer is 'supply')
 }
 
-export function ZoneMap({ run, zones, selectedZoneId, onSelectZone }: Props) {
+const FILL_OPACITY = {
+  risk: ['case', ['==', ['get', 'risk_level'], 'unknown'], 0.12, 0.45],
+  // null = this zone has no entry yet (the answer for this time is still loading): not drawn rather than guessed.
+  supply: ['case', ['==', ['get', 'supply_access'], 'not_evaluated'], 0.12, ['==', ['get', 'supply_access'], null], 0, 0.55],
+};
+
+export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const onSelect = useRef(onSelectZone);
@@ -105,7 +113,13 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone }: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    (map.getSource('zones') as GeoJSONSource).setData((zones ?? EMPTY) as GeoJSON.FeatureCollection);
+    // The supply layer joins the second API answer to the zones by id; a zone it has no entry for stays null and
+    // draws UNSTYLED, so a gap in the answer is visible, never given a state.
+    const shown = layer === 'supply' && zones
+      ? { ...zones, features: zones.features.map((f) => ({ ...f, properties: { ...f.properties,
+          supply_access: supply && supply.run_id === zones.run_id && supply.at === zones.at ? supply.zones[f.properties.zone_id]?.zone_access ?? null : null } })) }
+      : zones;
+    (map.getSource('zones') as GeoJSONSource).setData((shown ?? EMPTY) as GeoJSON.FeatureCollection);
     const withTask = (zones?.features ?? []).filter((f) => f.properties.task_count > 0 && f.properties.task_anchor);
     (map.getSource('tasks') as GeoJSONSource).setData({
       type: 'FeatureCollection',
@@ -115,7 +129,15 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone }: Props) {
                       task_priority: f.properties.task_priority, task_verify: f.properties.task_verify },
       })),
     });
-  }, [zones, ready]);
+  }, [zones, ready, layer, supply]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const field = layer === 'supply' ? 'supply_access' : 'risk_level';
+    map.setPaintProperty('zone-fill', 'fill-color', matchColor(field) as maplibregl.ExpressionSpecification);
+    map.setPaintProperty('zone-fill', 'fill-opacity', FILL_OPACITY[layer] as maplibregl.ExpressionSpecification);
+  }, [layer, ready]);
 
   useEffect(() => {
     if (ready) mapRef.current?.setFilter('zone-selected', ['==', ['get', 'zone_id'], selectedZoneId ?? '']);

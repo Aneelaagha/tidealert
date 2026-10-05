@@ -74,6 +74,26 @@ export interface ZonesResponse {
   features: { type: 'Feature'; geometry: GeoJSON.Geometry; properties: ZoneProps }[];
 }
 
+export interface SupplyZone {
+  zone_access: string;
+  since: string | null;
+  mechanism: string | null;
+  reason_id: number;
+}
+
+/** /map/supply-access: every zone's access from the main road network as of `at`. Route feasibility only. */
+export interface SupplyAccess {
+  run_id: string;
+  mode: Mode;
+  at: string;
+  states: string[]; // worst first
+  labels: Record<string, string>;
+  counts: Record<string, { zones: number; population: number }>;
+  reasons: string[];
+  zones: Record<string, SupplyZone>;
+  does_not_show: string;
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -282,6 +302,8 @@ export const api = {
     get<ZonesResponse>('/map/zones', { run_id: runId, at }, signal),
   freshness: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<Freshness>('/map/freshness', { run_id: runId, at }, signal),
+  supplyAccess: (runId: string, at: string | null, signal?: AbortSignal) =>
+    get<SupplyAccess>('/map/supply-access', { run_id: runId, at }, signal),
   cases: (runId: string, zoneId: string | null, at: string | null, signal?: AbortSignal) =>
     get<{ at: string; cases: Case[] }>('/cases', { run_id: runId, zone_id: zoneId, at }, signal),
   tasks: (runId: string, at: string | null, signal?: AbortSignal) =>

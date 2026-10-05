@@ -11,10 +11,11 @@ import { FreshnessBanner } from './components/FreshnessBanner';
 import { ConnectionBanner } from './components/ConnectionBanner';
 import { Header } from './components/Header';
 import { Legend } from './components/Legend';
+import { type Layer, SupplyBar } from './components/SupplyBar';
 import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
-import { api, type Case, type Freshness, type Responder, type Run, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
+import { api, type Case, type Freshness, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
 import { cacheKeepView, dispatch, getConnection, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
@@ -77,6 +78,9 @@ export default function App() {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [operator, setOperator] = useState(storedOperator);
   const [ethicsOpen, setEthicsOpen] = useState(false);
+  const [layer, setLayer] = useState<Layer>('risk'); // what the zone fill shows
+  const [supply, setSupply] = useState<SupplyAccess | null>(null);
+  const [supplyError, setSupplyError] = useState<string | null>(null);
   const [version, setVersion] = useState(0); // bumped after a task action: everything is read again
   const [status, setStatus] = useState('loading runs…');
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +164,19 @@ export default function App() {
     return () => ctl.abort();
   }, [run, at, version]);
 
+  // Supply access is read only when something shows it (the layer, or a selected zone's panel): it is a second
+  // answer for the same run and time, kept apart from the zones so that response does not grow.
+  const wantSupply = layer === 'supply' || selectedZoneId != null;
+  useEffect(() => { setSupply(null); }, [run?.id]);
+  useEffect(() => {
+    if (!run || !wantSupply) return;
+    const ctl = new AbortController();
+    setSupplyError(null);
+    api.supplyAccess(run.id, at, ctl.signal).then(setSupply)
+      .catch((e: Error) => { if (e.name !== 'AbortError') setSupplyError(e.message); });
+    return () => ctl.abort();
+  }, [run, at, wantSupply, version]);
+
   const zoneNames = useMemo(() => new Map((zones?.features ?? []).map((f) => [f.properties.zone_id, f.properties.name])), [zones]);
 
   const zone = selectedZoneId && zones?.run_id === run?.id
@@ -183,8 +200,9 @@ export default function App() {
             <MapIcon className="h-3.5 w-3.5 shrink-0 text-accent-cyan" />
             {error ? <span className="text-danger-red">{error}{conn.state !== 'online' && zones ? ` The map and panels still show the view as of ${fmtTime(zones.at)}.` : ''}</span> : <span>{status}</span>}
           </div>
+          <SupplyBar layer={layer} onLayer={setLayer} supply={supply} error={supplyError} />
           <div className="h-[560px]">
-            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId}
+            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply}
                      onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
           </div>
         </section>
@@ -210,11 +228,11 @@ export default function App() {
           )}
           <Panel title="Zone" className="h-[420px]">
             {run ? <ZonePanel runId={run.id} at={zones?.at ?? at} zone={zone} gapReasons={zones?.gap_reasons ?? []}
-                              responders={responders} version={version} />
+                              responders={responders} version={version} supply={supply} supplyError={supplyError} />
               : <p className="text-slate-500">loading…</p>}
           </Panel>
           <Panel title="Legend" className="max-h-[300px]">
-            {vocabulary ? <Legend vocabulary={vocabulary} /> : <p className="text-slate-500">loading…</p>}
+            {vocabulary ? <Legend vocabulary={vocabulary} supply={supply} /> : <p className="text-slate-500">loading…</p>}
           </Panel>
         </div>
       </main>

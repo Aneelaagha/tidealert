@@ -66,7 +66,15 @@ describe('no invented data in src/', () => {
   });
 
   it('carries none of the reference app\'s invented concepts or its persona', () => {
-    const banned = /aegis|gemini|@google\/genai|txHash|signalDepth|sensorType|waterLevel|floodingTrend|crowdFlow|supplyRoute|donation|personnelLeft|\bfuel\b|satellite|latency|rainIntensity/i;
+    const banned = /aegis|gemini|@google\/genai|txHash|signalDepth|sensorType|waterLevel|floodingTrend|crowdFlow|supplyRoute|personnelLeft|\bfuel\b|satellite|latency|rainIntensity/i;
     expect(offenders(banned)).toEqual([]);
+  });
+
+  it('keeps the word "donation" to the donation portal, which is backed by the API (the reference app\'s was invented)', () => {
+    // The portal shows only what operators and donors typed in and the server stored (/needs, /pledges), labelled so.
+    // Anywhere else the word would mean the reference app's fake donation board has come back.
+    const portal = ['App.tsx', join('components', 'DonationPortal.tsx'), join('components', 'NeedsBoard.tsx')];
+    expect(offenders(/donation/i, (p) => portal.includes(p))).toEqual([]);
+    expect(files.find((f) => f.path === join('components', 'DonationPortal.tsx'))?.text).toMatch(/api\.offerSupplies/);
   });
 });

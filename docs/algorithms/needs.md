@@ -41,7 +41,7 @@ cannot both spend the same quantity (a race test shows 6 threads fulfilling 1 ea
 ## What it does not do
 
 - It does not know what a zone needs. Values are what people typed; nothing checks them against any other source.
-- No matching to donors or supplies, no routing, no allocation, no priorities.
+- No matching of needs to supplies beyond donors' own offers (`donation-portal.md`), no routing, no allocation, no priorities.
 - No login: anyone who can reach the API can enter or read needs. Notes are free text and the personal-data scan
   checks field names, so personal details typed into a note would not be caught (listed as a gap in Data & ethics).
 - "Cut off" means the engine finds every road route out flooded; it does not say a need could not be met by boat or

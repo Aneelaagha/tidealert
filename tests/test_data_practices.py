@@ -141,6 +141,7 @@ def test_rain_driver_gap_follows_the_engine_gate(report, monkeypatch):
 def test_free_text_notes_gap_is_stated_and_note_length_is_capped(report):
     from app.services import needs
     assert "would not be caught" in gaps(report)["free_text_notes"]["text"] and 0 < needs.MAX_NOTE <= 500
+    assert "lexical" in gaps(report)["free_text_notes"]["text"]
 
 
 def test_response_scan_gap_states_the_name_based_blind_spot(report):

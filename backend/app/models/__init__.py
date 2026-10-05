@@ -5,6 +5,7 @@ from app.models.gauge_reading import GaugeReading
 from app.models.household import Household
 from app.models.need_event import NeedEvent
 from app.models.nfip_claim import NfipClaim
+from app.models.pledge import Pledge
 from app.models.probe_response import ProbeResponse
 from app.models.responder import Responder
 from app.models.road_segment import RoadSegment
@@ -22,6 +23,7 @@ __all__ = [
     "Household",
     "NeedEvent",
     "NfipClaim",
+    "Pledge",
     "ProbeResponse",
     "Responder",
     "RoadSegment",

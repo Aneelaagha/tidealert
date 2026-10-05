@@ -5,6 +5,7 @@ import { Map as MapIcon, UserRound } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertsPanel } from './components/AlertsPanel';
 import { CopilotPanel } from './components/CopilotPanel';
+import { DonationPortal } from './components/DonationPortal';
 import { EthicsPanel } from './components/EthicsPanel';
 import { EventTicker } from './components/EventTicker';
 import { FreshnessBanner } from './components/FreshnessBanner';
@@ -79,6 +80,7 @@ export default function App() {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [operator, setOperator] = useState(storedOperator);
   const [ethicsOpen, setEthicsOpen] = useState(false);
+  const [portalOpen, setPortalOpen] = useState(false);
   const [layer, setLayer] = useState<Layer>('risk'); // what the zone fill shows
   const [supply, setSupply] = useState<SupplyAccess | null>(null);
   const [supplyError, setSupplyError] = useState<string | null>(null);
@@ -107,6 +109,7 @@ export default function App() {
   }, []);
 
   const closeEthics = useCallback(() => setEthicsOpen(false), []);
+  const closePortal = useCallback(() => setPortalOpen(false), []);
 
   const changeOperator = (v: string) => {
     setOperator(v);
@@ -203,6 +206,8 @@ export default function App() {
               onEthics={() => setEthicsOpen(true)} />
       {ethicsOpen && <EthicsPanel run={run} freshness={freshness} vocabulary={vocabulary} onClose={closeEthics} />}
       <ConnectionBanner conn={conn} />
+      {portalOpen && run && <DonationPortal run={run} needs={needs} needsError={needsError} operator={operator} at={zones?.at ?? at}
+                                           onChanged={() => setVersion((v) => v + 1)} onClose={closePortal} />}
       {run && <FreshnessBanner run={run} freshness={freshness} conn={conn} />}
 
       <main className="mx-auto mt-4 grid w-full max-w-7xl flex-1 grid-cols-1 gap-6 px-6 lg:grid-cols-3">
@@ -215,7 +220,8 @@ export default function App() {
             {error ? <span className="text-danger-red">{error}{conn.state !== 'online' && zones ? ` The map and panels still show the view as of ${fmtTime(zones.at)}.` : ''}</span> : <span>{status}</span>}
           </div>
           <SupplyBar layer={layer} onLayer={setLayer} supply={supply} error={supplyError} />
-          <NeedsBoard needs={needs} error={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
+          <NeedsBoard needs={needs} error={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
+                      onPortal={() => setPortalOpen(true)} />
           <div className="h-[560px]">
             <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply}
                      onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />

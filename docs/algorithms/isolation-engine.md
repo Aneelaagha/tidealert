@@ -357,6 +357,17 @@ rather than crashing. River-driven isolation is unaffected.
 to 3 times, waiting 10 s then 30 s, because the service returns intermittent
 502s for requests that succeed minutes later.
 
+**Large DEMs are fetched as tiles.** A grid wider or taller than 2,000
+cells is requested as tiles of at most 2,000 × 2,000 and stitched
+(`terrain._download_tiled`). The limit comes from observation, not a
+published 3DEP limit: the Swannanoa's single 2,861 × 2,691 export returned
+HTTP 500 six times in a row, while the French Broad clip's 2,401 × 1,690
+succeeded. Every tile is cut on the full grid's own cell boundaries, so 3DEP
+samples the same cell centres a single export would. Checked live
+(2026-10-05): a 610 × 430 area fetched as 6 uneven tiles matched the single
+export on all 262,300 cells, with 0 differences. Harvey's DEMs were
+downloaded earlier in one request each and are cached, so they're unchanged.
+
 ## Known limitations and assumptions
 
 - **Tunnels are not exempt from flooding.** Spec §2 exempted bridges and

@@ -37,8 +37,9 @@
 
 ## Decisions already made (Week 7)
 - **Helene, French Broad:** the study area is clipped to Asheville city
-  limits minus the Swannanoa basin (`app.services.study_area`). Tiling the
-  3DEP download for the full basin is documented future work.
+  limits minus the Swannanoa basin (`app.services.study_area`). The
+  Swannanoa runs on its full basin, with the 3DEP download fetched as tiles.
+  A full-basin French Broad run is documented future work.
 - **Helene, the gap-fill fix:** discharge interpolation is capped at
   **3 hours**. The cap is documented as informed by Harvey's widest bridged
   gap (150 min), not as a universal constant. A missing step stays missing

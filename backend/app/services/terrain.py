@@ -58,6 +58,8 @@ DEM_MAX_PIXELS = 4000  # per side, per 3DEP export request
 DEM_BUFFER_M = 1000.0
 DEM_ATTEMPTS = 3  # 3DEP export attempts on transient failure (5xx, connection, timeout)
 DEM_BACKOFF_S = 10.0  # waits 10 s, then 30 s
+DEM_TILE_PIXELS = 2000  # per side, per request: larger exports fail (the Swannanoa's 2,861 x 2,691 returned HTTP 500
+# six times in a row; the French Broad clip's 2,401 x 1,690 succeeded), so larger grids are fetched as tiles
 STREAM_BURN_M = 10.0
 CHANNEL_SNAP_RADIUS_M = 30.0
 # pysheds default D8 codes: N, NE, E, SE, S, SW, W, NW.
@@ -147,8 +149,21 @@ def download_dem(site: GaugeSite, path: str) -> None:
     xmin, ymin, xmax, ymax = basin_utm.buffer(DEM_BUFFER_M).bounds
     res = max(DEM_TARGET_RES_M, (xmax - xmin) / DEM_MAX_PIXELS, (ymax - ymin) / DEM_MAX_PIXELS)
     if res > DEM_TARGET_RES_M:
-        log.warning("USGS %s: basin too large for one 3DEP export; DEM resolution %.1f m", site.site_id, res)
+        log.warning("USGS %s: basin wider than DEM_MAX_PIXELS cells at 10 m; DEM resolution %.1f m", site.site_id, res)
     width, height = int(np.ceil((xmax - xmin) / res)), int(np.ceil((ymax - ymin) / res))
+    ytop = ymin + height * res
+    if width <= DEM_TILE_PIXELS and height <= DEM_TILE_PIXELS:
+        content = _export(xmin, ymin, width, height, res, epsg, site.site_id)
+        with open(path + ".tmp", "wb") as f:
+            f.write(content)
+    else:
+        _download_tiled(xmin, ytop, width, height, res, epsg, site.site_id, path + ".tmp")
+    os.replace(path + ".tmp", path)
+
+
+def _export(xmin: float, ymin: float, width: int, height: int, res: float, epsg: int, site_id: str,
+            get=None) -> bytes:
+    """One 3DEP export of a width x height grid of res-metre cells whose lower-left corner is (xmin, ymin)."""
     params = {
         "bbox": f"{xmin},{ymin},{xmin + width * res},{ymin + height * res}",
         "bboxSR": epsg,
@@ -159,12 +174,34 @@ def download_dem(site: GaugeSite, path: str) -> None:
         "interpolation": "RSP_BilinearInterpolation",
         "f": "image",
     }
-    resp = _get_with_retry(DEM_URL, params, site.site_id)
+    resp = (get or _get_with_retry)(DEM_URL, params, site_id)
     if not resp.content.startswith((b"II*\x00", b"MM\x00*")):
         raise RuntimeError(f"3DEP did not return a GeoTIFF: {resp.content[:200]!r}")
-    with open(path + ".tmp", "wb") as f:
-        f.write(resp.content)
-    os.replace(path + ".tmp", path)
+    return resp.content
+
+
+def _download_tiled(xmin: float, ytop: float, width: int, height: int, res: float, epsg: int, site_id: str,
+                    out_path: str, get=None) -> None:
+    """Fetch a grid too large for one export as tiles of at most DEM_TILE_PIXELS per side, and stitch them.
+
+    Every tile is cut on the full grid's own cell boundaries, so 3DEP samples exactly the cell centres a single
+    export would, and stitching is placing arrays: no resampling, no seam."""
+    dem = np.full((height, width), np.nan, dtype=np.float32)
+    nodata = None
+    tiles = [(r, c) for r in range(0, height, DEM_TILE_PIXELS) for c in range(0, width, DEM_TILE_PIXELS)]
+    log.info("USGS %s: DEM %d x %d cells fetched as %d tiles", site_id, width, height, len(tiles))
+    for row, col in tiles:
+        h, w = min(DEM_TILE_PIXELS, height - row), min(DEM_TILE_PIXELS, width - col)
+        x0, y0 = xmin + col * res, ytop - (row + h) * res
+        with rasterio.MemoryFile(_export(x0, y0, w, h, res, epsg, site_id, get)) as mem, mem.open() as src:
+            if src.shape != (h, w):
+                raise RuntimeError(f"3DEP tile at row {row}, col {col}: expected {h} x {w} cells, got {src.shape}")
+            dem[row:row + h, col:col + w] = src.read(1)
+            nodata = src.nodata if nodata is None else nodata
+    profile = dict(driver="GTiff", width=width, height=height, count=1, dtype="float32", crs=f"EPSG:{epsg}",
+                   transform=Affine(res, 0, xmin, 0, -res, ytop), nodata=nodata)
+    with rasterio.open(out_path, "w", **profile) as dst:
+        dst.write(dem, 1)
 
 
 def _drainage_index(fdir: np.ndarray, target: np.ndarray, elevation: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

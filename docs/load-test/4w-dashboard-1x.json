@@ -1,0 +1,63 @@
+{
+ "label": "4w-dashboard-1x",
+ "mode": "dashboard",
+ "base": "http://127.0.0.1:8010",
+ "duration_s": 60.0,
+ "wall_s": 89.9,
+ "config": {
+  "mode": "dashboard",
+  "base": "http://127.0.0.1:8010",
+  "dashboards": 30,
+  "field": 150,
+  "users": 30,
+  "dispatchers": 5,
+  "races": 5,
+  "race_width": 10,
+  "duration": 60.0,
+  "seed": 7,
+  "label": "4w-dashboard-1x"
+ },
+ "cycles_started_late": 0,
+ "endpoints": {
+  "cases": {
+   "n": 120,
+   "p50_ms": 78.9,
+   "p95_ms": 715.1,
+   "p99_ms": 984.3,
+   "max_ms": 1352.5,
+   "statuses": {
+    "200": 120
+   }
+  },
+  "map/freshness": {
+   "n": 120,
+   "p50_ms": 17.6,
+   "p95_ms": 481.0,
+   "p99_ms": 1099.3,
+   "max_ms": 1202.6,
+   "statuses": {
+    "200": 120
+   }
+  },
+  "map/zones": {
+   "n": 120,
+   "p50_ms": 834.1,
+   "p95_ms": 1558.0,
+   "p99_ms": 1751.0,
+   "max_ms": 1812.9,
+   "statuses": {
+    "200": 120
+   }
+  },
+  "tasks": {
+   "n": 420,
+   "p50_ms": 54.7,
+   "p95_ms": 509.1,
+   "p99_ms": 929.3,
+   "max_ms": 1565.7,
+   "statuses": {
+    "200": 420
+   }
+  }
+ }
+}

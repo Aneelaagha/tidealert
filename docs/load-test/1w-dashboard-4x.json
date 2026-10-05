@@ -1,0 +1,71 @@
+{
+ "label": "1w-dashboard-4x",
+ "mode": "dashboard",
+ "base": "http://127.0.0.1:8010",
+ "duration_s": 60.0,
+ "wall_s": 107.7,
+ "config": {
+  "mode": "dashboard",
+  "base": "http://127.0.0.1:8010",
+  "dashboards": 120,
+  "field": 600,
+  "users": 30,
+  "dispatchers": 5,
+  "races": 5,
+  "race_width": 10,
+  "duration": 60.0,
+  "seed": 7,
+  "label": "1w-dashboard-4x"
+ },
+ "cycles_started_late": 651,
+ "endpoints": {
+  "cases": {
+   "n": 249,
+   "p50_ms": 21845.2,
+   "p95_ms": 32016.5,
+   "p99_ms": 35856.9,
+   "max_ms": 35861.2,
+   "statuses": {
+    "200": 68,
+    "error:ConnectError": 94,
+    "timeout": 87
+   }
+  },
+  "map/freshness": {
+   "n": 249,
+   "p50_ms": 10450.3,
+   "p95_ms": 31060.1,
+   "p99_ms": 33937.5,
+   "max_ms": 33952.5,
+   "statuses": {
+    "200": 76,
+    "error:ConnectError": 106,
+    "timeout": 67
+   }
+  },
+  "map/zones": {
+   "n": 249,
+   "p50_ms": 7810.4,
+   "p95_ms": 31058.9,
+   "p99_ms": 33946.4,
+   "max_ms": 35857.6,
+   "statuses": {
+    "200": 78,
+    "error:ConnectError": 116,
+    "timeout": 55
+   }
+  },
+  "tasks": {
+   "n": 1436,
+   "p50_ms": 7782.6,
+   "p95_ms": 33937.1,
+   "p99_ms": 35859.8,
+   "max_ms": 35874.3,
+   "statuses": {
+    "200": 263,
+    "error:ConnectError": 706,
+    "timeout": 467
+   }
+  }
+ }
+}

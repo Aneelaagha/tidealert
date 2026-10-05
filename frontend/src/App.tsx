@@ -12,8 +12,7 @@ import { FreshnessBanner } from './components/FreshnessBanner';
 import { ConnectionBanner } from './components/ConnectionBanner';
 import { Header } from './components/Header';
 import { Legend } from './components/Legend';
-import { NeedsBoard } from './components/NeedsBoard';
-import { type Layer, SupplyBar } from './components/SupplyBar';
+import { type Layer, MapToolbar } from './components/MapToolbar';
 import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
@@ -213,18 +212,18 @@ export default function App() {
       <main className="mx-auto mt-4 grid w-full max-w-7xl flex-1 grid-cols-1 gap-6 px-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
         <section className="flex flex-col overflow-hidden rounded-lg border border-accent-cyan/20 bg-navy-panel">
-          {/* One line that scrolls sideways rather than wrapping, its thin scrollbar always taking its space: when
-              "loading…" becomes the summary the bar must not grow and push the page down. */}
-          <div className="custom-scrollbar flex items-center gap-2 overflow-x-scroll whitespace-nowrap border-b border-accent-cyan/15 bg-navy-deep px-3 py-1.5 font-mono text-[10px] tracking-wider text-slate-400">
-            <MapIcon className="h-3.5 w-3.5 shrink-0 text-accent-cyan" />
-            {error ? <span className="text-danger-red">{error}{conn.state !== 'online' && zones ? ` The map and panels still show the view as of ${fmtTime(zones.at)}.` : ''}</span> : <span>{status}</span>}
-          </div>
-          <SupplyBar layer={layer} onLayer={setLayer} supply={supply} error={supplyError} />
-          <NeedsBoard needs={needs} error={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
+          <MapToolbar run={run} layer={layer} onLayer={setLayer} supply={supply} supplyError={supplyError} needs={needs}
+                      needsError={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
                       onPortal={() => setPortalOpen(true)} />
           <div className="h-[560px]">
             <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply}
                      onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
+          </div>
+          {/* The zones summary, under the map. One line that scrolls sideways rather than wrapping, its thin scrollbar
+              always taking its space: when "loading…" becomes the summary the bar must not grow and push the page down. */}
+          <div className="custom-scrollbar flex items-center gap-2 overflow-x-scroll whitespace-nowrap border-t border-accent-cyan/15 bg-navy-deep px-3 py-1.5 font-mono text-[10px] tracking-wider text-slate-400">
+            <MapIcon className="h-3.5 w-3.5 shrink-0 text-accent-cyan" />
+            {error ? <span className="text-danger-red">{error}{conn.state !== 'online' && zones ? ` The map and panels still show the view as of ${fmtTime(zones.at)}.` : ''}</span> : <span>{status}</span>}
           </div>
         </section>
         {run && (

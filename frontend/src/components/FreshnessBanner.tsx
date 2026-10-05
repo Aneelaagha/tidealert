@@ -1,4 +1,9 @@
-// Source freshness as of the slider time (/map/freshness) and the run's caveats, always visible.
+// Source freshness as of the slider time (/map/freshness) on one line, and the run's caveats behind a "Caveats (n)"
+// control on that line: collapsed by default so the header stays quiet, one click to read them, and the choice is
+// remembered. The run's mode badge stays in the header and the full text is in Data & ethics.
+
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 
 import type { Freshness, Run } from '../lib/api';
 import { type Connection, offlineSourceLabel } from '../lib/connection';
@@ -8,11 +13,25 @@ const DOT: Record<string, string> = {
   fresh: 'bg-safe-green', stale: 'bg-danger-red', no_data: 'bg-slate-500', event_driven: 'bg-sky-500',
 };
 
+const CAVEATS_KEY = 'tidealert.caveatsOpen';
+
+function storedOpen(): boolean {
+  try { return window.localStorage.getItem(CAVEATS_KEY) === '1'; } catch { return false; }
+}
+
 export function FreshnessBanner({ run, freshness, conn }: { run: Run; freshness: Freshness | null; conn: Connection }) {
   const offline = conn.state === 'offline';
+  const [open, setOpen] = useState(storedOpen);
+  const toggle = () => {
+    setOpen((o) => {
+      try { window.localStorage.setItem(CAVEATS_KEY, o ? '0' : '1'); } catch { /* not remembered: still works for this visit */ }
+      return !o;
+    });
+  };
+  const notes = [...run.caveats, ...(freshness?.note ? [freshness.note] : [])];
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-accent-cyan/10 bg-navy-panel/80 px-6 py-1.5 font-mono text-[10.5px] text-slate-300"
-         aria-live="polite">
+    <div className="border-b border-accent-cyan/10 bg-navy-panel/80 px-6 py-1.5 font-mono text-[10.5px] text-slate-300" aria-live="polite">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
       {freshness ? (
         <>
           <b className="text-slate-200">Sources as of {fmtTime(freshness.at)}{offline ? ' (cached)' : ''}:</b>
@@ -38,7 +57,7 @@ export function FreshnessBanner({ run, freshness, conn }: { run: Run; freshness:
               </span>
             );
           })}
-          {freshness.note && <span className="text-slate-500">{freshness.note}</span>}
+          {freshness.sources.length === 0 && <span className="text-slate-500">none tracked for this run</span>}
         </>
       ) : offline ? (
         <b className="text-slate-400">Sources: not loaded before the connection dropped</b>
@@ -55,7 +74,14 @@ export function FreshnessBanner({ run, freshness, conn }: { run: Run; freshness:
           ))}
         </>
       )}
-      {run.caveats.map((c) => <span key={c} className="text-slate-500">{c}</span>)}
+      {notes.length > 0 && (
+        <button type="button" onClick={toggle} aria-expanded={open}
+                className="ml-auto flex cursor-pointer items-center gap-1 rounded border border-warning-orange/30 px-1.5 py-px text-warning-orange hover:bg-orange-950/30">
+          {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />} Caveats ({notes.length})
+        </button>
+      )}
+    </div>
+    {open && notes.length > 0 && <ul className="mt-1.5 space-y-0.5 text-slate-400">{notes.map((c) => <li key={c}>{c}</li>)}</ul>}
     </div>
   );
 }

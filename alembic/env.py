@@ -64,7 +64,16 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
+    """Run migrations in 'online' mode. A caller may pass its own connection in config.attributes["connection"]
+    (Alembic's documented recipe): tests use it to run a migration round trip inside a transaction they roll back."""
+    given = config.attributes.get("connection")
+    if given is not None:
+        context.configure(connection=given, target_metadata=target_metadata, include_object=include_object,
+                          render_item=render_item, process_revision_directives=writer)
+        with context.begin_transaction():
+            context.run_migrations()
+        return
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

@@ -19,7 +19,8 @@ def client():
 def runs(client):
     """Runs in the local database, by kind. The tests read (never write) the database: run the Harvey replay
     (scripts/run_case_matcher.py 08074500 08076000 08075770), scripts/silence_baseline_demo.py plus its silence
-    sweep, and scripts/listening_demo.py first."""
+    sweep, and scripts/listening_demo.py first. The mixed run (scripts/mixed_harvey_scenario.py) is optional; tests that
+    need it skip without it."""
     body = client.get("/runs").json()
     by = {}
     for run in body["runs"]:
@@ -29,6 +30,8 @@ def runs(client):
             by["listening"] = run
         elif run["name"].endswith("synthetic:silence-baseline"):
             by["silence"] = run
+        elif run["name"] == "mixed:harvey-synthetic-responders:2017-08-25..2017-09-02":
+            by["mixed"] = run  # optional: scripts/mixed_harvey_scenario.py; tests that need it skip without it
     missing = {"harvey", "listening", "silence"} - set(by)
     if missing:
         pytest.skip(f"runs not in the local database: {sorted(missing)}")

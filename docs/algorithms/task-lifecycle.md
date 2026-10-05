@@ -157,3 +157,63 @@ responders over Harvey, labelled as a mixed scenario.
 
 The page shows the warnings in the Cases panel, the zone panel and the
 Responders panel. The map is unchanged.
+
+## Responder safety: the mixed scenario (step 2)
+
+`scripts/mixed_harvey_scenario.py` builds the run
+`mixed:harvey-synthetic-responders:2017-08-25..2017-09-02`, with mode
+**`mixed`**: Harvey's real flood and isolation results, with a synthetic
+responder layer on top.
+
+**The flood layer is real, not copied.** The case matcher reruns on the same
+recorded USGS gauge data as the Harvey replay, under its own source labels
+(`mixed:2017-08-25..2017-09-02:USGS-<site>`). It never reuses Harvey's
+`backtest:…` labels, because `clear_cases` deletes Cases by source label
+across runs. Its 152 Cases equal Harvey's, Case for Case: site, zone, opened
+time, confidence word and contribution count (tested).
+
+**The synthetic layer:**
+- 6 responders ("Synthetic responder 1–6").
+- Scripted assignments, made through the real `task_actions.assign` at their
+  run-clock tick, right after that tick's sweep. An action can't be stamped
+  earlier than a task's latest event, so assigning after the replay finished
+  would be refused.
+- The actor is `script:mixed-scenario (synthetic)`.
+- A reconnection contradicts a Case, so its task is flagged "verify before
+  dispatch", and the real assign refuses flagged tasks. For those, the
+  script first records a scripted `clear_verify`, as an operator would.
+
+**Who is assigned what.** The rules are fixed and nothing is random, so
+rerunning rebuilds identical state (tested). All five rules read Harvey's
+real isolation evidence:
+
+| Responder | Rule | Assigned | Expected |
+|---|---|---|---|
+| 1–3 | every Case cut off, reconnected and cut off again with ≥ 30 min reconnected: 3 Hunting Bayou blocks, reconnected 2017-08-28 02:15, cut off again 03:45 | 08-28 02:30 | reconnected, no warning, until 03:45; **`isolated_after_assignment` from 03:45** |
+| 4 | control: the first single-isolation Case, 15 min after its isolation began | 08-27 04:15 | `zone_isolated`, "assigned after that" |
+| 5 | control: the next single-isolation Case, 15 min after it reconnected | 08-29 20:30 | reconnected, no warning |
+| 6 | not assigned | | |
+
+**What this does and doesn't show.** The after-assignment warning fires on a
+real engine transition in this run. But it rests on 3 blocks, on Hunting
+Bayou's lower-confidence driver (HAND plus a fallback threshold), and one
+usable 1.5-hour window. It shows the warning works on real state changes,
+not how often they happen.
+
+**Labelling.** The mode is registered, never inferred, so it follows the run
+everywhere:
+- the badge is a striped teal **MIXED: REAL FLOOD + SYNTHETIC RESPONDERS**;
+- the run picker says "Mixed scenario: Harvey's real flood + synthetic
+  responders";
+- the caveat, always in the banner, says "Mixed scenario: Harvey's real
+  recorded flood and isolation results, with synthetic responders and
+  assignments layered on top. The responders, assignments and anything they
+  cause are not real." The replay caveat is shown too;
+- the ethics panel has a meaning for the mode;
+- the copilot's as-of line says "MIXED run".
+
+**Migration and restore.** The `run_mode` enum gains `mixed` (migration
+`b7e3f0a91c52`). Its downgrade refuses while any mixed run exists. Both the
+round trip and the refusal are tested inside rolled-back transactions.
+Rerunning the script resets the mixed run, including anything done to it
+in the UI.

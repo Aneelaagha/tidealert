@@ -18,6 +18,7 @@ class RunMode(str, enum.Enum):
     replay = "replay"  # a past event replayed from its recorded data (e.g. Harvey 2017)
     scenario = "scenario"  # synthetic households and scripted replies
     live = "live"  # real-time sources (none exist yet)
+    mixed = "mixed"  # a real recorded event with a synthetic layer on top (e.g. synthetic responders on Harvey)
 
 
 class Run(Base):

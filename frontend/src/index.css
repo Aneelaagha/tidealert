@@ -52,6 +52,11 @@ body {
 .custom-scrollbar::-webkit-scrollbar-track { background: #020617; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
 
+/* The mixed-scenario badge: teal with diagonal stripes, unlike any other mode. */
+.mixed-badge {
+  background: repeating-linear-gradient(135deg, rgba(45, 212, 191, 0.28) 0 6px, rgba(13, 21, 38, 0.9) 6px 12px);
+}
+
 .hatch-swatch {
   background: repeating-linear-gradient(45deg, #8b98a9 0 2px, transparent 2px 6px);
   border: 2px dashed #8b98a9;

@@ -1,7 +1,7 @@
 // Header: the run picker and its mode badge (runs.mode, as registered), the slider over the run's clock, and the
 // sound controls. Every label here is either fixed UI text or a value from /runs.
 
-import { FileText, FlaskConical, Radio, Waves, ShieldCheck, Volume2, VolumeX } from 'lucide-react';
+import { FileText, FlaskConical, Pause, Play, Radio, Waves, ShieldCheck, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Run } from '../lib/api';
 import { isMuted, playTestTone, setMuted } from '../lib/audio';
@@ -24,11 +24,13 @@ interface Props {
   onEthics: () => void;
   onReport: () => void;
   onValidation: () => void;
+  playing: boolean;
+  onPlay: () => void;
   onGauges: () => void;
   onStart: (() => void) | null; // open the Harvey peak, framed, with the first case selected; null when no run has a recorded peak
 }
 
-export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit, onEthics, onReport, onValidation, onGauges, onStart }: Props) {
+export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit, onEthics, onReport, onValidation, onGauges, onStart, playing, onPlay }: Props) {
   const [muted, setMutedState] = useState(isMuted());
   const toggle = () => { setMuted(!muted); setMutedState(!muted); };
   // Keyboard stepping commits once the keys pause, not per key press: each commit refetches every zone
@@ -71,6 +73,10 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
           </span>
         )}
         <div className="flex min-w-[240px] flex-1 items-center gap-2 rounded border border-navy-line bg-navy-panel px-2.5 py-1">
+          <button type="button" onClick={onPlay} disabled={!ticks.length} aria-label={playing ? 'Pause the replay clock' : 'Play the replay clock'} title={playing ? 'Pause' : 'Play the replay forward, one step at a time'}
+                  className="flex shrink-0 cursor-pointer items-center rounded border border-accent-cyan/40 p-1 text-accent-cyan hover:bg-cyan-900/40 disabled:opacity-40">
+            {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+          </button>
           <input type="range" aria-label="Time" min={0} max={Math.max(ticks.length - 1, 0)} value={tick}
                  disabled={!ticks.length} className="h-1 flex-1 cursor-pointer accent-[#00f0ff]"
                  onChange={(e) => onTickInput(Number(e.target.value))}

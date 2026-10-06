@@ -215,6 +215,18 @@ export interface ReliefBoard {
   items: Record<string, { label: string; unit: string }>; access_labels: Record<string, string>; needs: ReliefNeed[];
 }
 
+export interface LastCallZone {
+  zone_id: string; zone_name: string; status: 'counting' | 'passed' | 'cut_off' | 'reconnected';
+  cutoff_at: string | null; last_call_at: string | null; minutes_to_last_call: number | null; minutes_to_cutoff: number | null;
+  hindsight: boolean; was_reconnected: boolean;
+}
+/** /map/last-call: each flagged zone's last call = the engine's recorded cut-off minus the lead time YOU set. A replay: known in hindsight. */
+export interface LastCall {
+  run_id: string; mode: Mode; at: string; label: string; available: boolean; reason: string | null;
+  lead: { reply_minutes: number; decision_minutes: number; travel_minutes: number; total_minutes: number; note: string };
+  counts: Record<'counting' | 'passed' | 'cut_off' | 'reconnected', number>; zones: LastCallZone[];
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -433,6 +445,8 @@ export const api = {
   currentGauges: (signal?: AbortSignal) => get<CurrentGauges>('/gauges/current', {}, signal),
   validation: (signal?: AbortSignal) => get<Validation>('/validation/harvey', {}, signal),
   heleneValidation: (signal?: AbortSignal) => get<HeleneValidation>('/validation/helene', {}, signal),
+  lastCall: (runId: string, at: string | null, lead: { reply: number; decision: number; travel: number }, signal?: AbortSignal) =>
+    get<LastCall>('/map/last-call', { run_id: runId, at, reply_min: String(lead.reply), decision_min: String(lead.decision), travel_min: String(lead.travel) }, signal),
   reliefNeeds: (runId: string, at: string | null, signal?: AbortSignal) => get<ReliefBoard>('/relief/needs', { run_id: runId, at }, signal),
   postReliefNeed: (b: { run_id: string; zone_id: string; item_type: string; quantity_needed: number; created_by: string; at: string | null }) =>
     post<ReliefNeed>('/relief/needs', b),

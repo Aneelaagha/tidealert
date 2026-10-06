@@ -66,7 +66,7 @@ def _calls(client, runs):
         zones = client.get("/map/zones", params={"run_id": run_id}).json()
         zone_id = zones["features"][0]["properties"]["zone_id"]
         tasks = client.get("/tasks", params={"run_id": run_id}).json()["tasks"]
-        out += [("/map/zones", {"run_id": run_id}), ("/map/freshness", {"run_id": run_id}), ("/map/supply-access", {"run_id": run_id}), ("/map/depots", {"run_id": run_id}), ("/needs", {"run_id": run_id}), ("/relief/needs", {"run_id": run_id}), ("/map/last-call", {"run_id": run_id}), ("/reports/after-action", {"run_id": run_id}),
+        out += [("/map/zones", {"run_id": run_id}), ("/map/freshness", {"run_id": run_id}), ("/map/supply-access", {"run_id": run_id}), ("/map/depots", {"run_id": run_id}), ("/needs", {"run_id": run_id}), ("/relief/needs", {"run_id": run_id}), ("/map/last-call", {"run_id": run_id}), ("/map/aerial-priority", {"run_id": run_id}), ("/reports/after-action", {"run_id": run_id}),
                 ("/cases", {"run_id": run_id}), ("/tasks", {"run_id": run_id}),
                 ("/responders", {"run_id": run_id}), (f"/zones/{zone_id}", {})]
         if tasks:
@@ -78,7 +78,7 @@ def _calls(client, runs):
                   ("/health", {}), ("/data-practices", {})]
 
 
-SCANNED = {"/runs", "/map/zones", "/map/freshness", "/map/supply-access", "/map/depots", "/map/depot-access", "/needs", "/relief/needs", "/map/last-call", "/reports/after-action", "/validation/harvey", "/validation/helene", "/gauges/current", "/cases", "/tasks", "/tasks/{task_id}", "/responders",
+SCANNED = {"/runs", "/map/zones", "/map/freshness", "/map/supply-access", "/map/depots", "/map/depot-access", "/map/aerial-priority", "/needs", "/relief/needs", "/map/last-call", "/reports/after-action", "/validation/harvey", "/validation/helene", "/gauges/current", "/cases", "/tasks", "/tasks/{task_id}", "/responders",
            "/zones/", "/zones/{zone_id}", "/copilot/status", "/health", "/data-practices", "/", "/ui/"}  # "/" and "/ui/" only redirect or serve the page
 
 

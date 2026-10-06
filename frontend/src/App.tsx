@@ -25,7 +25,7 @@ import { readUrl, tickIndex, ticksFor, writeUrl } from './lib/time';
 function Panel({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
   return (
     <section className={`flex min-h-0 flex-col rounded-lg border border-accent-cyan/25 bg-navy-panel p-4 ${className}`}>
-      <h2 className="mb-2 border-b border-navy-line pb-2 font-mono text-xs font-bold uppercase tracking-wider text-white">{title}</h2>
+      <h2 className="mb-2 border-b border-navy-line pb-2 text-xs font-bold uppercase tracking-wider text-white">{title}</h2>
       <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">{children}</div>
     </section>
   );
@@ -37,17 +37,35 @@ function storedOperator(): string {
   try { return window.localStorage.getItem(OPERATOR_KEY) ?? ''; } catch { return ''; }
 }
 
-function OperatorBar({ run, operator, onOperator }: { run: Run; operator: string; onOperator: (v: string) => void }) {
+/** What the bar says, in plain words: why a replay can't be changed and where to go to try, or what a name is for. */
+export function operatorMessage(run: Run, mixed: Run | null): { text: string; why: string | null } {
+  if (!run.task_actions_blocked) {
+    return { text: 'Your name is stamped, with the slider time, on anything you assign, complete or enter here. There is no login.', why: null };
+  }
+  const what = run.event ? `a replay of ${run.event}` : 'a replay of recorded data';
+  return {
+    text: `This is ${what}, so you can look but not change anything. ${mixed ? `To try assigning responders, use the mixed scenario: the real ${run.event ?? 'recorded'} flood with synthetic responders.` : ''}`.trim(),
+    why: run.task_actions_blocked,
+  };
+}
+
+function OperatorBar({ run, runs, operator, onOperator, onRun }: { run: Run; runs: Run[]; operator: string; onOperator: (v: string) => void; onRun: (id: string) => void }) {
+  const mixed = run.task_actions_blocked ? runs.find((r) => r.mode === 'mixed' && r.event === run.event && r.event != null) ?? null : null;
+  const m = operatorMessage(run, mixed);
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-accent-cyan/20 bg-navy-panel px-4 py-2 font-mono text-[10.5px] text-slate-400">
-      <label className="flex items-center gap-2 uppercase">
-        <UserRound className="h-3.5 w-3.5 text-accent-cyan" /> Operator
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-accent-cyan/20 bg-navy-panel px-4 py-2.5 text-sm text-slate-300">
+      <label className="flex items-center gap-2">
+        <UserRound className="h-4 w-4 text-accent-cyan" /> <span className="text-xs uppercase tracking-wider text-slate-400">Operator</span>
         <input value={operator} onChange={(e) => onOperator(e.target.value)} placeholder="your name"
-               className="w-40 rounded border border-navy-line bg-navy-deep p-1 normal-case text-slate-100 placeholder-slate-600 focus:border-accent-cyan/60 focus:outline-none" />
+               className="w-40 rounded border border-navy-line bg-navy-deep p-1 text-slate-100 placeholder-slate-600 focus:border-accent-cyan/60 focus:outline-none" />
       </label>
-      {run.task_actions_blocked
-        ? <span>Task actions are off for this run. Server: <span className="text-slate-300">{run.task_actions_blocked}</span></span>
-        : <span>Task actions write to this run's data, stamped with the slider time and your name (there is no login).</span>}
+      <span className="order-last w-full leading-relaxed" title={m.why ?? undefined}>{m.text}</span>
+      {mixed && (
+        <button type="button" onClick={() => onRun(mixed.id)}
+                className="cursor-pointer rounded border border-teal-300/50 bg-teal-950/40 px-3 py-1 text-xs font-bold uppercase text-teal-200 hover:bg-teal-900/50">
+          Switch to the mixed scenario
+        </button>
+      )}
     </div>
   );
 }
@@ -221,14 +239,15 @@ export default function App() {
           </div>
           {/* The zones summary, under the map. One line that scrolls sideways rather than wrapping, its thin scrollbar
               always taking its space: when "loading…" becomes the summary the bar must not grow and push the page down. */}
-          <div className="custom-scrollbar flex items-center gap-2 overflow-x-scroll whitespace-nowrap border-t border-accent-cyan/15 bg-navy-deep px-3 py-1.5 font-mono text-[10px] tracking-wider text-slate-400">
+          <div className="custom-scrollbar flex items-center gap-2 overflow-x-scroll whitespace-nowrap border-t border-accent-cyan/15 bg-navy-deep px-3 py-1.5 text-xs tracking-wider text-slate-400">
             <MapIcon className="h-3.5 w-3.5 shrink-0 text-accent-cyan" />
             {error ? <span className="text-danger-red">{error}{conn.state !== 'online' && zones ? ` The map and panels still show the view as of ${fmtTime(zones.at)}.` : ''}</span> : <span>{status}</span>}
           </div>
         </section>
         {run && (
           <>
-            <OperatorBar run={run} operator={operator} onOperator={changeOperator} />
+            <OperatorBar run={run} runs={runs} operator={operator} onOperator={changeOperator}
+                         onRun={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, zones?.at ?? at); }} />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <AlertsPanel run={run} at={zones?.at ?? at} cases={cases} error={null} zoneNames={zoneNames}
                            selectedCaseId={selectedCaseId}

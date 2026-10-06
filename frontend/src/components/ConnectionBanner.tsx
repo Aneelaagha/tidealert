@@ -9,7 +9,7 @@ export function ConnectionBanner({ conn }: { conn: Connection }) {
   const offline = conn.state === 'offline';
   return (
     <div role="status" aria-live="polite"
-         className={`flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-6 py-1.5 font-mono text-[10.5px] ${
+         className={`flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-6 py-1.5 text-xs ${
            offline ? 'border-danger-red/40 bg-red-950/40 text-red-200' : 'border-warning-orange/40 bg-orange-950/30 text-orange-200'}`}>
       <WifiOff className="h-3.5 w-3.5 shrink-0" />
       {offline ? (

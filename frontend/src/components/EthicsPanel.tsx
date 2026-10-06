@@ -13,8 +13,8 @@ import { MODE_MEANING } from '../lib/modes';
 function Section({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
     <section className="border-t border-navy-line pt-3">
-      <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-accent-cyan">{n}. {title}</h3>
-      <div className="space-y-1.5 font-sans text-[12px] leading-relaxed text-slate-300">{children}</div>
+      <h3 className="mb-2 text-[13px] font-bold uppercase tracking-wider text-accent-cyan">{n}. {title}</h3>
+      <div className="space-y-1.5 font-sans text-sm leading-relaxed text-slate-300">{children}</div>
     </section>
   );
 }
@@ -44,14 +44,14 @@ export function EthicsPanel({ run, freshness, vocabulary, onClose }: Props) {
       <div className="custom-scrollbar h-full w-full max-w-2xl overflow-y-auto border-l border-accent-cyan/25 bg-navy-panel p-5"
            onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 font-mono text-sm font-bold uppercase tracking-wider text-white">
+          <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white">
             <ShieldCheck className="h-4 w-4 text-accent-cyan" /> Data & ethics
           </h2>
           <button onClick={onClose} aria-label="Close" className="cursor-pointer rounded p-1 text-slate-400 hover:text-white">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="mb-3 font-sans text-[12px] text-slate-400">
+        <p className="mb-3 font-sans text-sm text-slate-400">
           What this system shows, where it comes from, and what it does with people's data. Statements about data come
           from the server's own report (<code className="text-slate-300">GET /data-practices</code>), computed from
           the code and the database, not written by hand.
@@ -102,16 +102,16 @@ export function EthicsPanel({ run, freshness, vocabulary, onClose }: Props) {
               <>
                 <p>{countLine('households', dp.households)} {countLine('responders', dp.responders)}</p>
                 <p>Stored per household: {dp.household_fields_stored.length} fields. Of those, these are personal:{' '}
-                  <span className="font-mono text-[11px] text-slate-400">{personalFieldsByOwner(dp).household.join(', ')}</span>.
+                  <span className="text-[13px] text-slate-400">{personalFieldsByOwner(dp).household.join(', ')}</span>.
                   {personalFieldsByOwner(dp).other.length > 0 && <> Also personal, stored for responders:{' '}
-                    <span className="font-mono text-[11px] text-slate-400">{personalFieldsByOwner(dp).other.join(', ')}</span>.</>}</p>
+                    <span className="text-[13px] text-slate-400">{personalFieldsByOwner(dp).other.join(', ')}</span>.</>}</p>
                 <p><b>{exposedLine(dp)}</b></p>
                 <p><b>{consentLine(dp)}</b> Nothing on this page or in the API implies a consent process exists.</p>
                 <p>{authenticationLine(dp)}</p>
                 <div className="rounded border border-warning-orange/30 bg-orange-950/20 p-2">
                   <p><b className="text-warning-orange">How this is checked, and what it can miss:</b> {dp.response_scan.limitation}</p>
                 </div>
-                <p className="text-slate-400">Only these routes can change data: <span className="font-mono text-[11px]">{dp.write_routes.join(' · ')}</span>.</p>
+                <p className="text-slate-400">Only these routes can change data: <span className="text-[13px]">{dp.write_routes.join(' · ')}</span>.</p>
               </>
             ) : !error && <p className="text-slate-500">loading…</p>}
           </Section>
@@ -135,7 +135,7 @@ export function EthicsPanel({ run, freshness, vocabulary, onClose }: Props) {
                 {dp.known_gaps.map((g) => (
                   <li key={g.id} className="rounded border border-white/5 bg-navy-deep/60 p-2">
                     <p>{g.text}</p>
-                    <p className="mt-0.5 font-mono text-[10px] text-slate-500">source: {g.source}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">source: {g.source}</p>
                   </li>
                 ))}
               </ul>

@@ -1,9 +1,9 @@
 // The plain-language headline under the page: what the run says right now, from the API's own numbers. Replaces the
 // scrolling event ticker. Every number is a count of stored rows as of the slider time; nothing is estimated.
 
+import { Time } from './ui';
 import { Siren } from 'lucide-react';
 import type { Case, Run, Task, ZonesResponse } from '../lib/api';
-import { fmtTime } from '../lib/format';
 
 /** Zones whose active tasks say the zone is cut off, of the zones with Cases, as of the slider time. */
 export function headlineFacts(zones: ZonesResponse | null, cases: Case[] | null, tasks: Task[] | null) {
@@ -45,7 +45,7 @@ export function Headline({ run, zones, cases, tasks }: { run: Run | null; zones:
           <span className="text-slate-500">·</span>
           <span>{runPhrase(run)}</span>
           <span className="text-slate-500">·</span>
-          <span className="text-slate-400">as of <span className="font-mono">{fmtTime(f.at)}</span></span>
+          <span className="text-slate-400">as of <span className=""><Time t={f.at} /></span></span>
         </>
       )}
     </div>

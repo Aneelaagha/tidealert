@@ -3,8 +3,7 @@
 
 import { ShieldAlert } from 'lucide-react';
 import type { Safety } from '../lib/api';
-import { fmtTime } from '../lib/format';
-import { Tag } from './ui';
+import { Tag, Time } from './ui';
 
 /** The engine's reason without its confidence arithmetic (the evidence list shows it) or a leading state word
  *  the sentence already says ("reconnected: …"). */
@@ -28,7 +27,7 @@ export function safetyTag(s: Safety | undefined) {
 export function SafetyNote({ safety }: { safety: Safety | undefined }) {
   if (!safety) return null;
   return (
-    <div className="mt-1.5 space-y-1 text-[10.5px]">
+    <div className="mt-1.5 space-y-1 text-xs">
       {safety.warnings.map((w, i) => (
         <div key={i} className={`flex gap-1.5 rounded border p-1.5 ${w.severity === 'high'
           ? 'border-danger-red/40 bg-red-950/30 text-red-200' : 'border-warning-orange/40 bg-orange-950/20 text-orange-200'}`}>
@@ -36,7 +35,7 @@ export function SafetyNote({ safety }: { safety: Safety | undefined }) {
         </div>
       ))}
       {safety.zone_access === 'reconnected' && (
-        <p className="text-slate-400">Zone reconnected at {fmtTime(safety.since)}: {shortReason(safety.reason)}. This is the
+        <p className="text-slate-400">Zone reconnected at <Time t={safety.since} />: {shortReason(safety.reason)}. This is the
           optimistic bound (roads of unknown flooding taken as passable), not a guarantee of a dry route.</p>
       )}
       {safety.zone_access === 'not_evaluated' && (

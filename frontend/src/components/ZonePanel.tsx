@@ -6,7 +6,7 @@ import { api, type Case, type Needs, type Responder, type Run, type SupplyAccess
 import { fmtTime, label } from '../lib/format';
 import { NeedsBlock } from './NeedsBlock';
 import { SafetyNote } from './SafetyNote';
-import { Muted, Tag } from './ui';
+import { Muted, Tag, Time } from './ui';
 
 const directionTone = (d: string) => (d === 'supports' ? 'red' : d === 'contradicts' ? 'green' : 'plain');
 
@@ -32,7 +32,7 @@ function TaskBlock({ task, responders }: { task: Task; responders: Map<string, R
         <ul className="mt-1 space-y-1.5 pl-3">
           {task.events.map((e, i) => (
             <li key={i}>
-              <Muted>{fmtTime(e.at)} · {e.actor}</Muted><br />
+              <Muted><Time t={e.at} /> · {e.actor}</Muted><br />
               <Tag>{label(e.status)}</Tag><Tag>{e.priority}</Tag>{e.verify_before_dispatch && <Tag tone="amber">verify</Tag>}
               {e.note}
             </li>
@@ -46,7 +46,7 @@ function TaskBlock({ task, responders }: { task: Task; responders: Map<string, R
 function CaseBlock({ c, responders }: { c: Case; responders: Map<string, Responder> }) {
   return (
     <div className="my-2 rounded border border-white/10 bg-navy-deep/60 p-2.5">
-      <p><b className="text-accent-cyan">{c.confidence_word}</b> · {label(c.status)} · opened {fmtTime(c.opened_at)}</p>
+      <p><b className="text-accent-cyan">{c.confidence_word}</b> · {label(c.status)} · opened <Time t={c.opened_at} /></p>
       <p className="my-1 font-sans text-slate-200">{c.inference_sentence}</p>
       <p className="text-slate-500">
         support {c.support.toFixed(2)} · against {c.contradiction.toFixed(2)} · fresh sources {c.fresh_sources}
@@ -60,7 +60,7 @@ function CaseBlock({ c, responders }: { c: Case; responders: Map<string, Respond
             <Tag>{x.engine}</Tag><Tag tone={directionTone(x.direction)}>{x.direction}</Tag>
             confidence {x.engine_confidence.toFixed(2)} when last confirmed → {x.effective_confidence.toFixed(2)} at this time
             {x.independent_sources > 1 ? ` · ${x.independent_sources} sources` : ''}
-            <div className="text-slate-500">first seen {fmtTime(x.first_observed_at)} · last confirmed {fmtTime(x.last_confirmed_at)}</div>
+            <div className="text-slate-500">first seen <Time t={x.first_observed_at} /> · last confirmed <Time t={x.last_confirmed_at} /></div>
             <div><Muted>Recorded when first observed: </Muted>{x.rule_fragment}</div>
           </div>
         ))}
@@ -80,7 +80,7 @@ function SupplyAccessText({ supply, zoneId, at, error }: { supply: SupplyAccess 
   return (
     <>
       <Tag tone={supplyTone(z.zone_access)}>{supply.labels[z.zone_access] ?? z.zone_access}</Tag>
-      {z.since && <Muted>since {fmtTime(z.since)}{z.mechanism ? ` (${z.mechanism})` : ''}</Muted>}
+      {z.since && <Muted>since <Time t={z.since} />{z.mechanism ? ` (${z.mechanism})` : ''}</Muted>}
       <div className="text-slate-500">{supply.reasons[z.reason_id].split('; confidence')[0]}</div>
       <details className="text-slate-500">
         <summary className="cursor-pointer">What this does not show</summary>
@@ -121,11 +121,11 @@ export function ZonePanel({ run, at, zone, gapReasons, responders, version, supp
     return () => ctl.abort();
   }, [runId, at, zone?.zone_id, zone?.case_count, version]);
 
-  if (!zone) return <p className="font-mono text-[11px] text-slate-500">Click a zone to see its Cases and the evidence behind them.</p>;
+  if (!zone) return <p className="text-[13px] text-slate-500">Click a zone to see its Cases and the evidence behind them.</p>;
 
   return (
-    <div className="font-mono text-[11px] text-slate-300">
-      <p className="text-xs"><b className="text-white">{zone.name}</b> <Muted>{zone.region}</Muted></p>
+    <div className="text-[13px] text-slate-300">
+      <p className="text-xs"><b className="font-mono text-white">{zone.name}</b> <Muted>{zone.region}</Muted></p>
       <dl className="my-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
         <dt className="text-slate-500">Population</dt><dd>{zone.population ?? <Muted>not recorded</Muted>}</dd>
         <dt className="text-slate-500">Risk level</dt>

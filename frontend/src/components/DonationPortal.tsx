@@ -8,7 +8,7 @@ import { ApiError, api, type Needs, type Pledge, type Run } from '../lib/api';
 import { OfflineError } from '../lib/connection';
 import { fmtTime, label } from '../lib/format';
 import { canClose, canOffer } from '../lib/pledges';
-import { Muted, Tag } from './ui';
+import { Mono, Muted, Tag, Time } from './ui';
 
 interface Props {
   run: Run;
@@ -49,19 +49,19 @@ function OfferRow({ run, needs, row, donor, at, onChanged }: { run: Run; needs: 
         <b className="text-white">{label(row.item)}</b>
         <span><b>{row.unpledged.toLocaleString()}</b> still needed</span>
         <Muted>({row.remaining.toLocaleString()} open{row.remaining !== row.unpledged ? `, ${(row.remaining - row.unpledged).toLocaleString()} already offered` : ''})</Muted>
-        <span className="text-slate-400">in {row.name}</span>
+        <span className="text-slate-400">in <Mono>{row.name}</Mono></span>
         {row.access === 'isolated' && <Tag tone="red">ZONE CUT OFF</Tag>}
         {row.access === 'possibly_isolated' && <Tag tone="amber">MAY BE CUT OFF</Tag>}
       </div>
       {row.access === 'isolated' && (
-        <p className="mt-1 text-[10.5px] text-red-300">The engine finds every road route out of this zone flooded{row.since ? ` since ${fmtTime(row.since)}` : ''}.
+        <p className="mt-1 text-xs text-red-300">The engine finds every road route out of this zone flooded{row.since ? ` since ${fmtTime(row.since)}` : ''}.
           An offer is allowed, but supplies may not reach it by road, and this page can't say how else they could.</p>
       )}
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
         <input value={quantity} onChange={(e) => setQuantity(e.target.value)} inputMode="numeric" placeholder="quantity you can give" aria-label={`Quantity of ${row.item} for ${row.name}`}
-               disabled={!needs?.writable || busy} className="w-40 rounded border border-accent-cyan/30 bg-navy-deep p-0.5 text-[11px] text-slate-200 focus:border-accent-cyan focus:outline-none disabled:opacity-40" />
+               disabled={!needs?.writable || busy} className="w-40 rounded border border-accent-cyan/30 bg-navy-deep p-0.5 text-[13px] text-slate-200 focus:border-accent-cyan focus:outline-none disabled:opacity-40" />
         <button disabled={!can.ok || busy} title={can.reason ?? undefined} onClick={() => void offer()}
-                className="cursor-pointer rounded border border-accent-cyan/50 bg-cyan-950/40 px-2 py-0.5 text-[10px] font-bold uppercase text-accent-cyan transition hover:bg-cyan-900/50 disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-navy-deep disabled:text-slate-600">
+                className="cursor-pointer rounded border border-accent-cyan/50 bg-cyan-950/40 px-2 py-0.5 text-xs font-bold uppercase text-accent-cyan transition hover:bg-cyan-900/50 disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-navy-deep disabled:text-slate-600">
           Offer
         </button>
         {busy && <span className="text-slate-500">sending…</span>}
@@ -87,13 +87,13 @@ function PledgeLine({ pledge, zoneName, needs, operator, at, onChanged }: { pled
       setBusy(false);
     }
   }
-  const btn = 'cursor-pointer rounded border px-2 py-0.5 text-[10px] font-bold uppercase transition disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-navy-deep disabled:text-slate-600';
+  const btn = 'cursor-pointer rounded border px-2 py-0.5 text-xs font-bold uppercase transition disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-navy-deep disabled:text-slate-600';
   return (
     <li className="rounded border border-white/10 bg-navy-deep/60 p-2">
       <div className="flex flex-wrap items-center gap-2">
         <Tag tone={pledge.status === 'offered' ? 'amber' : pledge.status === 'received' ? 'green' : 'plain'}>{pledge.status === 'offered' ? 'offered' : pledge.status}</Tag>
         <b className="text-white">{pledge.donor}</b> offered {pledge.quantity.toLocaleString()} {label(pledge.item_type)} to {zoneName}
-        <Muted>at {fmtTime(pledge.offered_at)}{pledge.closed_at ? ` · ${pledge.status} ${fmtTime(pledge.closed_at)} by ${pledge.closed_by}` : ''}</Muted>
+        <Muted>at <Time t={pledge.offered_at} />{pledge.closed_at ? ` · ${pledge.status} ${fmtTime(pledge.closed_at)} by ${pledge.closed_by}` : ''}</Muted>
       </div>
       {pledge.note && <p className="text-slate-500">{pledge.note}</p>}
       {pledge.status === 'offered' && (
@@ -134,7 +134,7 @@ export function DonationPortal({ run, needs, needsError, operator, at, onChanged
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end bg-black/60" onClick={onClose} role="dialog" aria-modal="true" aria-label="Donation portal">
-      <div className="custom-scrollbar h-full w-full max-w-2xl overflow-y-auto border-l border-accent-cyan/25 bg-navy-panel p-5 font-mono text-[11px] text-slate-300"
+      <div className="custom-scrollbar h-full w-full max-w-2xl overflow-y-auto border-l border-accent-cyan/25 bg-navy-panel p-5 text-[13px] text-slate-300"
            onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white">
@@ -142,7 +142,7 @@ export function DonationPortal({ run, needs, needsError, operator, at, onChanged
           </h2>
           <button onClick={onClose} aria-label="Close" className="cursor-pointer rounded p-1 text-slate-400 hover:text-white"><X className="h-4 w-4" /></button>
         </div>
-        <p className="mb-3 font-sans text-[12px] leading-relaxed text-slate-300">
+        <p className="mb-3 font-sans text-sm leading-relaxed text-slate-300">
           Offer supplies against what operators say zones need{needs ? ` as of ${fmtTime(needs.at)}` : ''}. <b>No money is taken, no goods move, and no contact details are kept</b>:
           an offer is a claim typed in here, and an operator records what actually arrived. There is no login.
         </p>
@@ -155,14 +155,14 @@ export function DonationPortal({ run, needs, needsError, operator, at, onChanged
               <label className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="uppercase text-slate-500">Your name or organisation</span>
                 <input value={donor} onChange={(e) => setDonor(e.target.value)} maxLength={60} placeholder="shown with your offer; no email or phone"
-                       className="min-w-0 flex-1 rounded border border-accent-cyan/30 bg-navy-deep p-1 text-[11px] text-slate-100 placeholder-slate-600 focus:border-accent-cyan focus:outline-none" />
+                       className="min-w-0 flex-1 rounded border border-accent-cyan/30 bg-navy-deep p-1 text-[13px] text-slate-100 placeholder-slate-600 focus:border-accent-cyan focus:outline-none" />
               </label>
 
-              <h3 className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-accent-cyan">Open needs ({rows.length})</h3>
+              <h3 className="mb-1.5 text-[13px] font-bold uppercase tracking-wider text-accent-cyan">Open needs ({rows.length})</h3>
               {rows.length ? <ul className="space-y-1.5">{rows.map((r) => <OfferRow key={`${r.zoneId}:${r.item}`} run={run} needs={needs} row={r} donor={donor} at={at} onChanged={onChanged} />)}</ul>
                 : <p className="text-slate-500">Nothing is open and unoffered at this time. Operators enter needs in a zone's panel.</p>}
 
-              <h3 className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-wider text-accent-cyan">Offers ({pledges.length})</h3>
+              <h3 className="mb-1.5 mt-4 text-[13px] font-bold uppercase tracking-wider text-accent-cyan">Offers ({pledges.length})</h3>
               {pledges.length ? <ul className="space-y-1.5">{pledges.map((p) => <PledgeLine key={p.id} pledge={p} zoneName={p.zoneName} needs={needs} operator={operator} at={at} onChanged={onChanged} />)}</ul>
                 : <p className="text-slate-500">No offers at this time.</p>}
               <p className="mt-2 text-slate-500">Marking an offer received also records that much of the need as delivered. Operators close offers under the name in the Operator bar.</p>

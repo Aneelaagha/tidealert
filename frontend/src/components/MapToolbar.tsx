@@ -25,12 +25,12 @@ interface Props {
   onPortal: () => void;
 }
 
-const row = 'custom-scrollbar flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-accent-cyan/15 bg-navy-deep px-3 font-mono text-[10px] text-slate-400';
+const row = 'custom-scrollbar flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-accent-cyan/15 bg-navy-deep px-3 text-xs text-slate-400';
 
 export function MapToolbar({ run, layer, onLayer, supply, supplyError, needs, needsError, onSelectZone, onPortal }: Props) {
   const tab = (l: Layer, text: string, title?: string) => (
     <button type="button" onClick={() => onLayer(l)} aria-pressed={layer === l} title={title}
-            className={`cursor-pointer rounded border px-2 py-0.5 text-[10px] font-bold uppercase transition ${
+            className={`cursor-pointer rounded border px-2 py-0.5 text-xs font-bold uppercase transition ${
               layer === l ? 'border-accent-cyan bg-cyan-950/60 text-accent-cyan' : 'border-white/10 text-slate-400 hover:text-slate-200'}`}>
       {text}
     </button>

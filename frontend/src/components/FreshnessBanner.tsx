@@ -2,12 +2,13 @@
 // control on that line: collapsed by default so the header stays quiet, one click to read them, and the choice is
 // remembered. The run's mode badge stays in the header and the full text is in Data & ethics.
 
+import { Time } from './ui';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Freshness, Run } from '../lib/api';
 import { type Connection, offlineSourceLabel } from '../lib/connection';
-import { fmtAge, fmtTime, label } from '../lib/format';
+import { fmtAge, label } from '../lib/format';
 
 const DOT: Record<string, string> = {
   fresh: 'bg-safe-green', stale: 'bg-danger-red', no_data: 'bg-slate-500', event_driven: 'bg-sky-500',
@@ -30,11 +31,11 @@ export function FreshnessBanner({ run, freshness, conn }: { run: Run; freshness:
   };
   const notes = [...run.caveats, ...(freshness?.note ? [freshness.note] : [])];
   return (
-    <div className="border-b border-accent-cyan/10 bg-navy-panel/80 px-6 py-1.5 font-mono text-[10.5px] text-slate-300" aria-live="polite">
+    <div className="border-b border-accent-cyan/10 bg-navy-panel/80 px-6 py-1.5 text-xs text-slate-300" aria-live="polite">
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
       {freshness ? (
         <>
-          <b className="text-slate-200">Sources as of {fmtTime(freshness.at)}{offline ? ' (cached)' : ''}:</b>
+          <b className="text-slate-200">Sources as of <Time t={freshness.at} />{offline ? ' (cached)' : ''}:</b>
           {freshness.sources.map((s) => {
             if (offline) {
               // A source's status can't be known without the server: replay and scenario keep their load-time

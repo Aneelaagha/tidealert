@@ -36,7 +36,8 @@ If freshness was never loaded, the banner says "not loaded before the connection
   with an offline message. Only one view is cached (the run and time on screen), so moving the slider offline shows
   that the new view isn't available rather than a nearest guess. The slider moves, but the map and panels keep the
   view they had, and the status line says so ("still show the view as of ...").
-- **Reloading the page offline** is not supported: the cache is in memory only (no service worker, no IndexedDB).
+- **Reloading offline** now works from a saved copy (below). Without that copy (storage refused or cleared) a reload
+  offline cannot load and says so.
 
 ## Limits of the tests
 
@@ -52,3 +53,18 @@ Two guards in `frontend/src/test/no-invented-data.test.ts` were widened for this
 
 `frontend/src/lib/connection.ts` (state machine, probe, cache), `lib/useConnection.ts`, `lib/api.ts` (`get`/`post`
 go through it), `components/ConnectionBanner.tsx`, `components/FreshnessBanner.tsx`.
+
+## Opening the page offline from a saved copy
+
+- After each view loads, the page saves it (every response of that view, exactly as the server sent it) to the browser's
+  **IndexedDB**, replacing the previous copy. This is the only thing stored, in `frontend/src/lib/offlineStore.ts`.
+- When the page loads, it restores that copy **before its first request**. The copy is served only when a request fails
+  at the network level, so a reachable server always wins. The first answer from the server **drops any restored
+  entry it did not refresh**, so an old copy is never served later as if current.
+- With no connection the banner reads "**Opened offline: read-only.** This is the copy of the last view saved at <time>,
+  as of <run time>. Nothing here is current, nothing can be changed, and questions to the copilot are not sent." Task
+  actions, needs and offers are disabled with that reason.
+- Only the last view is kept. A zone or Case panel opened for the first time offline says it was not loaded before the
+  connection dropped. When the server returns the banner clears and the view is read again.
+- **Limits:** a private window or cleared site data leaves no copy. The copy is not encrypted and has no login in front of
+  it (it is listed in Data & ethics). Provisional or live sources would read "unknown", never fresh.

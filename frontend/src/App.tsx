@@ -22,7 +22,7 @@ import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
 import { api, type Case, type DepotAccess, type DepotList, type Freshness, type Needs, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
-import { cacheKeepView, dispatch, getConnection, startConnectionWatch } from './lib/connection';
+import { cacheKeepView, dispatch, getConnection, restoreView, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
 import { rankAttention } from './lib/attention';
@@ -130,7 +130,13 @@ export default function App() {
   // The server is back: read the view again, so nothing stale stays on screen.
   useEffect(() => { if (conn.recoveredAt) setVersion((v) => v + 1); }, [conn.recoveredAt]);
 
+  // While the server can't be reached the page is read-only, and says so where a write would be: the task actions
+  // and the needs and offers forms read the reason from these copies. Nothing is queued.
+  const offline = conn.state === 'offline';
+  const OFFLINE_REASON = 'offline: the page is read-only until the connection returns';
+  const actRun = useMemo(() => (run && offline ? { ...run, task_actions_blocked: OFFLINE_REASON } : run), [run, offline]);
   const ticks = useMemo(() => (run ? ticksFor(run) : []), [run]);
+  const needsView = useMemo(() => (needs && offline ? { ...needs, writable: false, blocked_reason: OFFLINE_REASON } : needs), [needs, offline]);
 
   const chooseRun = useCallback((next: Run, wantAt: string | null) => {
     const t = ticksFor(next), i = tickIndex(t, wantAt);
@@ -153,13 +159,20 @@ export default function App() {
   };
 
   useEffect(() => {
-    api.runs().then((body) => {
-      setRuns(body.runs);
-      setVocabulary(body.vocabulary);
-      if (!body.runs.length) { setStatus('No runs in the database.'); return; }
-      const url = readUrl(window.location.search);
-      chooseRun(body.runs.find((r) => r.id === url.run) ?? body.runs[0], url.at);
-    }).catch((e: Error) => setError(e.message));
+    // Load the saved copy of the last view first, so that with no connection the very first request is answered from
+    // it (it is only ever served when a request fails at the network level).
+    let alive = true;
+    void restoreView().finally(() => {
+      if (!alive) return;
+      api.runs().then((body) => {
+        setRuns(body.runs);
+        setVocabulary(body.vocabulary);
+        if (!body.runs.length) { setStatus('No runs in the database.'); return; }
+        const url = readUrl(window.location.search);
+        chooseRun(body.runs.find((r) => r.id === url.run) ?? body.runs[0], url.at);
+      }).catch((e: Error) => setError(e.message));
+    });
+    return () => { alive = false; };
   }, [chooseRun]);
 
   // A different run: nothing from the previous one may stay on screen while the new one loads.
@@ -281,11 +294,11 @@ export default function App() {
               ticks={ticks} tick={tick} onTickInput={setTick} onTickCommit={() => setAt(ticks.length ? ticks[tick] : null)}
               onEthics={() => setEthicsOpen(true)} onReport={() => setReportOpen(true)} onValidation={() => setValidationOpen(true)} onGauges={() => setGaugesOpen(true)} onStart={startRun ? startHere : null} />
       {ethicsOpen && <EthicsPanel run={run} freshness={freshness} vocabulary={vocabulary} onClose={closeEthics} />}
-      <ConnectionBanner conn={conn} />
+      <ConnectionBanner conn={conn} asOf={zones ? fmtTime(zones.at) : null} />
       {gaugesOpen && <GaugesPanel onClose={closeGauges} />}
       {validationOpen && <ValidationPanel onClose={closeValidation} />}
       {reportOpen && run && <ReportPanel run={run} at={zones?.at ?? at} onClose={closeReport} />}
-      {portalOpen && run && <DonationPortal run={run} needs={needs} needsError={needsError} operator={operator} at={zones?.at ?? at}
+      {portalOpen && run && <DonationPortal run={run} needs={needsView} needsError={needsError} operator={operator} at={zones?.at ?? at}
                                            onChanged={() => setVersion((v) => v + 1)} onClose={closePortal} />}
       {run && <FreshnessBanner run={run} freshness={freshness} conn={conn} />}
 
@@ -293,7 +306,7 @@ export default function App() {
         <div className="lg:col-span-3"><Headline run={run} zones={zones} cases={cases} tasks={tasks} /></div>
         <div className="flex flex-col gap-6 lg:col-span-2">
         <section className="flex flex-col overflow-hidden rounded-lg border border-accent-cyan/20 bg-navy-panel">
-          <MapToolbar run={run} layer={layer} onLayer={setLayer} supply={supply} supplyError={supplyError} needs={needs}
+          <MapToolbar run={run} layer={layer} onLayer={setLayer} supply={supply} supplyError={supplyError} needs={needsView}
                       depots={depots} depotId={depotId} onDepot={setDepotId} depotAccess={depotAccess} depotError={depotError}
                       needsError={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
                       onPortal={() => setPortalOpen(true)} />
@@ -315,7 +328,7 @@ export default function App() {
             <OperatorBar run={run} runs={runs} operator={operator} onOperator={changeOperator}
                          onRun={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, zones?.at ?? at); }} />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <AlertsPanel run={run} at={zones?.at ?? at} cases={cases} error={null} zoneNames={zoneNames}
+              <AlertsPanel run={actRun ?? run} at={zones?.at ?? at} cases={cases} error={null} zoneNames={zoneNames}
                            selectedCaseId={selectedCaseId}
                            onSelectCase={(c) => { setSelectedCaseId(c?.id ?? null); if (c) setSelectedZoneId(c.zone_id); }}
                            operator={operator} responders={responderList ?? []} onActed={() => setVersion((v) => v + 1)} />
@@ -336,7 +349,7 @@ export default function App() {
           <Panel title="Zone" className="h-[420px]">
             {run ? <ZonePanel run={run} at={zones?.at ?? at} zone={zone} gapReasons={zones?.gap_reasons ?? []}
                               responders={responders} version={version} supply={supply} supplyError={supplyError}
-                              needs={needs} needsError={needsError} operator={operator} onNeedsChanged={() => setVersion((v) => v + 1)} depotAccess={layer === 'depot' ? depotAccess : null} />
+                              needs={needsView} needsError={needsError} operator={operator} onNeedsChanged={() => setVersion((v) => v + 1)} depotAccess={layer === 'depot' ? depotAccess : null} />
               : <p className="text-slate-500">loading…</p>}
           </Panel>
           <Panel title="Legend" className="max-h-[300px]">

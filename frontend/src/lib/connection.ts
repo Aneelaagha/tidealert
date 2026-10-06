@@ -8,6 +8,8 @@
 // fails at the network level (connection refused, DNS, timeout: never an HTTP 4xx/5xx, which is a server error, not
 // offline), the browser's online/offline events, and a cheap connection watch that pings /copilot/status.
 
+import { type Store, idbStore } from './offlineStore';
+
 export type ConnState = 'online' | 'checking' | 'offline';
 
 export interface Connection {
@@ -15,15 +17,18 @@ export interface Connection {
   offlineSince: number | null; // ms epoch: the first network failure of this outage
   lastLoadedAt: number | null; // ms epoch: when the current view last loaded from the server
   recoveredAt: number | null; // ms epoch: when the server was reached again after an outage
+  restoredFrom: number | null; // ms epoch: when the saved copy the page opened from was saved (null: none was restored)
+  sawServer: boolean; // the server has answered at least once in this visit
 }
 
 export type ConnEvent =
   | { type: 'network_failure'; at: number } // a request could not reach the server
   | { type: 'probe_failed'; at: number } // the confirming probe could not reach it either
   | { type: 'reachable'; at: number } // any HTTP response, error statuses included
-  | { type: 'view_loaded'; at: number };
+  | { type: 'view_loaded'; at: number }
+  | { type: 'restored'; savedAt: number }; // the page opened from the saved copy of the last view
 
-export const INITIAL: Connection = { state: 'online', offlineSince: null, lastLoadedAt: null, recoveredAt: null };
+export const INITIAL: Connection = { state: 'online', offlineSince: null, lastLoadedAt: null, recoveredAt: null, restoredFrom: null, sawServer: false };
 
 /** The state machine, pure: online -> checking on a network failure; checking -> offline when a probe fails too;
  *  any response -> online (recoveredAt set if it was not online). */
@@ -34,9 +39,12 @@ export function next(c: Connection, e: ConnEvent): Connection {
     case 'probe_failed':
       return c.state === 'offline' ? c : { ...c, state: 'offline', offlineSince: c.offlineSince ?? e.at };
     case 'reachable':
-      return c.state === 'online' ? c : { ...c, state: 'online', offlineSince: null, recoveredAt: e.at };
+      return c.state === 'online' ? (c.sawServer ? c : { ...c, sawServer: true })
+        : { ...c, state: 'online', offlineSince: null, recoveredAt: e.at, sawServer: true };
     case 'view_loaded':
       return { ...c, lastLoadedAt: e.at };
+    case 'restored':
+      return { ...c, restoredFrom: e.savedAt, lastLoadedAt: e.savedAt };
   }
 }
 
@@ -52,6 +60,7 @@ export function subscribe(listener: () => void): () => void {
 export function dispatch(e: ConnEvent): void {
   const was = conn;
   conn = next(conn, e);
+  if (e.type === 'reachable' && !was.sawServer) dropUnrefreshed(); // the server is here: nothing restored may linger
   if (conn !== was) listeners.forEach((l) => l());
   if (conn.state === 'checking' && was.state !== 'checking') void probe();
 }
@@ -139,9 +148,13 @@ export function startConnectionWatch(): () => void {
  *  reload while offline is not supported). Served when the same request fails at the network level. */
 const cache = new Map<string, { body: unknown; loadedAt: number }>();
 
-export function cachePut(url: string, body: unknown, at: number): void { cache.set(url, { body, loadedAt: at }); }
+export function cachePut(url: string, body: unknown, at: number): void {
+  cache.set(url, { body, loadedAt: at });
+  restoredKeys.delete(url);
+  scheduleSave();
+}
 export function cacheGet(url: string): { body: unknown; loadedAt: number } | undefined { return cache.get(url); }
-export function cacheClear(): void { cache.clear(); }
+export function cacheClear(): void { cache.clear(); restoredKeys.clear(); }
 
 /** Keep one view: drop responses for another run or another slider time. Requests without run_id/at (the header's
  *  /runs, /copilot/status, /data-practices) stay. */
@@ -175,4 +188,58 @@ export function offlineSourceLabel(mode: string, status: string, offlineSince: n
   { status: string; note: string; unknown: boolean } {
   if (mode === 'live') return { status: 'unknown', note: `offline since ${clock(offlineSince)}`, unknown: true };
   return { status, note: 'cached', unknown: false };
+}
+
+// ---------------------------------------------------------------- the saved copy (opens the page with no connection)
+const restoredKeys = new Set<string>(); // entries that came from the saved copy and have not been refreshed from the server
+let store: Store | null | undefined; // undefined: not looked up yet
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+const SAVE_DELAY_MS = 2000;
+
+function theStore(): Store | null {
+  if (store === undefined) store = idbStore();
+  return store;
+}
+
+/** Replace the saved copy with the view in memory now. Only called with responses that came from the server. */
+export async function persistNow(s: Store | null = theStore(), now: number = Date.now()): Promise<void> {
+  if (!s || !cache.size) return;
+  try {
+    await s.save({ version: 1, savedAt: now, entries: [...cache.entries()] });
+  } catch { /* storage refused or full: the page still works, there is just no saved copy */ }
+}
+
+function scheduleSave(): void {
+  if (!theStore()) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { void persistNow(); }, SAVE_DELAY_MS);
+}
+
+/** Load the saved copy into the cache before the first request. It is only ever served when a request fails at the
+ *  network level, and the first answer from the server drops whatever of it was not refreshed. */
+export async function restoreView(s: Store | null = theStore()): Promise<boolean> {
+  if (!s) return false;
+  try {
+    const snap = await s.load();
+    if (!snap) return false;
+    for (const [url, v] of snap.entries) { cache.set(url, v); restoredKeys.add(url); }
+    dispatch({ type: 'restored', savedAt: snap.savedAt });
+    return true;
+  } catch { return false; }
+}
+
+function dropUnrefreshed(): void {
+  for (const url of restoredKeys) cache.delete(url);
+  restoredKeys.clear();
+}
+
+/** For tests. */
+export function cacheSize(): number { return cache.size; }
+
+/** "2026-10-05 14:02" in the viewer's local time: when a saved copy was saved. */
+export function stamp(ms: number | null): string {
+  if (ms == null) return '--';
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }

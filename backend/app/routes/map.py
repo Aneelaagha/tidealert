@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Run
-from app.services import map_state, safety, supply_access, task_actions
+from app.services import depots, map_state, safety, supply_access, task_actions
 
 router = APIRouter(tags=["map"])
 
@@ -67,6 +67,24 @@ def map_supply_access(run_id: uuid.UUID, at: Optional[datetime] = None, db: Sess
     Kept apart from /map/zones so that response, the page's largest, does not grow."""
     run = _run(db, run_id)
     return supply_access.supply_access(db, run, _at(run, at))
+
+
+@router.get("/map/depots")
+def map_depots(run_id: uuid.UUID, db: Session = Depends(get_db)):
+    """The candidate depots (real OSM fire stations) depot access is computed for, or why there are none for this run."""
+    return depots.list_depots(_run(db, run_id))
+
+
+@router.get("/map/depot-access")
+def map_depot_access(run_id: uuid.UUID, depot_id: str, at: Optional[datetime] = None, db: Session = Depends(get_db)):
+    """Whether a dry road route exists from one candidate depot to each zone of its basin as of `at`. Feasibility only
+    (app.services.depot_reach): no route, distance, time or vehicle."""
+    run = _run(db, run_id)
+    when = _at(run, at)
+    try:
+        return depots.access(db, run, depot_id, when)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 @router.get("/cases")

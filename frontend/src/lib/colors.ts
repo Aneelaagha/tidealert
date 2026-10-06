@@ -4,7 +4,7 @@
 
 export const UNSTYLED = '#ff00ff';
 
-export const COLORS: Record<'risk_level' | 'confidence_word' | 'task_status' | 'supply_access', Record<string, string | null>> = {
+export const COLORS: Record<'risk_level' | 'confidence_word' | 'task_status' | 'supply_access' | 'depot_access', Record<string, string | null>> = {
   // Fill. unknown is a neutral grey at low opacity: "not assessed", never green.
   risk_level: { unknown: '#9aa0a6', safe: '#34c759', elevated: '#ff9500', extreme: '#ff3b30' },
   // Case outline; stale_verify is also dashed. Kept clear of the UNSTYLED magenta.
@@ -13,6 +13,10 @@ export const COLORS: Record<'risk_level' | 'confidence_word' | 'task_status' | '
   // unknown risk: not assessed, never green. reconnected is the optimistic bound, so it is not the reachable green.
   supply_access: { isolated: '#ff3b30', possibly_isolated: '#ff9500', reconnected: '#5ac8fa', reachable: '#34c759',
                    not_evaluated: '#9aa0a6' },
+  // The depot-access layer's fill: can a dry road route reach the zone from the chosen depot. "outside_network" is a zone in
+  // another basin's road network: not assessed from this depot, drawn faint grey like not_evaluated, never green.
+  depot_access: { reachable: '#34c759', only_if_unknown_roads_passable: '#5ac8fa', not_reachable: '#ff3b30', not_evaluated: '#9aa0a6',
+                  outside_network: '#6b7280' },
   // Task marker fill. pending is white (hollow): nobody is on it yet.
   task_status: { pending: '#ffffff', assigned: '#4f8cff', en_route: '#34c759',
                  complete: null, unable_to_reach: null, cancelled: null },

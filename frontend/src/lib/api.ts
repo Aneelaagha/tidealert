@@ -191,6 +191,17 @@ export interface HeleneValidation {
   limits: string[];
 }
 
+export interface Depot { id: string; name: string; osm: string; lat: number; lon: number; snapped_to_road_m: number; basin: string; site: string; source: string; osm_fetched_at: string }
+/** /map/depots: the candidate depots depot access is computed for (real OSM fire stations), or why there are none. */
+export interface DepotList { available: boolean; reason: string | null; depots: Depot[]; does_not_show?: string }
+/** /map/depot-access: whether a dry road route exists from one depot to each zone of its basin. Feasibility only. */
+export interface DepotAccess {
+  run_id: string; at: string; tick_at: string;
+  depot: { id: string; name: string; osm: string; basin: string; snapped_to_road_m: number; road_dry: boolean };
+  states: string[]; labels: Record<string, string>; counts: Record<string, { zones: number; population: number }>;
+  zones: Record<string, string>; engine_agreement: { depot_ticks_checked: number; mismatched: number } | null; does_not_show: string;
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -399,6 +410,9 @@ export const api = {
     get<ZonesResponse>('/map/zones', { run_id: runId, at }, signal),
   freshness: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<Freshness>('/map/freshness', { run_id: runId, at }, signal),
+  depots: (runId: string, signal?: AbortSignal) => get<DepotList>('/map/depots', { run_id: runId }, signal),
+  depotAccess: (runId: string, depotId: string, at: string | null, signal?: AbortSignal) =>
+    get<DepotAccess>('/map/depot-access', { run_id: runId, depot_id: depotId, at }, signal),
   supplyAccess: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<SupplyAccess>('/map/supply-access', { run_id: runId, at }, signal),
   afterAction: (runId: string, at: string | null, signal?: AbortSignal) =>

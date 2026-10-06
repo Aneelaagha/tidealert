@@ -52,6 +52,11 @@ def known_gaps(routes) -> list[dict]:
          "text": "Notes on a task action, an entered need or a donation offer, and a donor's displayed name, are free "
                  "text. The personal-data scan checks field names, so a person's details typed into one would not be "
                  "caught. Donation offers refuse an email, link or phone number, but that check is lexical."},
+        {"id": "offline_copy", "when": True, "source": "code: frontend/src/lib/offlineStore.ts (IndexedDB)",
+         "text": "So the page can open with no connection, it keeps a copy of the last view it loaded (Cases, tasks, "
+                 "needs and offers and the other responses, as the server sent them) in the browser's own storage. The "
+                 "copy is read-only, replaced by the next view, and stays on that device until the site data is "
+                 "cleared; it is not encrypted and there is no login."},
         {"id": "tiles", "when": True, "source": f"code: frontend/src/components/ZoneMap.tsx loads {TILE_HOST}",
          "text": f"Map tiles come from OpenStreetMap's public server ({TILE_HOST}), so it learns which area is "
                  "being viewed."},

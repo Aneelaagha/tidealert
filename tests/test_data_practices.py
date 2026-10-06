@@ -2,6 +2,7 @@
 to its source here: a gap must be listed while its condition holds and disappear when it stops holding. A new gap
 fails test_every_gap_is_pinned until it gets a pin below. Read-only against the local database."""
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -82,7 +83,7 @@ def test_copilot_facts_match_the_copilot(report, client):
 
 
 # ---------------------------------------------------------------- each gap pinned to its source
-PINNED = {"consent", "authentication", "free_text_notes", "tiles", "retention", "case_status_history", "confidence", "rain_driver",
+PINNED = {"consent", "authentication", "free_text_notes", "offline_copy", "tiles", "retention", "case_status_history", "confidence", "rain_driver",
           "response_scan"}
 
 
@@ -142,6 +143,13 @@ def test_free_text_notes_gap_is_stated_and_note_length_is_capped(report):
     from app.services import needs
     assert "would not be caught" in gaps(report)["free_text_notes"]["text"] and 0 < needs.MAX_NOTE <= 500
     assert "lexical" in gaps(report)["free_text_notes"]["text"]
+
+
+def test_offline_copy_gap_is_pinned_to_the_code_that_keeps_it(report):
+    code = (ROOT / "frontend" / "src" / "lib" / "offlineStore.ts").read_text()
+    assert "indexedDB" in code and not re.search(r"localStorage\.|sessionStorage", code)  # the copy lives in IndexedDB, nowhere else
+    text = gaps(report)["offline_copy"]["text"]
+    assert "browser's own storage" in text and "not encrypted" in text and "read-only" in text
 
 
 def test_response_scan_gap_states_the_name_based_blind_spot(report):

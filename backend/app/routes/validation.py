@@ -11,3 +11,9 @@ def harvey_validation():
     """The Harvey backtest's validation results, each read from its stored source and shown with its run, event window,
     file and (for the NFIP results) execution time, plus the limits of what they show."""
     return validation.harvey_backtest()
+
+
+@router.get("/validation/helene")
+def helene_validation():
+    """The Hurricane Helene (Asheville) run's results with their stored sources and the limits of what they show."""
+    return validation.helene_backtest()

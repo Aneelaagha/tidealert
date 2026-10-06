@@ -111,3 +111,52 @@ def harvey_backtest() -> dict:
                  "executed_at": nfip["executed_at"], "definitions": "Heavy-claims block group: top 20% of a basin's block groups by claims per 100 housing units, at least 5 claims. Static baseline: FEMA's floodplain map, a block group counted when at least 10% of its populated area lies in it."},
         "limits": list(LIMITS),
     }
+
+
+# ---------------------------------------------------------------- Hurricane Helene (Asheville, 2024)
+HELENE_RUN = "backtest:2024-09-25..2024-09-30"
+HELENE_GAUGES = ("03451000", "03451500")  # Swannanoa at Biltmore, French Broad at Asheville (clipped to the city limits)
+HELENE_LIMITS = (
+    "Helene cut roads in ways the engine does not model: landslides, debris flows and washed-out roads and bridges. Expect it to miss real isolations, especially away from the gauged reach.",
+    "HAND (the terrain method used at both gauges, at lower confidence) assumes constant water depth along the gauged reach. That fits narrow, steep mountain valleys worse than Houston's flat bayous.",
+    "There is no ground truth at the peak: USGS high-water marks for this event exist for neither river, Sentinel-1 passes were six days either side of the crest, and the only flood reports for Buncombe County came before it. NFIP claims (counts by block group and day) are the only ground truth, about 100 times sparser than Harvey's, and they cannot confirm or refute any single zone.",
+    "Neither gauge has a usable NWS flood map: the French Broad has none, and the Swannanoa's was refused because it does not resolve stage.",
+    "The Swannanoa's gauge recorded no gage height for 41 hours across the crest. Those steps are left missing, not inferred, so the engine is blind there.",
+    "USGS reported that about 60 gauges serviced from Asheville recorded peaks above their rating curves and that many were damaged; discharge at the peak is an extrapolation.",
+    "The French Broad run covers 60 km2, 2.5% of its basin (Asheville city limits, minus the Swannanoa basin). There is no rainfall input for this event: the pipeline's rainfall source ends in 2020.",
+    "HAND's confidence here is borrowed from Harvey's Houston libraries; no Helene gauge has a usable library to measure it locally.",
+)
+
+
+def helene_backtest() -> dict:
+    gauges = []
+    for site in HELENE_GAUGES:
+        b = _gauge(site)
+        f = f"backend/app/data/usgs-{site}/backtest.json"
+        zs = b["zone_status"]
+        claims = b["claims_daily"]
+        peak_day = max(claims, key=claims.get)
+        sp = b["stage_provenance"]
+        gauges.append({
+            "site": site, "name": b["name"], "flood_source": b["river_driver"]["method"], "confidence": b["river_driver"]["confidence"],
+            "alarm_minor_at": b["alarm_minor"],
+            "stage_steps": {"measured": sp.get("observed", 0), "from_rating_curve": sp.get("rating", 0), "missing": sp.get("missing", 0)},
+            "first_road_floods_min": _minutes(b["lead_minutes_vs_alarm"]["first road segment floods"]),
+            "roads_ever_flooded": b["flooded_edges_max"], "roads_flooding_unknown": b["unknown_river_segments"],
+            "zones": {k: zs[k] for k in ("isolated", "possibly isolated", "reachable", "not connected at base flow")},
+            "nfip_claims_total": sum(claims.values()), "nfip_peak_day": peak_day, "nfip_peak_day_claims": claims[peak_day],
+            "rainfall": b["rainfall_unavailable"], "rain_driver_evaluated": b["rain_driver_validation"]["evaluated"],
+            "source": {"file": f, "path": "zone_status, stage_provenance, lead_minutes_vs_alarm, flooded_edges_max, unknown_river_segments, claims_daily, river_driver, rainfall_unavailable"}})
+    confirmed = sum(g["zones"]["isolated"]["zones"] for g in gauges)
+    claims = sum(g["nfip_claims_total"] for g in gauges)
+    return {
+        "run": HELENE_RUN, "event": "Hurricane Helene", "data_window_utc": _gauge(HELENE_GAUGES[0])["window_utc"],
+        "headline": [
+            {"kind": "weakness", "text": f"Helene does not validate the engine: no zone was confirmed isolated at either gauge ({confirmed} of {sum(sum(z['zones'] for z in g['zones'].values()) for g in gauges):,} zones) and no Case opened. "
+                                         "That is consistent with the engine not modelling landslides, debris flows and washed-out roads, and with HAND fitting steep terrain poorly, but this run cannot separate those causes from a real absence of isolation."},
+            {"kind": "strength", "text": f"The pipeline ran on a second region and a second event, and it is blind where its data failed rather than guessing: {gauges[0]['stage_steps']['missing']} Swannanoa steps with no gage height are left missing, not filled. "
+                                          f"Ground truth is NFIP claim counts only ({claims} claims across the two gauges' block groups), so nothing is stated as a rate."},
+        ],
+        "gauges": gauges,
+        "limits": list(HELENE_LIMITS),
+    }

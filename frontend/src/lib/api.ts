@@ -178,6 +178,19 @@ export interface CurrentGauges {
             status: 'fresh' | 'stale' | 'unknown' | 'unavailable'; stale_after_seconds: number | null }[];
 }
 
+/** /validation/helene: the Asheville run's results; no zone was confirmed isolated, and it says what that does and does not show. */
+export interface HeleneValidation {
+  run: string; event: string; data_window_utc: string[];
+  headline: { kind: 'strength' | 'weakness'; text: string }[];
+  gauges: { site: string; name: string; flood_source: string; confidence: string; alarm_minor_at: string;
+            stage_steps: { measured: number; from_rating_curve: number; missing: number };
+            first_road_floods_min: number | null; roads_ever_flooded: number; roads_flooding_unknown: number;
+            zones: Record<string, { zones: number; people: number }>;
+            nfip_claims_total: number; nfip_peak_day: string; nfip_peak_day_claims: number;
+            rainfall: string; rain_driver_evaluated: boolean; source: ValidationSource }[];
+  limits: string[];
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -392,6 +405,7 @@ export const api = {
     get<AfterAction>('/reports/after-action', { run_id: runId, at }, signal),
   currentGauges: (signal?: AbortSignal) => get<CurrentGauges>('/gauges/current', {}, signal),
   validation: (signal?: AbortSignal) => get<Validation>('/validation/harvey', {}, signal),
+  heleneValidation: (signal?: AbortSignal) => get<HeleneValidation>('/validation/helene', {}, signal),
   needs: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<Needs>('/needs', { run_id: runId, at }, signal),
   enterNeed: (b: NeedEntryBody) => post<ZoneNeeds & { at: string }>('/needs', b),

@@ -136,6 +136,24 @@ export interface NeedEntryBody {
   quantity: number; actor: string; at: string | null; note?: string;
 }
 
+/** /reports/after-action: what the run flagged, when, what was done and warned about, as of `at`. */
+export interface AfterAction {
+  run: { id: string; name: string; mode: string; mode_label: string; event: string | null; window_start: string | null; window_end: string | null };
+  as_of: string;
+  summary: {
+    cases: number; flagged_zones: number; cases_by_confidence: Record<string, number>; cases_by_status: Record<string, number>;
+    tasks: number; tasks_by_status: Record<string, number>; tasks_awaiting_verification: number;
+    zones_cut_off: { zones: number; population: number }; zones_may_be_cut_off: { zones: number; population: number };
+    zones_not_assessed: { zones: number; population: number }; actions_taken: number;
+  };
+  timeline: { at: string; kind: string; text: string }[];
+  actions: { at: string; zone: string; status: string; actor: string; note: string; synthetic: boolean }[];
+  warnings: { by_code: Record<string, number>; examples: { zone: string; text: string; severity: string }[]; total: number };
+  caveats: string[];
+  limits: string[];
+  markdown: string;
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -346,6 +364,8 @@ export const api = {
     get<Freshness>('/map/freshness', { run_id: runId, at }, signal),
   supplyAccess: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<SupplyAccess>('/map/supply-access', { run_id: runId, at }, signal),
+  afterAction: (runId: string, at: string | null, signal?: AbortSignal) =>
+    get<AfterAction>('/reports/after-action', { run_id: runId, at }, signal),
   needs: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<Needs>('/needs', { run_id: runId, at }, signal),
   enterNeed: (b: NeedEntryBody) => post<ZoneNeeds & { at: string }>('/needs', b),

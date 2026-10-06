@@ -1,7 +1,7 @@
 // Header: the run picker and its mode badge (runs.mode, as registered), the slider over the run's clock, and the
 // sound controls. Every label here is either fixed UI text or a value from /runs.
 
-import { Radio, ShieldCheck, Volume2, VolumeX } from 'lucide-react';
+import { FileText, Radio, ShieldCheck, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Run } from '../lib/api';
 import { isMuted, playTestTone, setMuted } from '../lib/audio';
@@ -22,10 +22,11 @@ interface Props {
   onTickInput: (i: number) => void;
   onTickCommit: () => void;
   onEthics: () => void;
+  onReport: () => void;
   onStart: (() => void) | null; // open the Harvey peak, framed, with the first case selected; null when no run has a recorded peak
 }
 
-export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit, onEthics, onStart }: Props) {
+export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit, onEthics, onReport, onStart }: Props) {
   const [muted, setMutedState] = useState(isMuted());
   const toggle = () => { setMuted(!muted); setMutedState(!muted); };
   // Keyboard stepping commits once the keys pause, not per key press: each commit refetches every zone
@@ -79,6 +80,10 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
       </div>
 
       <div className="flex items-center gap-2 ">
+        <button onClick={onReport} disabled={!run}
+                className="flex cursor-pointer items-center gap-1.5 rounded border border-accent-cyan/40 bg-cyan-950/30 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-accent-cyan transition hover:bg-cyan-900/50 disabled:opacity-40">
+          <FileText className="h-3.5 w-3.5" /> Report
+        </button>
         <button onClick={onEthics}
                 className="flex cursor-pointer items-center gap-1.5 rounded border border-accent-cyan/40 bg-cyan-950/30 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-accent-cyan transition hover:bg-cyan-900/50">
           <ShieldCheck className="h-3.5 w-3.5" /> Data & ethics

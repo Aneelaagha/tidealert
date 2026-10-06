@@ -71,11 +71,14 @@ def _calls(client, runs):
                 ("/responders", {"run_id": run_id}), (f"/zones/{zone_id}", {})]
         if tasks:
             out.append((f"/tasks/{tasks[0]['id']}", {}))
+        depot = client.get("/map/depots", params={"run_id": run_id}).json()["depots"][:1]
+        if depot:
+            out.append(("/map/depot-access", {"run_id": run_id, "depot_id": depot[0]["id"]}))
     return out + [("/gauges/current", {}), ("/validation/harvey", {}), ("/validation/helene", {}), ("/runs", {}), ("/responders", {}), ("/zones/", {"limit": 100}), ("/copilot/status", {}),
                   ("/health", {}), ("/data-practices", {})]
 
 
-SCANNED = {"/runs", "/map/zones", "/map/freshness", "/map/supply-access", "/needs", "/reports/after-action", "/validation/harvey", "/validation/helene", "/gauges/current", "/cases", "/tasks", "/tasks/{task_id}", "/responders",
+SCANNED = {"/runs", "/map/zones", "/map/freshness", "/map/supply-access", "/map/depots", "/map/depot-access", "/needs", "/reports/after-action", "/validation/harvey", "/validation/helene", "/gauges/current", "/cases", "/tasks", "/tasks/{task_id}", "/responders",
            "/zones/", "/zones/{zone_id}", "/copilot/status", "/health", "/data-practices", "/", "/ui/"}  # "/" and "/ui/" only redirect or serve the page
 
 

@@ -170,6 +170,14 @@ export interface Validation {
   limits: string[];
 }
 
+export interface GaugeReading { value?: number; unit?: string | null; observed_at?: string; approval?: string | null; qualifier?: string | null; error?: string }
+/** /gauges/current: the latest USGS readings for the project's gauges. A current-readings view, not a live run. */
+export interface CurrentGauges {
+  label: string; available: boolean; reason: string | null; fetched_at: string; source: string;
+  gauges: { site: string; name: string; readings: Record<string, GaugeReading>; newest_observed_at: string | null; age_seconds: number | null;
+            status: 'fresh' | 'stale' | 'unknown' | 'unavailable'; stale_after_seconds: number | null }[];
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -382,6 +390,7 @@ export const api = {
     get<SupplyAccess>('/map/supply-access', { run_id: runId, at }, signal),
   afterAction: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<AfterAction>('/reports/after-action', { run_id: runId, at }, signal),
+  currentGauges: (signal?: AbortSignal) => get<CurrentGauges>('/gauges/current', {}, signal),
   validation: (signal?: AbortSignal) => get<Validation>('/validation/harvey', {}, signal),
   needs: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<Needs>('/needs', { run_id: runId, at }, signal),

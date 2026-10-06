@@ -10,6 +10,7 @@ export interface Run {
   name: string;
   description: string | null;
   mode: Mode;
+  event: string | null; // the real event a replay or mixed run covers ("Hurricane Harvey"), or null
   window_start: string | null;
   window_end: string | null;
   case_count: number;

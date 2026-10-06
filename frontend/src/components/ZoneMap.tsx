@@ -78,6 +78,19 @@ const FILL_OPACITY = {
   supply: ['case', ['==', ['get', 'supply_access'], 'not_evaluated'], 0.12, ['==', ['get', 'supply_access'], null], 0, 0.55],
 };
 
+/** The west, south, east, north of every zone drawn, or null when there are none. */
+export function boundsOf(zones: ZonesResponse): [number, number, number, number] | null {
+  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+  const visit = (c: unknown): void => {
+    if (Array.isArray(c) && typeof c[0] === 'number') {
+      const [x, y] = c as number[];
+      w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y);
+    } else if (Array.isArray(c)) c.forEach(visit);
+  };
+  for (const f of zones.features) visit((f.geometry as { coordinates?: unknown }).coordinates);
+  return Number.isFinite(w) ? [w, s, e, n] : null;
+}
+
 export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -102,13 +115,23 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
     return () => { map.remove(); mapRef.current = null; };
   }, []);
 
-  // Fit the view to the run's extent when the run changes.
+  // Fit the view to the zones that loaded for the run (once per run, not on every slider tick). The run's extent
+  // is only a first guess: the zones are what is drawn. A run with no zones has nothing to frame (see `note`).
+  const fitted = useRef<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => { fitted.current = null; setNote(null); }, [run?.id]);
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !run?.extent) return;
-    const [w, s, e, n] = run.extent;
-    map.fitBounds([[w, s], [e, n]], { padding: 30, duration: 0 });
-  }, [run?.id, run?.extent]);
+    if (!map || !run || !zones || zones.run_id !== run.id) return;
+    const box = boundsOf(zones);
+    if (!box) { setNote('No zones to show for this run.'); return; }
+    // Synthetic scenario zones are placed at about 0°N 0°E: they have no real-world location, and a basemap there is
+    // open ocean. Say so rather than show an empty globe.
+    setNote(box[0] > -1 && box[2] < 1 && box[1] > -1 && box[3] < 1 ? 'Synthetic zones: they have no real-world location, so there is no basemap here.' : null);
+    if (fitted.current === run.id) return;
+    fitted.current = run.id;
+    map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding: 40, duration: 0, maxZoom: 15 });
+  }, [zones, run]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -148,9 +171,11 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
       {/* h-full, not absolute: MapLibre's CSS sets position: relative on its container. */}
       <div ref={container} className="h-full w-full" />
       <div className="pointer-events-none absolute inset-0 cyber-grid opacity-40" aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="radar-sweep" />
-      </div>
+      {note && (
+        <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+          <p className="rounded border border-white/15 bg-navy-deep/90 px-3 py-1.5 text-center text-xs text-slate-300">{note}</p>
+        </div>
+      )}
     </div>
   );
 }

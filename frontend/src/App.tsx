@@ -7,7 +7,7 @@ import { AlertsPanel } from './components/AlertsPanel';
 import { CopilotPanel } from './components/CopilotPanel';
 import { DonationPortal } from './components/DonationPortal';
 import { EthicsPanel } from './components/EthicsPanel';
-import { EventTicker } from './components/EventTicker';
+import { Headline } from './components/Headline';
 import { FreshnessBanner } from './components/FreshnessBanner';
 import { ConnectionBanner } from './components/ConnectionBanner';
 import { Header } from './components/Header';
@@ -259,7 +259,7 @@ export default function App() {
       </main>
 
       <footer className="mx-auto mt-6 w-full max-w-7xl select-none px-6">
-        <EventTicker tasks={tasks} error={null} />
+        <Headline run={run} zones={zones} cases={cases} tasks={tasks} />
       </footer>
     </div>
   );

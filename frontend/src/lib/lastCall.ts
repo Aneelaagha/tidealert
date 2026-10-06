@@ -15,6 +15,14 @@ export function parseMinutes(text: string): number | null {
   return Number.isInteger(n) && n >= 0 && n <= MAX_LEAD ? n : null;
 }
 
+/** Minutes left until a recorded time at a clock reading, never negative. Plain arithmetic on two real timestamps. */
+export function minutesLeft(targetMs: number, clockMs: number): number {
+  return Math.max(Math.floor((targetMs - clockMs) / 60_000), 0);
+}
+
+/** Countdown tone: calm above an hour, amber at an hour or less, red at zero. */
+export const countdownTone = (minutes: number) => (minutes <= 0 ? 'text-danger-red' : minutes <= 60 ? 'text-warning-orange' : 'text-slate-100');
+
 export const totalLead = (l: Lead) => l.reply + l.decision + l.travel;
 
 /** "41 min", "1 h 15 min", "2 h": minutes as a person reads a countdown. */

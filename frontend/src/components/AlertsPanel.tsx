@@ -2,7 +2,7 @@
 // Selecting a Case selects its zone on the map and opens its active task's actions.
 
 import { Radio } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Case, Responder, Run } from '../lib/api';
 import { UNSTYLED, colorOf } from '../lib/colors';
 import { label } from '../lib/format';
@@ -30,11 +30,25 @@ interface Props {
   selectedCaseId: string | null;
   onSelectCase: (c: Case | null) => void;
   operator: string;
+  animateNew?: boolean; // slide a Case card in when it first appears (only while the replay clock is moving)
   responders: Responder[];
   onActed: () => void;
 }
 
-export function AlertsPanel({ run, at, cases, error, zoneNames, selectedCaseId, onSelectCase, operator, responders, onActed }: Props) {
+export function AlertsPanel({ run, at, cases, error, zoneNames, selectedCaseId, onSelectCase, operator, responders, onActed, animateNew = false }: Props) {
+  const seen = useRef<Set<string> | null>(null);
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    // A Case card that appears while the replay clock is moving slides in once (300 ms); its class is kept a little longer than that.
+    if (!cases) return;
+    const now = new Set(cases.map((c) => c.id));
+    const added = animateNew && seen.current ? [...now].filter((id) => !seen.current!.has(id)) : [];
+    seen.current = now;
+    if (!added.length) return;
+    setFresh((f) => new Set([...f, ...added]));
+    const t = window.setTimeout(() => setFresh((f) => new Set([...f].filter((id) => !added.includes(id)))), 600);
+    return () => window.clearTimeout(t);
+  }, [cases, animateNew]);
   const [filter, setFilter] = useState<CaseFilter>('open');
   const shown = cases ? filterCases(cases, filter) : [];
   const openCount = cases?.filter((c) => OPEN.includes(c.status)).length ?? 0;
@@ -66,7 +80,7 @@ export function AlertsPanel({ run, at, cases, error, zoneNames, selectedCaseId, 
             const active = c.tasks.filter((t) => t.active);
             return (
               <div key={c.id} onClick={() => onSelectCase(selected ? null : c)}
-                   className={`cursor-pointer rounded border border-l-4 p-2.5 transition ${selected
+                   className={`cursor-pointer rounded border border-l-4 p-2.5 transition ${fresh.has(c.id) ? 'case-in' : ''} ${selected
                      ? 'border-accent-cyan/60 bg-navy-deep text-white' : 'border-white/10 bg-navy-deep/65 text-slate-300 hover:bg-[#121c32]/45'}`}
                    style={{ borderLeftColor: colorOf('confidence_word', c.confidence_word) ?? UNSTYLED }}>
                 <div className="flex flex-wrap items-center justify-between gap-2">

@@ -3,8 +3,9 @@
 // the run's extent. The grid texture and radar sweep on top are decoration and never block clicks.
 
 import maplibregl, { type GeoJSONSource, type StyleSpecification } from 'maplibre-gl';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import type { DepotAccess, Run, SupplyAccess, ZonesResponse } from '../lib/api';
+import { onPulse } from '../lib/pulse';
 import { GAP_COLOR, SELECTED_COLOR, TASK_RADIUS, TASK_VERIFY_EDGE, matchColor } from '../lib/colors';
 
 const STYLE: StyleSpecification = {
@@ -71,6 +72,7 @@ interface Props {
   layer: 'risk' | 'supply' | 'depot'; // what the zone fill shows
   depot?: DepotAccess | null; // the depot-access answer for the same run and time (needed when layer is 'depot')
   refit?: number; // bump to frame the zones again (the Start here preset)
+  pulseNew?: boolean; // ring a zone's marker when its first task appears (only while the replay clock is moving)
   children?: ReactNode; // overlays drawn on the map (the legend)
   supply: SupplyAccess | null; // the supply-access answer for the same run and time (needed when layer is 'supply')
 }
@@ -95,7 +97,7 @@ export function boundsOf(zones: ZonesResponse): [number, number, number, number]
   return Number.isFinite(w) ? [w, s, e, n] : null;
 }
 
-export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply, depot = null, refit = 0, children }: Props) {
+export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply, depot = null, refit = 0, pulseNew = false, children }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const onSelect = useRef(onSelectZone);
@@ -171,6 +173,29 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
     map.setPaintProperty('zone-fill', 'fill-opacity', FILL_OPACITY[layer] as maplibregl.ExpressionSpecification);
   }, [layer, ready]);
 
+  // One-shot rings: from the marker of a zone whose first task just appeared while the playhead moves, and on request (lib/pulse).
+  const [rings, setRings] = useState<{ key: number; x: number; y: number }[]>([]);
+  const ringKey = useRef(0);
+  const anchors = useRef(new Map<string, [number, number]>());
+  const taskZones = useRef<Set<string> | null>(null);
+  const ring = useCallback((zoneId: string) => {
+    const map = mapRef.current, a = anchors.current.get(zoneId);
+    if (!map || !a) return;
+    const p = map.project(a);
+    const key = ++ringKey.current;
+    setRings((rs) => [...rs.slice(-11), { key, x: p.x, y: p.y }]);
+    window.setTimeout(() => setRings((rs) => rs.filter((r) => r.key !== key)), 1200);
+  }, []);
+  useEffect(() => onPulse(ring), [ring]);
+  useEffect(() => {
+    anchors.current = new Map((zones?.features ?? []).filter((f) => f.properties.task_count > 0 && f.properties.task_anchor)
+      .map((f) => [f.properties.zone_id, f.properties.task_anchor as [number, number]]));
+    const now = new Set(anchors.current.keys());
+    if (pulseNew && taskZones.current) [...now].filter((z) => !taskZones.current!.has(z)).slice(0, 12).forEach(ring);
+    taskZones.current = now;
+  }, [zones, pulseNew, ring]);
+  useEffect(() => { taskZones.current = null; }, [run?.id]);
+
   useEffect(() => {
     if (ready) mapRef.current?.setFilter('zone-selected', ['==', ['get', 'zone_id'], selectedZoneId ?? '']);
   }, [selectedZoneId, ready]);
@@ -181,6 +206,7 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
       <div ref={container} className="h-full w-full" />
       <div className="pointer-events-none absolute inset-0 cyber-grid opacity-40" aria-hidden="true" />
       {children}
+      {rings.map((r) => <span key={r.key} className="pulse-ring" style={{ left: r.x, top: r.y }} aria-hidden="true" />)}
       {note && (
         <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
           <p className="rounded border border-white/15 bg-navy-deep/90 px-3 py-1.5 text-center text-xs text-slate-300">{note}</p>

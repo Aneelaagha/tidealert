@@ -21,7 +21,7 @@ import { type Layer, MapToolbar } from './components/MapToolbar';
 import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
-import { api, type Case, type Freshness, type Needs, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
+import { api, type Case, type DepotAccess, type DepotList, type Freshness, type Needs, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
 import { cacheKeepView, dispatch, getConnection, restoreView, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
@@ -112,6 +112,10 @@ export default function App() {
   const [supplyError, setSupplyError] = useState<string | null>(null);
   const [needs, setNeeds] = useState<Needs | null>(null);
   const [needsError, setNeedsError] = useState<string | null>(null);
+  const [depots, setDepots] = useState<DepotList | null>(null);
+  const [depotId, setDepotId] = useState<string | null>(null);
+  const [depotAccess, setDepotAccess] = useState<DepotAccess | null>(null);
+  const [depotError, setDepotError] = useState<string | null>(null);
   const [casesAt, setCasesAt] = useState<string | null>(null); // the time the loaded Cases are for
   const [pendingStart, setPendingStart] = useState<{ runId: string; at: string } | null>(null);
   const [refit, setRefit] = useState(0);
@@ -259,6 +263,26 @@ export default function App() {
     setPendingStart(null);
   }, [pendingStart, run, zones, cases, casesAt, ranked]);
 
+  // Candidate depots (real OSM fire stations) for runs that have depot access, and the chosen depot's reach as of the
+  // slider time. Read only while the layer is on.
+  useEffect(() => {
+    setDepots(null); setDepotId(null); setDepotAccess(null);
+    if (!run) return;
+    const ctl = new AbortController();
+    api.depots(run.id, ctl.signal).then((d) => { setDepots(d); setDepotId(d.depots[0]?.id ?? null); })
+      .catch((e: Error) => { if (e.name !== 'AbortError') setDepots(null); });
+    return () => ctl.abort();
+  }, [run?.id]);
+  useEffect(() => {
+    if (layer === 'depot' && depots && !depots.available) setLayer('risk'); // a run without depot access falls back
+    if (!run || layer !== 'depot' || !depotId) return;
+    const ctl = new AbortController();
+    setDepotError(null);
+    api.depotAccess(run.id, depotId, at, ctl.signal).then(setDepotAccess)
+      .catch((e: Error) => { if (e.name !== 'AbortError') setDepotError(e.message); });
+    return () => ctl.abort();
+  }, [run, at, layer, depotId, depots, version]);
+
   const zoneNames = useMemo(() => new Map((zones?.features ?? []).map((f) => [f.properties.zone_id, f.properties.name])), [zones]);
 
   const zone = selectedZoneId && zones?.run_id === run?.id
@@ -283,12 +307,13 @@ export default function App() {
         <div className="flex flex-col gap-6 lg:col-span-2">
         <section className="flex flex-col overflow-hidden rounded-lg border border-accent-cyan/20 bg-navy-panel">
           <MapToolbar run={run} layer={layer} onLayer={setLayer} supply={supply} supplyError={supplyError} needs={needsView}
+                      depots={depots} depotId={depotId} onDepot={setDepotId} depotAccess={depotAccess} depotError={depotError}
                       needsError={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
                       onPortal={() => setPortalOpen(true)} />
           <div className="h-[560px]">
-            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply} refit={refit}
+            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply} depot={depotAccess} refit={refit}
                      onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}>
-              <MapLegend layer={layer} vocabulary={vocabulary} supply={supply} />
+              <MapLegend layer={layer} vocabulary={vocabulary} supply={supply} depot={depotAccess} />
             </ZoneMap>
           </div>
           {/* The zones summary, under the map. One line that scrolls sideways rather than wrapping, its thin scrollbar
@@ -324,7 +349,7 @@ export default function App() {
           <Panel title="Zone" className="h-[420px]">
             {run ? <ZonePanel run={run} at={zones?.at ?? at} zone={zone} gapReasons={zones?.gap_reasons ?? []}
                               responders={responders} version={version} supply={supply} supplyError={supplyError}
-                              needs={needsView} needsError={needsError} operator={operator} onNeedsChanged={() => setVersion((v) => v + 1)} />
+                              needs={needsView} needsError={needsError} operator={operator} onNeedsChanged={() => setVersion((v) => v + 1)} depotAccess={layer === 'depot' ? depotAccess : null} />
               : <p className="text-slate-500">loading…</p>}
           </Panel>
           <Panel title="Legend" className="max-h-[300px]">

@@ -7,11 +7,11 @@
 // push the page when the answer arrives; the supply counts row appears only when the person switches the layer on.
 
 import { HandHeart, Truck } from 'lucide-react';
-import type { Needs, Run, SupplyAccess } from '../lib/api';
+import type { DepotAccess, DepotList, Needs, Run, SupplyAccess } from '../lib/api';
 import { colorOf, UNSTYLED } from '../lib/colors';
 import { label } from '../lib/format';
 
-export type Layer = 'risk' | 'supply';
+export type Layer = 'risk' | 'supply' | 'depot';
 
 interface Props {
   run: Run | null;
@@ -23,11 +23,16 @@ interface Props {
   needsError: string | null;
   onSelectZone: (zoneId: string) => void;
   onPortal: () => void;
+  depots: DepotList | null;
+  depotId: string | null;
+  onDepot: (id: string) => void;
+  depotAccess: DepotAccess | null;
+  depotError: string | null;
 }
 
 const row = 'custom-scrollbar flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-accent-cyan/15 bg-navy-deep px-3 text-xs text-slate-400';
 
-export function MapToolbar({ run, layer, onLayer, supply, supplyError, needs, needsError, onSelectZone, onPortal }: Props) {
+export function MapToolbar({ run, layer, onLayer, supply, supplyError, needs, needsError, onSelectZone, onPortal, depots, depotId, onDepot, depotAccess, depotError }: Props) {
   const tab = (l: Layer, text: string, title?: string) => (
     <button type="button" onClick={() => onLayer(l)} aria-pressed={layer === l} title={title}
             className={`cursor-pointer rounded border px-2 py-0.5 text-xs font-bold uppercase transition ${
@@ -44,6 +49,7 @@ export function MapToolbar({ run, layer, onLayer, supply, supplyError, needs, ne
         <span className="uppercase tracking-wider">Colour zones by</span>
         {tab('risk', 'Risk level')}
         {tab('supply', 'Supply access', supply?.does_not_show ?? 'Route feasibility from the main road network only: no origin, route, distance or vehicle.')}
+        {depots?.available && tab('depot', 'Depot access', depots.does_not_show)}
         {needs?.writable && (
           <button type="button" onClick={onPortal}
                   className="ml-auto flex shrink-0 cursor-pointer items-center gap-1 rounded border border-accent-cyan/50 bg-cyan-950/40 px-2 py-0.5 font-bold uppercase text-accent-cyan hover:bg-cyan-900/50">
@@ -66,6 +72,30 @@ export function MapToolbar({ run, layer, onLayer, supply, supplyError, needs, ne
                   </span>
                 ))}
                 <span className="text-slate-500">zones (access only, not a route)</span>
+              </>
+            )}
+        </div>
+      )}
+
+      {layer === 'depot' && (
+        <div className={`${row} h-8`} title={depots?.does_not_show}>
+          <span>From</span>
+          <select value={depotId ?? ''} onChange={(e) => onDepot(e.target.value)} aria-label="Depot"
+                  className="max-w-[18rem] rounded border border-navy-line bg-navy-panel p-0.5 text-[11px] text-slate-200 focus:border-accent-cyan/60 focus:outline-none">
+            {(depots?.depots ?? []).map((d) => <option key={d.id} value={d.id}>{d.name} ({d.basin.split(' ')[0]})</option>)}
+          </select>
+          {depotError ? <span className="text-danger-red">{depotError}</span>
+            : !depotAccess ? <span>loading depot access…</span>
+            : (
+              <>
+                {depotAccess.states.filter((st) => st !== 'not_evaluated').map((st) => (
+                  <span key={st} className="inline-flex items-center gap-1" title={`${depotAccess.counts[st]?.population.toLocaleString() ?? '?'} people recorded in these zones`}>
+                    <span className="h-2.5 w-2.5 rounded-sm border border-white/20" style={{ background: colorOf('depot_access', st) ?? UNSTYLED }} />
+                    {depotAccess.labels[st] ?? st} <b className="text-slate-200">{depotAccess.counts[st]?.zones.toLocaleString() ?? '?'}</b>
+                  </span>
+                ))}
+                {!depotAccess.depot.road_dry && <span className="text-danger-red">· this depot's own road is flooded</span>}
+                <span className="text-slate-500">zones of its basin · a dry road route exists, not a route, distance or vehicle</span>
               </>
             )}
         </div>

@@ -2,7 +2,7 @@
 // contributions and tasks (with each task's full event history).
 
 import { useEffect, useState } from 'react';
-import { api, type Case, type Needs, type Responder, type Run, type SupplyAccess, type Task, type ZoneProps } from '../lib/api';
+import { api, type Case, type DepotAccess, type Needs, type Responder, type Run, type SupplyAccess, type Task, type ZoneProps } from '../lib/api';
 import { fmtTime, label } from '../lib/format';
 import { NeedsBlock } from './NeedsBlock';
 import { SafetyNote } from './SafetyNote';
@@ -103,9 +103,10 @@ interface Props {
   needsError: string | null;
   operator: string;
   onNeedsChanged: () => void;
+  depotAccess: DepotAccess | null; // shown when a depot is chosen
 }
 
-export function ZonePanel({ run, at, zone, gapReasons, responders, version, supply, supplyError, needs, needsError, operator, onNeedsChanged }: Props) {
+export function ZonePanel({ run, at, zone, gapReasons, responders, version, supply, supplyError, needs, needsError, operator, onNeedsChanged, depotAccess }: Props) {
   const runId = run.id;
   const [cases, setCases] = useState<Case[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +139,17 @@ export function ZonePanel({ run, at, zone, gapReasons, responders, version, supp
         <dd>{zone.engines.length ? zone.engines.map((e) => <Tag key={e}>{e}</Tag>) : <Muted>none</Muted>}</dd>
         <dt className="text-slate-500">Supply access</dt>
         <dd><SupplyAccessText supply={supply} zoneId={zone.zone_id} at={at} error={supplyError} /></dd>
+        {depotAccess && (
+          <>
+            <dt className="text-slate-500">From depot</dt>
+            <dd>
+              <Tag tone={depotAccess.zones[zone.zone_id] === 'not_reachable' ? 'red' : depotAccess.zones[zone.zone_id] === 'reachable' ? 'green' : depotAccess.zones[zone.zone_id] === 'only_if_unknown_roads_passable' ? 'cyan' : 'plain'}>
+                {depotAccess.zones[zone.zone_id] ? depotAccess.labels[depotAccess.zones[zone.zone_id]] ?? depotAccess.zones[zone.zone_id] : "outside this depot's basin network"}
+              </Tag>
+              <Muted>{depotAccess.depot.name}</Muted>
+            </dd>
+          </>
+        )}
         <dt className="text-slate-500">Active tasks</dt>
         <dd>{zone.task_count
           ? `${zone.task_count} (most advanced: ${label(zone.task_status)}) · ${zone.task_awaiting} awaiting assignment · ${zone.task_flagged} flagged verify`

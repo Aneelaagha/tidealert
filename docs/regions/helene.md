@@ -1,7 +1,7 @@
 # Second region: Hurricane Helene, Asheville, NC (September 2024)
 
-Status: **both gauges run (2026-10-05); results below, not yet interpreted for
-the write-up.** The Swannanoa's gate (the gap-fill fix) is merged and verified.
+Status: **both gauges run (2026-10-05); the write-up is drafted for the owner's review
+(`helene-validation-writeup.md`) and is on the Validation panel's Helene tab.** The Swannanoa's gate (the gap-fill fix) is merged and verified.
 
 **Every number below carries the date it was checked.** USGS figures for this
 event were provisional and have been revised since (see "Revised provisional

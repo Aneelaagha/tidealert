@@ -3,7 +3,7 @@
 
 import { FlaskConical, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
-import { type Validation, type ValidationFlagRow, type ValidationSource, api } from '../lib/api';
+import { type HeleneValidation, type Validation, type ValidationFlagRow, type ValidationSource, api } from '../lib/api';
 import { fmtTime } from '../lib/format';
 import { Tag, Time } from './ui';
 
@@ -34,12 +34,54 @@ function FlagTable({ rows }: { rows: ValidationFlagRow[] }) {
   );
 }
 
+function Helene({ h }: { h: HeleneValidation }) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-base font-bold text-white">{h.event}: Asheville, NC</p>
+        <p className="text-xs text-slate-500">Run <span className="font-mono">{h.run}</span> · data window <Time t={h.data_window_utc[0]} /> to <Time t={h.data_window_utc[1]} /> · two gauges · one event</p>
+      </div>
+      <div className="space-y-2">
+        {h.headline.map((x) => (
+          <p key={x.kind} className={`rounded border p-2.5 ${x.kind === 'strength' ? 'border-safe-green/40 bg-emerald-950/20 text-emerald-100' : 'border-warning-orange/40 bg-orange-950/20 text-orange-100'}`}>
+            <b>{x.kind === 'strength' ? 'What worked: ' : 'What it does not show: '}</b>{x.text}
+          </p>
+        ))}
+      </div>
+      <Section title="By gauge">
+        <div className="space-y-3">
+          {h.gauges.map((g) => (
+            <div key={g.site} className="rounded border border-white/10 bg-navy-deep/60 p-2.5">
+              <p className="flex flex-wrap items-center gap-2"><b className="text-white">{g.name}</b> <span className="font-mono text-xs text-slate-500">USGS {g.site}</span> <Tag tone="amber">lower confidence: HAND</Tag></p>
+              <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-xs">
+                <dt className="text-slate-500">Stage steps</dt><dd>{g.stage_steps.measured} measured{g.stage_steps.from_rating_curve ? `, ${g.stage_steps.from_rating_curve} from the rating curve` : ''}{g.stage_steps.missing ? <>, <b className="text-warning-orange">{g.stage_steps.missing} missing</b> (left missing, not inferred)</> : ''}</dd>
+                <dt className="text-slate-500">First road floods</dt><dd>{Math.abs(g.first_road_floods_min ?? 0).toLocaleString()} min {g.first_road_floods_min !== null && g.first_road_floods_min < 0 ? 'after' : 'before'} the minor-flood alarm (<Time t={g.alarm_minor_at} />)</dd>
+                <dt className="text-slate-500">Roads</dt><dd>{g.roads_ever_flooded} ever flooded; {g.roads_flooding_unknown.toLocaleString()} with flooding unknown (outside HAND's reach)</dd>
+                <dt className="text-slate-500">Zones</dt><dd><b className="text-white">{g.zones.isolated.zones} confirmed isolated</b> · {Object.entries(g.zones).filter(([k, z]) => k !== 'isolated' && z.zones > 0).map(([k, z]) => `${k} ${z.zones.toLocaleString()} (${z.people.toLocaleString()} people)`).join(' · ')}</dd>
+                <dt className="text-slate-500">NFIP claims</dt><dd>{g.nfip_claims_total.toLocaleString()} in the zones' block groups; {g.nfip_peak_day_claims} on {g.nfip_peak_day} (counts, not rates)</dd>
+                <dt className="text-slate-500">Rainfall</dt><dd className="text-slate-400">not evaluated: {g.rainfall}</dd>
+              </dl>
+              <Source s={g.source} extra={`USGS ${g.site}`} />
+            </div>
+          ))}
+        </div>
+      </Section>
+      <Section title="What this does not show">
+        <ul className="list-disc space-y-1 pl-5 text-slate-400">{h.limits.map((l) => <li key={l}>{l}</li>)}</ul>
+      </Section>
+    </div>
+  );
+}
+
 export function ValidationPanel({ onClose }: { onClose: () => void }) {
+  const [tab, setTab] = useState<'harvey' | 'helene'>('harvey');
+  const [helene, setHelene] = useState<HeleneValidation | null>(null);
   const [v, setV] = useState<Validation | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     const ctl = new AbortController();
     api.validation(ctl.signal).then(setV).catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
+    api.heleneValidation(ctl.signal).then(setHelene).catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => { ctl.abort(); window.removeEventListener('keydown', onKey); };
@@ -52,7 +94,16 @@ export function ValidationPanel({ onClose }: { onClose: () => void }) {
           <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white"><FlaskConical className="h-4 w-4 text-accent-cyan" /> Validation</h2>
           <button onClick={onClose} aria-label="Close" className="cursor-pointer rounded p-1 text-slate-400 hover:text-white"><X className="h-4 w-4" /></button>
         </div>
-        {error ? <p className="text-danger-red">{error}</p> : !v ? <p className="text-slate-500">reading the stored results…</p> : (
+        <div className="mb-3 flex gap-2" role="tablist">
+          {(['harvey', 'helene'] as const).map((t) => (
+            <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
+                    className={`cursor-pointer rounded border px-3 py-1 text-xs font-bold uppercase tracking-wider ${tab === t ? 'border-accent-cyan bg-cyan-950/60 text-accent-cyan' : 'border-white/10 text-slate-400 hover:text-slate-200'}`}>
+              {t === 'harvey' ? 'Harvey 2017, Houston' : 'Helene 2024, Asheville'}
+            </button>
+          ))}
+        </div>
+        {error ? <p className="text-danger-red">{error}</p> : tab === 'helene' ? (helene ? <Helene h={helene} /> : <p className="text-slate-500">reading the stored results…</p>)
+          : !v ? <p className="text-slate-500">reading the stored results…</p> : (
           <div className="space-y-4">
             <div>
               <p className="text-base font-bold text-white">{v.event} backtest</p>

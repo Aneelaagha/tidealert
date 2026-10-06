@@ -26,11 +26,29 @@ interface Props {
   onValidation: () => void;
   playing: boolean;
   onPlay: () => void;
+  caseCount: number | null; // Cases open at the time on screen
+  clockLabel?: string | null; // the continuous replay clock, when something is driving it
+  caption?: string | null; // e.g. "Replay playing at 12 min/s"
   onGauges: () => void;
   onStart: (() => void) | null; // open the Harvey peak, framed, with the first case selected; null when no run has a recorded peak
 }
 
-export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit, onEthics, onReport, onValidation, onGauges, onStart, playing, onPlay }: Props) {
+/** Cases open at the time on screen. It pings (a 200 ms scale pulse) each time the number goes up. */
+export function CasesCounter({ n }: { n: number | null }) {
+  const [ping, setPing] = useState(0);
+  const prev = useRef<number | null>(null);
+  useEffect(() => {
+    if (prev.current !== null && n !== null && n > prev.current) setPing((k) => k + 1);
+    prev.current = n;
+  }, [n]);
+  return (
+    <span className="flex items-center gap-1.5 rounded border border-white/10 px-2 py-0.5 text-xs uppercase tracking-wider text-slate-400" aria-label={`${n ?? 'no'} Cases open`}>
+      Cases <b key={ping} className={`text-sm tabular-nums text-white ${ping ? 'count-ping inline-block' : ''}`}>{n === null ? '-' : n.toLocaleString()}</b>
+    </span>
+  );
+}
+
+export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit, onEthics, onReport, onValidation, onGauges, onStart, playing, onPlay, caseCount, clockLabel, caption }: Props) {
   const [muted, setMutedState] = useState(isMuted());
   const toggle = () => { setMuted(!muted); setMutedState(!muted); };
   // Keyboard stepping commits once the keys pause, not per key press: each commit refetches every zone
@@ -67,11 +85,15 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
           </select>
         </label>
         {run && (
-          <span title={run.caveats.join('\n')}
-                className={`rounded border px-2 py-0.5 text-xs font-bold tracking-widest ${modeBadge(run.mode).className}`}>
-            {modeBadge(run.mode).label}
+          <span className="flex flex-col items-start gap-0.5">
+            <span title={run.caveats.join('\n')}
+                  className={`rounded border px-2 py-0.5 text-xs font-bold tracking-widest ${modeBadge(run.mode).className}`}>
+              {modeBadge(run.mode).label}
+            </span>
+            {caption && <span className="text-[11px] leading-none text-slate-400" aria-live="polite">{caption}</span>}
           </span>
         )}
+        <CasesCounter n={caseCount} />
         <div className="flex min-w-[240px] flex-1 items-center gap-2 rounded border border-navy-line bg-navy-panel px-2.5 py-1">
           <button type="button" onClick={onPlay} disabled={!ticks.length} aria-label={playing ? 'Pause the replay clock' : 'Play the replay clock'} title={playing ? 'Pause' : 'Play the replay forward, one step at a time'}
                   className="flex shrink-0 cursor-pointer items-center rounded border border-accent-cyan/40 p-1 text-accent-cyan hover:bg-cyan-900/40 disabled:opacity-40">
@@ -82,7 +104,7 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
                  onChange={(e) => onTickInput(Number(e.target.value))}
                  onPointerUp={commitNow} onKeyUp={commitSoon} />
           <span className="whitespace-nowrap font-mono text-[13px] tabular-nums text-accent-cyan">
-            {ticks.length ? fmtTime(ticks[tick]) : 'now (live)'}
+            {clockLabel ?? (ticks.length ? fmtTime(ticks[tick]) : 'now (live)')}
           </span>
         </div>
       </div>

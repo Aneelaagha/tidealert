@@ -2,7 +2,7 @@
 // (src/lib/api.ts); the run and time are kept in the URL.
 
 import { Map as MapIcon, UserRound } from 'lucide-react';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertsPanel } from './components/AlertsPanel';
 import { CopilotPanel } from './components/CopilotPanel';
 import { DonationPortal } from './components/DonationPortal';
@@ -28,7 +28,10 @@ import { cacheKeepView, dispatch, getConnection, restoreView, startConnectionWat
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
 import { rankAttention } from './lib/attention';
+import type { DevHost } from './dev/DevPanel';
+import { type Snapshot, sceneStart } from './dev/demo-driver';
 import { type Lead, loadLead, saveLead } from './lib/lastCall';
+import { pulseZone } from './lib/pulse';
 import { withNeed } from './lib/relief';
 import { readUrl, tickIndex, ticksFor, writeUrl } from './lib/time';
 
@@ -40,6 +43,11 @@ function Panel({ title, children, className = '' }: { title: string; children: R
     </section>
   );
 }
+
+// DEV ONLY: the demo driver. `import.meta.env.DEV` is a literal false in a production build, so this import is dead code there and
+// the driver is not in the bundle. In a dev build it also needs ?dev=1 in the URL. No user-facing route can switch it on.
+const DevPanel = import.meta.env.DEV ? lazy(() => import('./dev/DevPanel')) : null;
+const DEV_ON = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dev') === '1';
 
 const OPERATOR_KEY = 'tidealert.operator';
 const PLAY_STEP_MS = 1500; // one 15-minute step of the replay clock per 1.5 s: slow enough for the zones to load each step
@@ -256,6 +264,67 @@ export default function App() {
 
   const ranked = useMemo(() => rankAttention(zones, cases, needs), [zones, cases, needs]);
 
+  // ---- DEV ONLY: what the demo driver is allowed to see and do (dead code in a production build). It sees only what this page has
+  // already fetched for the replay step the playhead is at, and drives the page through the same state the slider and Play use.
+  const [demo, setDemo] = useState<{ active: boolean; clockMs: number | null; countdownMs: number | null; caption: string | null; pinned: string[] }>(
+    { active: false, clockMs: null, countdownMs: null, caption: null, pinned: [] });
+  const [alarms, setAlarms] = useState<Record<string, number> | null>(null);
+  const ticksRef = useRef(ticks);
+  ticksRef.current = ticks;
+  const runsRef = useRef(runs);
+  runsRef.current = runs;
+  const lastSecond = useRef(-1);
+  const changeLeadRef = useRef<(l: Lead) => void>(() => {});
+  const snap = useRef<Snapshot | null>(null);
+  if (DEV_ON) {
+    const tickAt = ticks[tick] ? Date.parse(ticks[tick]) : null;
+    const forStep = (iso: string | undefined | null) => iso != null && tickAt !== null && Date.parse(iso) === tickAt;
+    snap.current = {
+      tickAt, clockMs: demo.clockMs ?? tickAt ?? 0,
+      ready: !!zones && forStep(zones.at) && forStep(casesAt) && forStep(supply?.at) && forStep(lastCall?.at) && !!freshness && forStep(freshness.at),
+      cases: cases && forStep(casesAt) ? cases.length : null,
+      firstCaseAt: cases?.length ? Math.min(...cases.map((c) => Date.parse(c.opened_at))) : null,
+      possibly: supply && forStep(supply.at) ? supply.counts.possibly_isolated?.zones ?? null : null,
+      cutOff: supply && forStep(supply.at) ? supply.counts.isolated?.zones ?? null : null,
+      freshness: freshness ? freshness.sources.map((s) => s.status) : null,
+      lastCall: lastCall && forStep(lastCall.at) ? lastCall : null, ranked, alarms, pinned: demo.pinned,
+    };
+  }
+  const devHost = useMemo<DevHost | null>(() => {
+    if (!DEV_ON) return null;
+    return {
+      snapshot: () => snap.current!,
+      goToTick: (i) => { setPlaying(false); setTick(i); setAt(ticksRef.current[i]); },
+      setClock: (ms, second) => {
+        const newSecond = second !== lastSecond.current; // decided here, not inside the updater (StrictMode runs updaters twice)
+        if (newSecond) lastSecond.current = second;
+        setDemo((d) => (d.clockMs === ms && !newSecond ? d : { ...d, clockMs: ms, countdownMs: newSecond ? ms : d.countdownMs }));
+      },
+      pinZone: (id) => setDemo((d) => (id === '' ? { ...d, pinned: [] } : d.pinned.includes(id) ? d : { ...d, pinned: [...d.pinned, id] })),
+      pulseZone,
+      caption: (text) => setDemo((d) => (d.caption === text ? d : { ...d, caption: text })),
+      frozen: () => setPlaying(false),
+      active: (on) => setDemo(on ? (d) => ({ ...d, active: true }) : { active: false, clockMs: null, countdownMs: null, caption: null, pinned: [] }),
+      prepare: async () => {
+        const r = runsRef.current.find((x) => x.mode === 'replay' && x.peak_at);
+        if (!r) return null;
+        const first = await api.cases(r.id, null, null); // the replay's Cases over the whole window: only to find when the first one opens
+        const opened = first.cases.map((c) => Date.parse(c.opened_at));
+        const tickTimes = ticksFor(r).map((t) => Date.parse(t));
+        const startMs = opened.length ? sceneStart(Math.min(...opened), tickTimes) : null;
+        if (startMs === null) return null;
+        api.validation().then((v) => setAlarms(Object.fromEntries(v.lead.rows.map((g) => [g.site, Date.parse(g.alarm_minor_at)])))).catch(() => setAlarms(null));
+        const startIso = ticksFor(r)[tickTimes.indexOf(startMs)];
+        chooseRun(r, startIso);
+        setLayer('supply');
+        changeLeadRef.current({ reply: 0, decision: 0, travel: 0 });
+        setDemo({ active: true, clockMs: startMs, countdownMs: startMs, caption: null, pinned: [] });
+        for (let i = 0; i < 120; i++) { await new Promise((res) => setTimeout(res, 250)); if (snap.current?.ready && snap.current.tickAt === startMs) break; }
+        return { startMs, tickTimes };
+      },
+    };
+  }, [chooseRun]);
+
   // "Start here": the run with a recorded peak (the Harvey replay), opened at that tick with the map framed and the
   // first-ranked zone and Case selected once their answers for that time have loaded.
   const startRun = useMemo(() => runs.find((r) => r.mode === 'replay' && r.peak_at) ?? runs.find((r) => r.peak_at) ?? null, [runs]);
@@ -318,6 +387,7 @@ export default function App() {
     return () => ctl.abort();
   }, [run, at, lead, version]);
   const changeLead = (l: Lead) => { setLead(l); saveLead(l); };
+  changeLeadRef.current = changeLead;
 
   // Play: step the replay clock forward one tick at a time so a countdown can be watched. It stops at the end of the window,
   // when the run changes, or on Pause; moving the slider by hand pauses it.
@@ -344,7 +414,9 @@ export default function App() {
     <div className="flex min-h-screen flex-col pb-6 antialiased selection:bg-cyan-950 selection:text-white">
       <Header runs={runs} run={run} onRun={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, null); }}
               ticks={ticks} tick={tick} onTickInput={(i) => { setPlaying(false); setTick(i); }} onTickCommit={() => setAt(ticks.length ? ticks[tick] : null)}
-              onEthics={() => setEthicsOpen(true)} onReport={() => setReportOpen(true)} onValidation={() => setValidationOpen(true)} onGauges={() => setGaugesOpen(true)} onStart={startRun ? startHere : null} playing={playing} onPlay={() => setPlaying((p) => !p)} />
+              onEthics={() => setEthicsOpen(true)} onReport={() => setReportOpen(true)} onValidation={() => setValidationOpen(true)} onGauges={() => setGaugesOpen(true)} onStart={startRun ? startHere : null} playing={playing} onPlay={() => setPlaying((p) => !p)}
+              caseCount={cases && run ? cases.length : null}
+              clockLabel={demo.active && demo.clockMs !== null ? fmtTime(new Date(demo.clockMs).toISOString()) : null} caption={demo.active ? demo.caption : null} />
       {ethicsOpen && <EthicsPanel run={run} freshness={freshness} vocabulary={vocabulary} onClose={closeEthics} />}
       <ConnectionBanner conn={conn} asOf={zones ? fmtTime(zones.at) : null} />
       {gaugesOpen && <GaugesPanel onClose={closeGauges} />}
@@ -363,7 +435,7 @@ export default function App() {
                       needsError={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
                       onPortal={() => setPortalOpen(true)} />
           <div className="h-[560px]">
-            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply} depot={depotAccess} refit={refit}
+            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply} depot={depotAccess} refit={refit} pulseNew={playing || demo.active}
                      onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}>
               <MapLegend layer={layer} vocabulary={vocabulary} supply={supply} depot={depotAccess} />
             </ZoneMap>
@@ -385,7 +457,7 @@ export default function App() {
             <OperatorBar run={run} runs={runs} operator={operator} onOperator={changeOperator}
                          onRun={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, zones?.at ?? at); }} />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <AlertsPanel run={actRun ?? run} at={zones?.at ?? at} cases={cases} error={null} zoneNames={zoneNames}
+              <AlertsPanel run={actRun ?? run} animateNew={playing || demo.active} at={zones?.at ?? at} cases={cases} error={null} zoneNames={zoneNames}
                            selectedCaseId={selectedCaseId}
                            onSelectCase={(c) => { setSelectedCaseId(c?.id ?? null); if (c) setSelectedZoneId(c.zone_id); }}
                            operator={operator} responders={responderList ?? []} onActed={() => setVersion((v) => v + 1)} />
@@ -397,7 +469,8 @@ export default function App() {
 
         <div className="flex flex-col gap-6">
           <LastCallPanel data={lastCall} error={lastCallError} lead={lead} onLead={changeLead} selectedZoneId={selectedZoneId}
-                         onSelect={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
+                         onSelect={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
+                         pinned={demo.active ? demo.pinned : null} clockMs={demo.active && demo.countdownMs !== null ? demo.countdownMs : undefined} />
           <AttentionList items={ranked} selectedZoneId={selectedZoneId}
                          onSelect={(a) => { setSelectedZoneId(a.zoneId); setSelectedCaseId(a.caseId); }} />
           {run && (
@@ -417,6 +490,7 @@ export default function App() {
           </Panel>
         </div>
       </main>
+      {DEV_ON && DevPanel && devHost && <Suspense fallback={null}><DevPanel host={devHost} /></Suspense>}
     </div>
   );
 }

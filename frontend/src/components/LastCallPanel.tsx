@@ -6,11 +6,14 @@
 import { Hourglass } from 'lucide-react';
 import { useState } from 'react';
 import type { LastCall, LastCallZone } from '../lib/api';
-import { type Lead, fmtCountdown, parseMinutes, totalLead } from '../lib/lastCall';
+import { type Lead, countdownTone, fmtCountdown, minutesLeft, parseMinutes, totalLead } from '../lib/lastCall';
 import { Mono, Time } from './ui';
 
-function Countdown({ z }: { z: LastCallZone }) {
-  if (z.status === 'counting') return <><b className="text-2xl tabular-nums text-warning-orange">{fmtCountdown(z.minutes_to_last_call ?? 0)}</b><span className="text-xs text-slate-400"> to last call</span></>;
+function Countdown({ z, clockMs }: { z: LastCallZone; clockMs?: number }) {
+  // With a continuous replay clock (the dev demo driver) the countdown is the recorded time minus that clock; otherwise it is the server's number.
+  const left = clockMs !== undefined && z.last_call_at ? minutesLeft(Date.parse(z.last_call_at), clockMs) : z.minutes_to_last_call ?? 0;
+  if (z.status === 'counting' && left <= 0) return <b className="text-lg text-danger-red">Last call</b>;
+  if (z.status === 'counting') return <><b className={`text-2xl tabular-nums ${countdownTone(left)}`}>{fmtCountdown(left)}</b><span className="text-xs text-slate-400"> to last call</span></>;
   if (z.status === 'passed') return <><b className="text-lg text-danger-red">Last call passed</b><span className="text-xs text-slate-400"> · cut off in {fmtCountdown(z.minutes_to_cutoff ?? 0)}</span></>;
   return null;
 }
@@ -31,9 +34,11 @@ interface Props {
   onSelect: (zoneId: string) => void;
   selectedZoneId: string | null;
   limit?: number;
+  pinned?: string[] | null; // dev demo: show only these zones, in this order (null: the normal soonest-first list)
+  clockMs?: number; // dev demo: the continuous replay clock the countdowns are read against
 }
 
-export function LastCallPanel({ data, error, lead, onLead, onSelect, selectedZoneId, limit = 6 }: Props) {
+export function LastCallPanel({ data, error, lead, onLead, onSelect, selectedZoneId, limit = 6, pinned = null, clockMs }: Props) {
   const [draft, setDraft] = useState({ reply: String(lead.reply), decision: String(lead.decision), travel: String(lead.travel) });
   const set = (k: keyof Lead, v: string) => {
     setDraft((d) => ({ ...d, [k]: v }));
@@ -47,7 +52,9 @@ export function LastCallPanel({ data, error, lead, onLead, onSelect, selectedZon
              className={`w-full min-w-0 rounded border bg-navy-deep p-1 text-sm tabular-nums text-slate-100 focus:outline-none ${bad(k) ? 'border-danger-red' : 'border-accent-cyan/30 focus:border-accent-cyan'}`} />
     </label>
   );
-  const rows = (data?.zones ?? []).filter((z) => z.status === 'counting' || z.status === 'passed').slice(0, limit);
+  const rows = pinned
+    ? pinned.map((id) => data?.zones.find((z) => z.zone_id === id)).filter((z): z is LastCallZone => !!z)
+    : (data?.zones ?? []).filter((z) => z.status === 'counting' || z.status === 'passed').slice(0, limit);
   return (
     <section className="rounded-lg border border-warning-orange/30 bg-navy-panel p-4" aria-label="Last call">
       <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-white">
@@ -71,14 +78,14 @@ export function LastCallPanel({ data, error, lead, onLead, onSelect, selectedZon
               <b className="tabular-nums text-warning-orange">{data.counts.counting}</b> counting down · <b className="tabular-nums text-danger-red">{data.counts.passed}</b> past last call ·{' '}
               <b className="tabular-nums text-slate-100">{data.counts.cut_off}</b> cut off · <b className="tabular-nums text-sky-200">{data.counts.reconnected}</b> reconnected
             </p>
-            {rows.length === 0 ? <p className="mt-2 text-sm text-slate-500">No zone is counting down at this time.</p> : (
+            {rows.length === 0 ? (pinned ? null : <p className="mt-2 text-sm text-slate-500">No zone is counting down at this time.</p>) : (
               <ol className="mt-2 space-y-1" aria-label="Soonest last call first">
                 {rows.map((z) => (
                   <li key={z.zone_id}>
                     <button type="button" onClick={() => onSelect(z.zone_id)} aria-current={selectedZoneId === z.zone_id}
                             className={`flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded border px-2 py-1.5 text-left transition hover:border-accent-cyan/50 ${selectedZoneId === z.zone_id ? 'border-accent-cyan bg-cyan-950/40' : 'border-white/10 bg-navy-deep/60'}`}>
                       <span className="min-w-0 flex-1 truncate text-sm text-slate-200" title={z.zone_name}><Mono>{z.zone_name.replace(/^USGS-\d+ /, '')}</Mono>{z.was_reconnected && <span className="ml-1 text-xs text-sky-300">(reconnected, cut off again)</span>}</span>
-                      <span className="shrink-0 text-right"><Countdown z={z} /></span>
+                      <span className="shrink-0 text-right">{z.status === 'cut_off' ? <b className="text-lg text-danger-red">Cut off</b> : <Countdown z={z} clockMs={clockMs} />}</span>
                     </button>
                   </li>
                 ))}

@@ -51,3 +51,12 @@ body {
 .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
 .maplibregl-ctrl-attrib { background: rgba(5, 9, 20, 0.8) !important; color: #94a3b8; }
 .maplibregl-ctrl-attrib a { color: #cbd5e1; }
+
+/* Small, data-driven motion while the replay clock is moving (nothing here runs on a still page). */
+@keyframes count-ping { 0% { transform: scale(1); } 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
+.count-ping { animation: count-ping 200ms ease-out 1; }
+@keyframes case-in { from { transform: translateX(28px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.case-in { animation: case-in 300ms ease-out 1 both; }
+@keyframes ring-expand { from { transform: translate(-50%, -50%) scale(0.35); opacity: 0.9; } to { transform: translate(-50%, -50%) scale(2.6); opacity: 0; } }
+.pulse-ring { position: absolute; width: 44px; height: 44px; border-radius: 9999px; border: 3px solid #ff9500; pointer-events: none; animation: ring-expand 1100ms ease-out 1 forwards; }
+@media (prefers-reduced-motion: reduce) { .count-ping, .case-in { animation: none; } .pulse-ring { display: none; } }

@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config';
 // The API is FastAPI (backend/app). In development Vite serves the page and proxies these paths to it; in production
 // FastAPI serves the built page (frontend/dist) at /ui/ next to the same API, so the page never names a host.
 const API = process.env.TIDEALERT_API ?? 'http://127.0.0.1:8000';
-const API_PATHS = ['/runs', '/map', '/cases', '/tasks', '/responders', '/copilot', '/needs', '/pledges', '/reports', '/validation'];
+const API_PATHS = ['/runs', '/map', '/cases', '/tasks', '/responders', '/copilot', '/needs', '/pledges', '/reports', '/validation', '/gauges'];
 
 export default defineConfig({
   base: '/ui/',

@@ -12,6 +12,7 @@ import { FreshnessBanner } from './components/FreshnessBanner';
 import { ConnectionBanner } from './components/ConnectionBanner';
 import { Header } from './components/Header';
 import { ReportPanel } from './components/ReportPanel';
+import { ValidationPanel } from './components/ValidationPanel';
 import { AttentionList } from './components/AttentionList';
 import { Legend } from './components/Legend';
 import { MapLegend } from './components/MapLegend';
@@ -103,6 +104,7 @@ export default function App() {
   const [ethicsOpen, setEthicsOpen] = useState(false);
   const [portalOpen, setPortalOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [validationOpen, setValidationOpen] = useState(false);
   const [layer, setLayer] = useState<Layer>('risk'); // what the zone fill shows
   const [supply, setSupply] = useState<SupplyAccess | null>(null);
   const [supplyError, setSupplyError] = useState<string | null>(null);
@@ -136,6 +138,7 @@ export default function App() {
   const closeEthics = useCallback(() => setEthicsOpen(false), []);
   const closePortal = useCallback(() => setPortalOpen(false), []);
   const closeReport = useCallback(() => setReportOpen(false), []);
+  const closeValidation = useCallback(() => setValidationOpen(false), []);
 
   const changeOperator = (v: string) => {
     setOperator(v);
@@ -249,9 +252,10 @@ export default function App() {
     <div className="flex min-h-screen flex-col pb-6 antialiased selection:bg-cyan-950 selection:text-white">
       <Header runs={runs} run={run} onRun={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, null); }}
               ticks={ticks} tick={tick} onTickInput={setTick} onTickCommit={() => setAt(ticks.length ? ticks[tick] : null)}
-              onEthics={() => setEthicsOpen(true)} onReport={() => setReportOpen(true)} onStart={startRun ? startHere : null} />
+              onEthics={() => setEthicsOpen(true)} onReport={() => setReportOpen(true)} onValidation={() => setValidationOpen(true)} onStart={startRun ? startHere : null} />
       {ethicsOpen && <EthicsPanel run={run} freshness={freshness} vocabulary={vocabulary} onClose={closeEthics} />}
       <ConnectionBanner conn={conn} />
+      {validationOpen && <ValidationPanel onClose={closeValidation} />}
       {reportOpen && run && <ReportPanel run={run} at={zones?.at ?? at} onClose={closeReport} />}
       {portalOpen && run && <DonationPortal run={run} needs={needs} needsError={needsError} operator={operator} at={zones?.at ?? at}
                                            onChanged={() => setVersion((v) => v + 1)} onClose={closePortal} />}

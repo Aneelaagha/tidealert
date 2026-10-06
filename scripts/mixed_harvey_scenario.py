@@ -46,6 +46,7 @@ from app.models.run import RunMode  # noqa: E402
 from app.services import task_actions  # noqa: E402
 from app.services.case_matcher import CADENCE, CaseSweeper  # noqa: E402
 from app.services.river_driver import HARVEY_END, HARVEY_START, load_site_context  # noqa: E402
+from app.services import relief_needs  # noqa: E402
 from app.services.runs import ensure_run  # noqa: E402
 from app.services.stage import timesteps, usgs_source_name  # noqa: E402
 
@@ -146,6 +147,13 @@ def main() -> None:
                                     note=f"scripted ({p['role']}); expected: {p['expect']}")
                 db.commit()
                 made.append((responder.name, p, task.id))
+
+        # The demo's relief needs: three synthetic needs on zones cut off at the recorded peak, by the fixed rule in
+        # app.services.relief_needs.seed_mixed. Idempotent: a rerun replaces them (and clears pledges against them).
+        seeded = relief_needs.seed_mixed(db, run)
+        db.commit()
+        for n in seeded:
+            print(f"  relief need (synthetic): {n.quantity_needed:,} x {n.item_type.value} for zone {n.zone_id}")
 
     print(f"{RUN_NAME}: swept {len(ticks)} ticks of {', '.join(SITES)}; {len(made)} scripted assignments")
     for name, p, task_id in made:

@@ -83,7 +83,7 @@ def test_copilot_facts_match_the_copilot(report, client):
 
 
 # ---------------------------------------------------------------- each gap pinned to its source
-PINNED = {"consent", "authentication", "free_text_notes", "offline_copy", "tiles", "retention", "case_status_history", "confidence", "rain_driver",
+PINNED = {"consent", "authentication", "free_text_notes", "offline_copy", "relief_pledges", "tiles", "retention", "case_status_history", "confidence", "rain_driver",
           "response_scan"}
 
 
@@ -150,6 +150,14 @@ def test_offline_copy_gap_is_pinned_to_the_code_that_keeps_it(report):
     assert "indexedDB" in code and not re.search(r"localStorage\.|sessionStorage", code)  # the copy lives in IndexedDB, nowhere else
     text = gaps(report)["offline_copy"]["text"]
     assert "browser's own storage" in text and "not encrypted" in text and "read-only" in text
+
+
+def test_relief_pledges_gap_is_pinned_to_the_service_and_the_pledge_table_has_no_identity(report):
+    from app.models import NeedPledge
+    text = gaps(report)["relief_pledges"]["text"]
+    for phrase in ("unverified test entries", "no payments", "no delivery tracking", "no authentication"):
+        assert phrase in text
+    assert {c.name for c in NeedPledge.__table__.columns} == {"id", "need_id", "quantity", "created_at"}  # nothing about who
 
 
 def test_response_scan_gap_states_the_name_based_blind_spot(report):

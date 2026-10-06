@@ -20,7 +20,10 @@ WRITE_ROUTES = frozenset({
     ("POST", "/cases/{case_id}/tasks"),
     ("POST", "/pledges"),  # a donor offers supplies against a need; refused on a replay (app.services.pledges)
     ("POST", "/pledges/{pledge_id}/close"),  # an operator records an offer received or withdrawn
-    ("POST", "/needs"),  # operator-entered needs; refused on a replay (app.services.needs)
+    ("POST", "/needs"),
+    ("POST", "/relief/needs"),  # a coordinator posts a relief need; refused on a replay (app.services.relief_needs)
+    ("POST", "/relief/needs/{need_id}/pledges"),  # an anonymous test pledge: no payment, no identity stored
+    ("POST", "/relief/needs/{need_id}/close"),  # close a need to further pledges  # operator-entered needs; refused on a replay (app.services.needs)
     ("POST", "/copilot/ask"),  # reads only; POST because the question has a body
 })
 

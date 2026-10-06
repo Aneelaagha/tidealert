@@ -448,7 +448,7 @@ export default function App() {
                       needsError={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
                       onPortal={() => setPortalOpen(true)} />
           <div className="h-[560px]">
-            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply} depot={depotAccess} refit={refit} pulseNew={playing || demo.active}
+            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply} depot={depotAccess} refit={refit} pulseNew={playing || demo.active} flat={demo.active}
                      onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}>
               <MapLegend layer={layer} vocabulary={vocabulary} supply={supply} depot={depotAccess} />
             </ZoneMap>

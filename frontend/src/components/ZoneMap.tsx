@@ -6,6 +6,7 @@ import maplibregl, { type GeoJSONSource, type StyleSpecification } from 'maplibr
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import type { DepotAccess, Run, SupplyAccess, ZonesResponse } from '../lib/api';
 import { onPulse } from '../lib/pulse';
+import { DEM_TILES, EASE_MS, PITCH_3D, loadThreeD, saveThreeD, terrainSpec } from '../lib/terrain';
 import { GAP_COLOR, SELECTED_COLOR, TASK_RADIUS, TASK_VERIFY_EDGE, matchColor } from '../lib/colors';
 
 const STYLE: StyleSpecification = {
@@ -23,6 +24,25 @@ const STYLE: StyleSpecification = {
 };
 
 const EMPTY = { type: 'FeatureCollection' as const, features: [] };
+
+/** The "3D" button, in the same group as the zoom buttons. Its on/off state lives in the component; this is only the button. */
+class ThreeDControl implements maplibregl.IControl {
+  private el: HTMLDivElement | null = null;
+  constructor(private onToggle: (on: boolean) => void, private initial: boolean) {}
+  onAdd() {
+    const el = document.createElement('div');
+    el.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'map3d-btn'; b.textContent = '3D'; b.setAttribute('aria-label', '3D terrain');
+    b.setAttribute('aria-pressed', String(this.initial));
+    let on = this.initial;
+    b.addEventListener('click', () => { on = b.getAttribute('aria-pressed') !== 'true'; this.onToggle(on); });
+    el.appendChild(b);
+    this.el = el;
+    return el;
+  }
+  onRemove() { this.el?.remove(); this.el = null; }
+}
 
 function hatchImage() {
   const size = 8, data = new Uint8Array(size * size * 4);
@@ -72,6 +92,7 @@ interface Props {
   layer: 'risk' | 'supply' | 'depot'; // what the zone fill shows
   depot?: DepotAccess | null; // the depot-access answer for the same run and time (needed when layer is 'depot')
   refit?: number; // bump to frame the zones again (the Start here preset)
+  flat?: boolean; // force the flat 2D camera (the auto-advance demo runs in 2D)
   pulseNew?: boolean; // ring a zone's marker when its first task appears (only while the replay clock is moving)
   children?: ReactNode; // overlays drawn on the map (the legend)
   supply: SupplyAccess | null; // the supply-access answer for the same run and time (needed when layer is 'supply')
@@ -97,18 +118,25 @@ export function boundsOf(zones: ZonesResponse): [number, number, number, number]
   return Number.isFinite(w) ? [w, s, e, n] : null;
 }
 
-export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply, depot = null, refit = 0, pulseNew = false, children }: Props) {
+export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply, depot = null, refit = 0, pulseNew = false, flat = false, children }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const onSelect = useRef(onSelectZone);
   onSelect.current = onSelectZone;
   const [ready, setReady] = useState(false);
+  // 3D terrain: off by default, remembered across reloads, and always off while `flat` (the demo driver). The elevation source is
+  // added at style load but only fetches tiles while terrain is on.
+  const [threeD, setThreeD] = useState(loadThreeD);
+  const camera2d = useRef<{ pitch: number; bearing: number } | null>(null);
 
   useEffect(() => {
     const map = new maplibregl.Map({ container: container.current!, style: STYLE, center: [0, 0], zoom: 1 });
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
+    map.addControl(new ThreeDControl((on) => { setThreeD(on); saveThreeD(on); }, loadThreeD()), 'top-left');
     // Start on "style.load", not "load": "load" waits for a rendered frame, which a background tab never draws.
     map.once('style.load', () => {
+      map.addSource('dem', { type: 'raster-dem', encoding: 'terrarium', tiles: [DEM_TILES], tileSize: 256, maxzoom: 15,
+                             attribution: 'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/">AWS Terrain Tiles</a>' });
       addLayers(map);
       const pick = (e: maplibregl.MapLayerMouseEvent) => onSelect.current(String(e.features?.[0]?.properties?.zone_id ?? ''));
       map.on('click', 'task-marker', pick);
@@ -118,8 +146,26 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
       setReady(true);
     });
     mapRef.current = map;
+    if (import.meta.env.DEV) (window as unknown as { __map?: maplibregl.Map }).__map = map; // dev only: lets a browser check read the camera
     return () => { map.remove(); mapRef.current = null; };
   }, []);
+
+  const on3d = threeD && !flat;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    if (on3d) {
+      camera2d.current ??= { pitch: map.getPitch(), bearing: map.getBearing() };
+      map.setTerrain(terrainSpec());
+      map.easeTo({ pitch: PITCH_3D, duration: EASE_MS });
+    } else if (map.getTerrain()) {
+      map.setTerrain(null);
+      map.easeTo({ pitch: camera2d.current?.pitch ?? 0, bearing: camera2d.current?.bearing ?? map.getBearing(), duration: EASE_MS });
+      camera2d.current = null;
+    }
+    const b = container.current?.querySelector<HTMLButtonElement>('.map3d-btn');
+    if (b) { b.setAttribute('aria-pressed', String(on3d)); b.classList.toggle('map3d-on', on3d); b.disabled = flat; b.title = flat ? '3D is off while the demo runs' : on3d ? 'Back to the flat map' : 'Tilt the map: terrain, 55° pitch'; }
+  }, [on3d, flat, ready]);
 
   // Fit the view to the zones that loaded for the run (once per run, not on every slider tick). The run's extent
   // is only a first guess: the zones are what is drawn. A run with no zones has nothing to frame (see `note`).

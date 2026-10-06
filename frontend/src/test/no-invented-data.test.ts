@@ -46,8 +46,8 @@ describe('no invented data in src/', () => {
     expect(offenders(/\bfetch\s*\(/, (p) => p === join('lib', 'api.ts') || p === join('lib', 'connection.ts'))).toEqual([]);
   });
 
-  it('names no outside host except the basemap tiles', () => {
-    const allowed = ['https://tile.openstreetmap.org/', 'https://www.openstreetmap.org/copyright'];
+  it('names no outside host except the basemap and terrain tiles', () => {
+    const allowed = ['https://tile.openstreetmap.org/', 'https://www.openstreetmap.org/copyright', 'https://s3.amazonaws.com/elevation-tiles-prod/', 'https://registry.opendata.aws/terrain-tiles/'];
     const found = files.flatMap((f) => (f.text.match(/https?:\/\/[^\s'"`)]+/g) ?? []).map((url) => `${f.path}: ${url}`));
     expect(found.filter((x) => !allowed.some((a) => x.split(': ')[1].startsWith(a)))).toEqual([]);
   });

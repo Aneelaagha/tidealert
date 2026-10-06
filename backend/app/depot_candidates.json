@@ -1,0 +1,78 @@
+{
+ "source": "OpenStreetMap, amenity=fire_station, via Overpass (https://overpass-api.de/api/interpreter)",
+ "note": "Real fire stations used as EXAMPLE depot origins for the depot-access check. Nothing says any of them served as a depot during Harvey. Selected per basin: stations within 150 m of a modelled road that are connected to the road network at base flow, three spread west to east.",
+ "sites": {
+  "08074500": {
+   "basin": "Whiteoak Bayou at Houston, TX",
+   "osm_fetched_at": "2026-10-06T06:06:15.337868+00:00",
+   "depots": [
+    {
+     "osm": "node/368160918",
+     "name": "Cypress Creek Fire Department - Station 22",
+     "lat": 29.9527092,
+     "lon": -95.6000089
+    },
+    {
+     "osm": "way/180766663",
+     "name": "Houston Fire Department Station 50",
+     "lat": 29.8344639,
+     "lon": -95.4898706
+    },
+    {
+     "osm": "way/1069916719",
+     "name": "Heights Fire Department",
+     "lat": 29.7923629,
+     "lon": -95.3987534
+    }
+   ]
+  },
+  "08076000": {
+   "basin": "Greens Bayou nr Houston, TX",
+   "osm_fetched_at": "2026-10-06T06:05:21.066147+00:00",
+   "depots": [
+    {
+     "osm": "way/845520751",
+     "name": "Houston Fire Department Station 96",
+     "lat": 29.9694597,
+     "lon": -95.5409548
+    },
+    {
+     "osm": "node/368161295",
+     "name": "Harris County Fire Department",
+     "lat": 29.9412,
+     "lon": -95.3957
+    },
+    {
+     "osm": "node/11898847239",
+     "name": "Westfield Fire Department - Central Station",
+     "lat": 29.9119135,
+     "lon": -95.333573
+    }
+   ]
+  },
+  "08075770": {
+   "basin": "Hunting Bayou at IH 610, Houston, TX",
+   "osm_fetched_at": "2026-10-06T06:05:29.358862+00:00",
+   "depots": [
+    {
+     "osm": "way/671190399",
+     "name": "Houston Fire Department Station 30",
+     "lat": 29.8191705,
+     "lon": -95.3607904
+    },
+    {
+     "osm": "way/1032712063",
+     "name": "Houston Fire Department Station 39",
+     "lat": 29.8127935,
+     "lon": -95.318635
+    },
+    {
+     "osm": "way/1074383702",
+     "name": "Houston Fire Department Station 45",
+     "lat": 29.8052066,
+     "lon": -95.2639134
+    }
+   ]
+  }
+ }
+}

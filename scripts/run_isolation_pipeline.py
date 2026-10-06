@@ -129,7 +129,7 @@ def main() -> None:
 
     site = resolve_gauge(args.site)
     tz = local_zone(site)
-    cache = os.path.join(DATA_DIR, f"usgs-{site.site_id}")
+    cache = os.path.join(DATA_DIR, f"usgs-{site.cache_key}")
     os.makedirs(cache, exist_ok=True)
 
     def fmt(t):

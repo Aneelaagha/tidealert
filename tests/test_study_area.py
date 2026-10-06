@@ -95,3 +95,26 @@ def test_dem_download_gives_up_after_three_attempts_and_never_retries_a_client_e
     with pytest.raises(requests.HTTPError):
         terrain._get_with_retry("u", {}, "x", sleep=lambda s: None)
     assert len(calls) == 1  # a bad request is not retried
+
+
+# ---------------------------------------------------------------- the opt-in full-basin variant
+def test_the_full_basin_variant_is_off_by_default_and_keeps_its_own_cache_and_region(monkeypatch, tmp_path):
+    from shapely.geometry import box
+    from app.services import gauge_site, study_area
+    basin, swannanoa = box(0, 0, 10, 10), box(6, 6, 10, 10)
+    place = lambda geoid: box(0, 0, 2, 2)  # noqa: E731  (the city-limits clip)
+    monkeypatch.delenv(study_area.FULL_ENV, raising=False)
+    clipped, area = study_area.apply("03451500", basin, basin_of=lambda s: swannanoa, place=place, cache_dir=str(tmp_path))
+    assert area.clip.label != study_area.FULL_LABEL and clipped.area == 4  # unchanged: the clip
+
+    monkeypatch.setenv(study_area.FULL_ENV, "1")
+    full, area = study_area.apply("03451500", basin, basin_of=lambda s: swannanoa, place=place, cache_dir=str(tmp_path))
+    assert area.clip.label == study_area.FULL_LABEL and full.equals(basin.difference(swannanoa))  # whole basin minus the Swannanoa
+    assert "not clipped" in area.note and area.full_basin.equals(basin)
+
+    def site(label):
+        return gauge_site.GaugeSite(site_id="03451500", name="x", point=None, comid=1, basin=basin, gauge_datum_altitude_ft=None,
+                                    gauge_vertical_datum=None, nws_lid=None, thresholds=None, fim_mapserver_url=None, nws_time_zone=None,
+                                    usgs_time_zone=None, usgs_uses_dst=None, study_area_label=label)
+    assert site(study_area.FULL_LABEL).cache_key == "03451500-full" and site("clipped to Asheville city limits").cache_key == "03451500"
+    assert site(study_area.FULL_LABEL).region != site("clipped to Asheville city limits").region  # no zone is shared with the clipped run

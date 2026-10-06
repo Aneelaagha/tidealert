@@ -46,7 +46,8 @@ polygon is cached in `backend/app/data/usgs-03451500/study_area.json`.
 engine doc), so the 3DEP request limit is no longer the obstacle. **The French
 Broad stays clipped, as decided:** this region tests HAND near the gauged
 reach. A full-basin French Broad run (about 2,446 km², tens of millions of
-10 m cells for the HAND build) is **future work, not done.**
+10 m cells for the HAND build) was **opt-in only** when this was written; see
+"Full-basin French Broad (opt-in)" below for what has been measured since.
 
 **Dry run of the data stages, clipped (2026-10-05):**
 
@@ -200,3 +201,26 @@ gaps, because the model fails differently here than in Houston.
   NWS NWPS (AVLN7, BLTN7); Microsoft Planetary Computer STAC (`sentinel-1-rtc`,
   `sentinel-1-grd`); Iowa Environmental Mesonet LSR archive; Census TIGERweb
   2020 (incorporated places); OpenFEMA NFIP claims (v2).
+
+## Full-basin French Broad (opt-in; data stages measured 2026-10-06)
+
+`TIDEALERT_STUDY_AREA_FULL=1` models the whole upstream basin (minus the Swannanoa basin, so the two regions stay disjoint)
+instead of the city-limits clip. It has its own cache directory (`usgs-03451500-full`) and its own region label
+(`USGS-03451500 basin, full basin`), so **nothing of the clipped run is overwritten or shared**: the default is unchanged
+and `tests/test_study_area.py` checks both. `scripts/helene_dry_run.py` and `scripts/run_isolation_pipeline.py` honour it.
+
+**Dry run of the data stages, full basin (2026-10-06):**
+
+| Stage | Result |
+|---|---|
+| Modelled area | 2,107 km² of the 2,446 km² basin (the rest is the Swannanoa basin, modelled separately) |
+| DEM (3DEP, tiled) | **16.1 m**, not 10 m: the basin is wider than the 10 m pixel cap (`DEM_MAX_PIXELS`), so the code coarsens it; 3,911 × 4,000 cells, 111 s |
+| Terrain/HAND build | 27.5 s; 9,471 gauged-mainstem cells |
+| OSM roads (as of 24 Sep 2024) | 26,769 segments, 402 bridges, 43 s |
+| Street blocks | 2,577, with 224,069 residents, 26 s |
+| Total / peak memory | about 3.5 min; peak 2.9 GB |
+
+**What this does not yet show:** the dry run stops before the river driver, the isolation engine and the backtest, so it has
+**no flood, isolation or lead-time result**. A full run needs those stages; see the PR for its status. The coarser DEM (16 m
+against 10 m) makes HAND coarser still in narrow valleys, and everything in "Limitations specific to this region" above
+still applies (HAND in steep terrain, landslides and debris flows not modelled, no peak-time ground truth, no rainfall input).

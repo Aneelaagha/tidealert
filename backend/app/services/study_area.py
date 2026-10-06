@@ -47,6 +47,14 @@ CLIPS = {
 }
 
 
+FULL_ENV = "TIDEALERT_STUDY_AREA_FULL"  # set to "1" to model the whole basin (minus the excluded basins) instead of the clip
+FULL_LABEL = "full basin"
+
+
+def full_basin_requested() -> bool:
+    return os.environ.get(FULL_ENV) == "1"
+
+
 @dataclass(frozen=True)
 class StudyArea:
     clip: Clip
@@ -70,6 +78,17 @@ def apply(site_id: str, basin: BaseGeometry, basin_of: Callable[[str], BaseGeome
     clip = CLIPS.get(site_id)
     if clip is None:
         return basin, None
+    if full_basin_requested():
+        # Opt-in: the whole upstream basin, still excluding the other gauges' basins so the regions stay disjoint. Its caches
+        # live in their own directory (GaugeSite.cache_key) and its region has its own label, so nothing of the clipped run
+        # is overwritten.
+        full = basin
+        for other in clip.exclude_basins_of:
+            full = full.difference(basin_of(other))
+        excluded = f", excluding the basins of USGS {', '.join(clip.exclude_basins_of)}" if clip.exclude_basins_of else ""
+        note = f"Study area is the whole upstream basin{excluded}; not clipped."
+        return full, StudyArea(clip=Clip(label=FULL_LABEL, place_geoid=clip.place_geoid, place_name=clip.place_name,
+                                         exclude_basins_of=clip.exclude_basins_of, reason=""), full_basin=basin, note=note)
     cache = os.path.join(cache_dir or os.path.join(DATA_DIR, f"usgs-{site_id}"), "study_area.json")
     if os.path.exists(cache):
         with open(cache) as f:

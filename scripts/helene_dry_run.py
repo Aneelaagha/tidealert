@@ -63,7 +63,7 @@ def main() -> None:
     report["study_area"] = {"modelled_km2": km2(site.basin),
                             "full_basin_km2": km2(site.full_basin) if site.full_basin is not None else km2(site.basin),
                             "note": site.study_area_note or "whole basin"}
-    cache = os.path.join(DATA_DIR, f"usgs-{site.site_id}")
+    cache = os.path.join(DATA_DIR, f"usgs-{site.cache_key}")
     os.makedirs(cache, exist_ok=True)
     osm_date = (START - timedelta(days=1)).strftime("%Y-%m-%dT00:00:00Z")
 

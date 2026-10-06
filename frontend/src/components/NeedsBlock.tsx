@@ -7,7 +7,7 @@ import { ApiError, api, type Needs, type Run } from '../lib/api';
 import { OfflineError } from '../lib/connection';
 import { fmtTime, label } from '../lib/format';
 import { canEnter } from '../lib/needs';
-import { Muted, Tag } from './ui';
+import { Muted, Tag, Time } from './ui';
 
 const ACTIONS = [['requested', 'Needed'], ['fulfilled', 'Delivered'], ['withdrawn', 'No longer needed']] as const;
 
@@ -47,7 +47,7 @@ export function NeedsBlock({ run, zoneId, needs, needsError, operator, at, onCha
     }
   }
 
-  const field = 'rounded border border-accent-cyan/30 bg-navy-deep p-0.5 text-[10px] text-slate-200 focus:border-accent-cyan focus:outline-none disabled:opacity-40';
+  const field = 'rounded border border-accent-cyan/30 bg-navy-deep p-0.5 text-xs text-slate-200 focus:border-accent-cyan focus:outline-none disabled:opacity-40';
   return (
     <div className="my-2 rounded border border-white/10 bg-navy-deep/60 p-2.5">
       <p className="flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5 text-accent-cyan" />
@@ -69,7 +69,7 @@ export function NeedsBlock({ run, zoneId, needs, needsError, operator, at, onCha
               <ul className="mt-1 space-y-0.5 text-slate-400">
                 {z.pledges.map((p) => (
                   <li key={p.id}><Tag tone={p.status === 'offered' ? 'amber' : p.status === 'received' ? 'green' : 'plain'}>{p.status}</Tag>
-                    {p.donor}: {p.quantity.toLocaleString()} {label(p.item_type)} <Muted>({fmtTime(p.offered_at)})</Muted></li>
+                    {p.donor}: {p.quantity.toLocaleString()} {label(p.item_type)} <Muted>(<Time t={p.offered_at} />)</Muted></li>
                 ))}
               </ul>
             )}
@@ -79,7 +79,7 @@ export function NeedsBlock({ run, zoneId, needs, needsError, operator, at, onCha
               <summary className="cursor-pointer">Entries ({z.events.length})</summary>
               <ul className="mt-1 space-y-1 pl-3">
                 {z.events.map((e) => (
-                  <li key={e.id}>{fmtTime(e.at)} · {e.actor}: {label(e.event)} {e.quantity.toLocaleString()} {label(e.item_type)}{e.note ? ` (${e.note})` : ''}</li>
+                  <li key={e.id}><Time t={e.at} /> · {e.actor}: {label(e.event)} {e.quantity.toLocaleString()} {label(e.item_type)}{e.note ? ` (${e.note})` : ''}</li>
                 ))}
               </ul>
             </details>
@@ -98,14 +98,14 @@ export function NeedsBlock({ run, zoneId, needs, needsError, operator, at, onCha
           <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={needs?.max_note ?? 300} placeholder="note (no personal details)"
                  aria-label="Note" disabled={!needs?.writable || busy} className={`${field} min-w-0 flex-1`} />
           <button disabled={!can.ok || busy} title={can.reason ?? undefined} onClick={() => void submit()}
-                  className="cursor-pointer rounded border border-accent-cyan/50 bg-cyan-950/40 px-2 py-0.5 text-[10px] font-bold uppercase text-accent-cyan transition hover:bg-cyan-900/50 disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-navy-deep disabled:text-slate-600">
+                  className="cursor-pointer rounded border border-accent-cyan/50 bg-cyan-950/40 px-2 py-0.5 text-xs font-bold uppercase text-accent-cyan transition hover:bg-cyan-900/50 disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-navy-deep disabled:text-slate-600">
             Enter
           </button>
           {busy && <span className="text-slate-500">sending…</span>}
         </div>
         {!can.ok && needs && <p className="text-slate-500">{can.reason}</p>}
         {error && <p className="text-danger-red">{error}</p>}
-        {can.ok && at && <p className="text-slate-600">Recorded at the slider time, {fmtTime(at)}, under your name. No login: anyone can enter.</p>}
+        {can.ok && at && <p className="text-slate-600">Recorded at the slider time, <Time t={at} />, under your name. No login: anyone can enter.</p>}
       </div>
     </div>
   );

@@ -13,12 +13,12 @@ function Row({ swatch, children }: { swatch: ReactNode; children: ReactNode }) {
 }
 
 function Heading({ children }: { children: ReactNode }) {
-  return <div className="mt-2.5 mb-0.5 text-[10px] uppercase tracking-wider text-slate-500 first:mt-0">{children}</div>;
+  return <div className="mt-2.5 mb-0.5 text-xs uppercase tracking-wider text-slate-500 first:mt-0">{children}</div>;
 }
 
 export function Legend({ vocabulary, supply }: { vocabulary: Vocabulary; supply: SupplyAccess | null }) {
   return (
-    <div className="font-mono text-[11px] text-slate-300">
+    <div className="text-[13px] text-slate-300">
       <Heading>Fill: zone risk level (unknown = not assessed, never shown as safe)</Heading>
       {vocabulary.risk_level.map((v) => {
         const c = colorOf('risk_level', v);

@@ -5,7 +5,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.routes import copilot, data_practices, gauges, map, needs, reports, tasks, validation, zones
+from app.routes import copilot, data_practices, gauges, map, needs, relief, reports, tasks, validation, zones
 
 app = FastAPI(title="TideAlert API")
 # /map/zones is ~5 MB of GeoJSON for a Harvey run, ~650 kB gzipped.
@@ -15,6 +15,7 @@ app.include_router(zones.router)
 app.include_router(map.router)
 app.include_router(tasks.router)
 app.include_router(needs.router)
+app.include_router(relief.router)
 app.include_router(reports.router)
 app.include_router(validation.router)
 app.include_router(gauges.router)

@@ -52,6 +52,10 @@ def known_gaps(routes) -> list[dict]:
          "text": "Notes on a task action, an entered need or a donation offer, and a donor's displayed name, are free "
                  "text. The personal-data scan checks field names, so a person's details typed into one would not be "
                  "caught. Donation offers refuse an email, link or phone number, but that check is lexical."},
+        {"id": "relief_pledges", "when": True, "source": "code: backend/app/services/relief_needs.py",
+         "text": "Relief pledges are unverified test entries: no payments, no delivery tracking, no authentication. A pledge "
+                 "stores a quantity and a time and nothing about who made it, and anyone who can reach the API can post a "
+                 "need or pledge."},
         {"id": "offline_copy", "when": True, "source": "code: frontend/src/lib/offlineStore.ts (IndexedDB)",
          "text": "So the page can open with no connection, it keeps a copy of the last view it loaded (Cases, tasks, "
                  "needs and offers and the other responses, as the server sent them) in the browser's own storage. The "

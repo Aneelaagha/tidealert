@@ -148,6 +148,7 @@ def test_migration_round_trip_in_a_rolled_back_transaction():
         try:
             # Downgrade refuses while mixed runs exist; re-mark them inside this transaction to exercise the trip.
             connection.execute(text("UPDATE runs SET mode = 'scenario' WHERE mode::text = 'mixed'"))
+            connection.execute(text("DELETE FROM zone_needs"))  # the relief-needs migration refuses to drop rows (the demo seeds three)
             command.downgrade(_alembic(connection), BEFORE_MIXED)
             assert _modes(connection) == ["replay", "scenario", "live"]
             command.upgrade(_alembic(connection), "head")
@@ -162,6 +163,7 @@ def test_downgrade_refuses_while_mixed_runs_exist(mixed):
     with engine.connect() as connection:
         outer = connection.begin()
         try:
+            connection.execute(text("DELETE FROM zone_needs"))  # so the refusal under test is the mixed-run one
             with pytest.raises(RuntimeError, match="mode 'mixed'"):
                 command.downgrade(_alembic(connection), BEFORE_MIXED)
         finally:

@@ -17,15 +17,17 @@ import { ValidationPanel } from './components/ValidationPanel';
 import { AttentionList } from './components/AttentionList';
 import { Legend } from './components/Legend';
 import { MapLegend } from './components/MapLegend';
+import { ReliefPanel } from './components/ReliefPanel';
 import { type Layer, MapToolbar } from './components/MapToolbar';
 import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
-import { api, type Case, type DepotAccess, type DepotList, type Freshness, type Needs, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
+import { api, type Case, type DepotAccess, type DepotList, type Freshness, type Needs, type ReliefBoard, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
 import { cacheKeepView, dispatch, getConnection, restoreView, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
 import { rankAttention } from './lib/attention';
+import { withNeed } from './lib/relief';
 import { readUrl, tickIndex, ticksFor, writeUrl } from './lib/time';
 
 function Panel({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
@@ -112,6 +114,8 @@ export default function App() {
   const [supplyError, setSupplyError] = useState<string | null>(null);
   const [needs, setNeeds] = useState<Needs | null>(null);
   const [needsError, setNeedsError] = useState<string | null>(null);
+  const [relief, setRelief] = useState<ReliefBoard | null>(null);
+  const [reliefError, setReliefError] = useState<string | null>(null);
   const [depots, setDepots] = useState<DepotList | null>(null);
   const [depotId, setDepotId] = useState<string | null>(null);
   const [depotAccess, setDepotAccess] = useState<DepotAccess | null>(null);
@@ -283,6 +287,18 @@ export default function App() {
     return () => ctl.abort();
   }, [run, at, layer, depotId, depots, version]);
 
+  // The relief board (needs and test pledges, ranked by each zone's access state at the slider time). A need or pledge the
+  // server just answered replaces its row at once; the next read re-ranks.
+  useEffect(() => { setRelief(null); }, [run?.id]);
+  useEffect(() => {
+    if (!run) return;
+    const ctl = new AbortController();
+    setReliefError(null);
+    api.reliefNeeds(run.id, at, ctl.signal).then(setRelief)
+      .catch((e: Error) => { if (e.name !== 'AbortError') setReliefError(e.message); });
+    return () => ctl.abort();
+  }, [run, at, version]);
+
   const zoneNames = useMemo(() => new Map((zones?.features ?? []).map((f) => [f.properties.zone_id, f.properties.name])), [zones]);
 
   const zone = selectedZoneId && zones?.run_id === run?.id
@@ -325,6 +341,11 @@ export default function App() {
         </section>
         {run && (
           <>
+            <ReliefPanel run={run} board={relief} error={reliefError} operator={operator} at={zones?.at ?? at} offline={offline}
+                         selectedZone={zone ? { id: zone.zone_id, name: zone.name } : null}
+                         mixed={runs.find((r) => r.mode === 'mixed' && r.event === run.event && r.event != null) ?? null}
+                         onNeed={(n) => { setRelief((b) => (b ? withNeed(b, n) : b)); setVersion((v) => v + 1); }}
+                         onSwitch={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, zones?.at ?? at); }} />
             <OperatorBar run={run} runs={runs} operator={operator} onOperator={changeOperator}
                          onRun={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, zones?.at ?? at); }} />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

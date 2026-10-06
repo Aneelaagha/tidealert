@@ -57,10 +57,10 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
             Start here
           </button>
         )}
-        <label className="flex items-center gap-2 text-xs uppercase text-slate-400">
+        <label className="flex min-w-0 max-w-full items-center gap-2 text-xs uppercase text-slate-400">
           Run
           <select value={run?.id ?? ''} onChange={(e) => onRun(e.target.value)}
-                  className="max-w-[340px] rounded border border-navy-line bg-navy-panel p-1 text-[13px] normal-case text-slate-200 focus:border-accent-cyan/60 focus:outline-none">
+                  className="min-w-0 max-w-[340px] rounded border border-navy-line bg-navy-panel p-1 text-[13px] normal-case text-slate-200 focus:border-accent-cyan/60 focus:outline-none">
             {runs.map((r) => <option key={r.id} value={r.id} title={r.name}>{r.description || r.name}, {span(r)}</option>)}
           </select>
         </label>
@@ -81,7 +81,7 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
         </div>
       </div>
 
-      <div className="flex items-center gap-2 ">
+      <div className="flex flex-wrap items-center gap-2">
         <button onClick={onGauges}
                 className="flex cursor-pointer items-center gap-1.5 rounded border border-accent-cyan/40 bg-cyan-950/30 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-accent-cyan transition hover:bg-cyan-900/50">
           <Waves className="h-3.5 w-3.5" /> Gauges

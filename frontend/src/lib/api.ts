@@ -202,6 +202,19 @@ export interface DepotAccess {
   zones: Record<string, string>; engine_agreement: { depot_ticks_checked: number; mismatched: number } | null; does_not_show: string;
 }
 
+/** One relief need and how many have been PLEDGED against it (an unverified test entry; no payment, no delivery tracking). */
+export interface ReliefNeed {
+  id: string; run_id: string; zone_id: string; zone_name: string; item_type: string; item_label: string; unit: string;
+  quantity_needed: number; quantity_pledged: number; quantity_open: number; percent: number; status: 'open' | 'partial' | 'filled' | 'closed';
+  created_by: string; is_synthetic: boolean; created_at: string;
+  access: { state: string; label: string; since: string | null }; // the zone's access state from the safety service
+}
+/** /relief/needs: the run's needs, most urgent first. */
+export interface ReliefBoard {
+  run_id: string; mode: Mode; at: string; label: string; writable: boolean; blocked_reason: string | null;
+  items: Record<string, { label: string; unit: string }>; access_labels: Record<string, string>; needs: ReliefNeed[];
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -420,6 +433,11 @@ export const api = {
   currentGauges: (signal?: AbortSignal) => get<CurrentGauges>('/gauges/current', {}, signal),
   validation: (signal?: AbortSignal) => get<Validation>('/validation/harvey', {}, signal),
   heleneValidation: (signal?: AbortSignal) => get<HeleneValidation>('/validation/helene', {}, signal),
+  reliefNeeds: (runId: string, at: string | null, signal?: AbortSignal) => get<ReliefBoard>('/relief/needs', { run_id: runId, at }, signal),
+  postReliefNeed: (b: { run_id: string; zone_id: string; item_type: string; quantity_needed: number; created_by: string; at: string | null }) =>
+    post<ReliefNeed>('/relief/needs', b),
+  pledgeToNeed: (id: string, quantity: number, at: string | null) => post<ReliefNeed>(`/relief/needs/${id}/pledges`, { quantity, at }),
+  closeReliefNeed: (id: string, at: string | null) => post<ReliefNeed>(`/relief/needs/${id}/close`, { at }),
   needs: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<Needs>('/needs', { run_id: runId, at }, signal),
   enterNeed: (b: NeedEntryBody) => post<ZoneNeeds & { at: string }>('/needs', b),

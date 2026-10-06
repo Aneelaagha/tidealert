@@ -2,8 +2,9 @@
 // contributions and tasks (with each task's full event history).
 
 import { useEffect, useState } from 'react';
-import { api, type Case, type DepotAccess, type Needs, type Responder, type Run, type SupplyAccess, type Task, type ZoneProps } from '../lib/api';
+import { api, type Case, type DepotAccess, type LastCallZone, type Needs, type Responder, type Run, type SupplyAccess, type Task, type ZoneProps } from '../lib/api';
 import { fmtTime, label } from '../lib/format';
+import { ZoneLastCall } from './LastCallPanel';
 import { NeedsBlock } from './NeedsBlock';
 import { SafetyNote } from './SafetyNote';
 import { Muted, Tag, Time } from './ui';
@@ -104,9 +105,10 @@ interface Props {
   operator: string;
   onNeedsChanged: () => void;
   depotAccess: DepotAccess | null; // shown when a depot is chosen
+  lastCall: { zone: LastCallZone | undefined; loaded: boolean } | null; // this zone's last call, once the board has loaded
 }
 
-export function ZonePanel({ run, at, zone, gapReasons, responders, version, supply, supplyError, needs, needsError, operator, onNeedsChanged, depotAccess }: Props) {
+export function ZonePanel({ run, at, zone, gapReasons, responders, version, supply, supplyError, needs, needsError, operator, onNeedsChanged, depotAccess, lastCall }: Props) {
   const runId = run.id;
   const [cases, setCases] = useState<Case[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +152,7 @@ export function ZonePanel({ run, at, zone, gapReasons, responders, version, supp
             </dd>
           </>
         )}
+        {lastCall?.loaded && (<><dt className="text-slate-500">Last call</dt><dd><ZoneLastCall z={lastCall.zone} /></dd></>)}
         <dt className="text-slate-500">Active tasks</dt>
         <dd>{zone.task_count
           ? `${zone.task_count} (most advanced: ${label(zone.task_status)}) · ${zone.task_awaiting} awaiting assignment · ${zone.task_flagged} flagged verify`

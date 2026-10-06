@@ -40,6 +40,17 @@ On Hurricane Helene it found no isolations, and the panel says why that proves n
 "If the connection drops, the page keeps the last view, read-only, labelled with when it was saved. Everything is replayed history. Next is live gauges,
 and validation against observed isolation."
 
+## Optional beat: Last call (about 25 seconds; put it after "Start here")
+
+[Open the Harvey replay, drag the slider to 18:30 UTC on 27 August. In the **Last call** panel type **60** in Travel. Press **Play**.]
+"These blocks aren't cut off yet, but the engine's recorded results say they will be, at 19:45. If a crew needs an hour from the call to the
+door, that's a number we set, not one we measured. Fifteen minutes of last call. **SAY:** in this replay the cut-off times are the engine's
+recorded results, standing in for a forecast; a live system would need a river forecast. Watch it count down, and then the block is cut off:
+no dry road route out. That says nothing about phones, and roads reopen."
+
+Do **not** say: that these people can no longer be reached by any channel, that they become "a recovery", or that rescue requests arrive
+afterwards (the project has no rescue-request data). It is per zone, not per household.
+
 ## Before recording
 
 - Start the API and open `http://localhost:8000/ui/` (build the page first with `npm run build` in `frontend/`). Use a desktop-width browser.

@@ -2,7 +2,7 @@
 // (src/lib/api.ts); the run and time are kept in the URL.
 
 import { Map as MapIcon, UserRound } from 'lucide-react';
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertsPanel } from './components/AlertsPanel';
 import { CopilotPanel } from './components/CopilotPanel';
 import { DonationPortal } from './components/DonationPortal';
@@ -18,15 +18,17 @@ import { AttentionList } from './components/AttentionList';
 import { Legend } from './components/Legend';
 import { MapLegend } from './components/MapLegend';
 import { ReliefPanel } from './components/ReliefPanel';
+import { LastCallPanel } from './components/LastCallPanel';
 import { type Layer, MapToolbar } from './components/MapToolbar';
 import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
-import { api, type Case, type DepotAccess, type DepotList, type Freshness, type Needs, type ReliefBoard, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
+import { api, type Case, type DepotAccess, type DepotList, type Freshness, type LastCall, type Needs, type ReliefBoard, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
 import { cacheKeepView, dispatch, getConnection, restoreView, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
 import { rankAttention } from './lib/attention';
+import { type Lead, loadLead, saveLead } from './lib/lastCall';
 import { withNeed } from './lib/relief';
 import { readUrl, tickIndex, ticksFor, writeUrl } from './lib/time';
 
@@ -40,6 +42,7 @@ function Panel({ title, children, className = '' }: { title: string; children: R
 }
 
 const OPERATOR_KEY = 'tidealert.operator';
+const PLAY_STEP_MS = 1500; // one 15-minute step of the replay clock per 1.5 s: slow enough for the zones to load each step
 
 function storedOperator(): string {
   try { return window.localStorage.getItem(OPERATOR_KEY) ?? ''; } catch { return ''; }
@@ -114,6 +117,10 @@ export default function App() {
   const [supplyError, setSupplyError] = useState<string | null>(null);
   const [needs, setNeeds] = useState<Needs | null>(null);
   const [needsError, setNeedsError] = useState<string | null>(null);
+  const [lastCall, setLastCall] = useState<LastCall | null>(null);
+  const [lastCallError, setLastCallError] = useState<string | null>(null);
+  const [lead, setLead] = useState<Lead>(loadLead);
+  const [playing, setPlaying] = useState(false);
   const [relief, setRelief] = useState<ReliefBoard | null>(null);
   const [reliefError, setReliefError] = useState<string | null>(null);
   const [depots, setDepots] = useState<DepotList | null>(null);
@@ -299,6 +306,35 @@ export default function App() {
     return () => ctl.abort();
   }, [run, at, version]);
 
+  // Last call: each flagged zone's recorded cut-off minus the lead time the operator set. Read again at every time step, so the
+  // countdown moves as the slider (or Play) moves. The lead is a per-viewer setting, remembered in the browser.
+  useEffect(() => { setLastCall(null); }, [run?.id]);
+  useEffect(() => {
+    if (!run) return;
+    const ctl = new AbortController();
+    setLastCallError(null);
+    api.lastCall(run.id, at, lead, ctl.signal).then(setLastCall)
+      .catch((e: Error) => { if (e.name !== 'AbortError') setLastCallError(e.message); });
+    return () => ctl.abort();
+  }, [run, at, lead, version]);
+  const changeLead = (l: Lead) => { setLead(l); saveLead(l); };
+
+  // Play: step the replay clock forward one tick at a time so a countdown can be watched. It stops at the end of the window,
+  // when the run changes, or on Pause; moving the slider by hand pauses it.
+  const tickRef = useRef(tick);
+  tickRef.current = tick;
+  useEffect(() => {
+    if (!playing || !run) return;
+    const id = window.setInterval(() => {
+      const n = tickRef.current + 1;
+      if (n >= ticks.length) { setPlaying(false); return; }
+      setTick(n);
+      setAt(ticks[n]);
+    }, PLAY_STEP_MS);
+    return () => window.clearInterval(id);
+  }, [playing, run, ticks]);
+  useEffect(() => { setPlaying(false); }, [run?.id]);
+
   const zoneNames = useMemo(() => new Map((zones?.features ?? []).map((f) => [f.properties.zone_id, f.properties.name])), [zones]);
 
   const zone = selectedZoneId && zones?.run_id === run?.id
@@ -307,8 +343,8 @@ export default function App() {
   return (
     <div className="flex min-h-screen flex-col pb-6 antialiased selection:bg-cyan-950 selection:text-white">
       <Header runs={runs} run={run} onRun={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, null); }}
-              ticks={ticks} tick={tick} onTickInput={setTick} onTickCommit={() => setAt(ticks.length ? ticks[tick] : null)}
-              onEthics={() => setEthicsOpen(true)} onReport={() => setReportOpen(true)} onValidation={() => setValidationOpen(true)} onGauges={() => setGaugesOpen(true)} onStart={startRun ? startHere : null} />
+              ticks={ticks} tick={tick} onTickInput={(i) => { setPlaying(false); setTick(i); }} onTickCommit={() => setAt(ticks.length ? ticks[tick] : null)}
+              onEthics={() => setEthicsOpen(true)} onReport={() => setReportOpen(true)} onValidation={() => setValidationOpen(true)} onGauges={() => setGaugesOpen(true)} onStart={startRun ? startHere : null} playing={playing} onPlay={() => setPlaying((p) => !p)} />
       {ethicsOpen && <EthicsPanel run={run} freshness={freshness} vocabulary={vocabulary} onClose={closeEthics} />}
       <ConnectionBanner conn={conn} asOf={zones ? fmtTime(zones.at) : null} />
       {gaugesOpen && <GaugesPanel onClose={closeGauges} />}
@@ -360,6 +396,8 @@ export default function App() {
         </div>
 
         <div className="flex flex-col gap-6">
+          <LastCallPanel data={lastCall} error={lastCallError} lead={lead} onLead={changeLead} selectedZoneId={selectedZoneId}
+                         onSelect={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
           <AttentionList items={ranked} selectedZoneId={selectedZoneId}
                          onSelect={(a) => { setSelectedZoneId(a.zoneId); setSelectedCaseId(a.caseId); }} />
           {run && (
@@ -370,7 +408,8 @@ export default function App() {
           <Panel title="Zone" className="h-[420px]">
             {run ? <ZonePanel run={run} at={zones?.at ?? at} zone={zone} gapReasons={zones?.gap_reasons ?? []}
                               responders={responders} version={version} supply={supply} supplyError={supplyError}
-                              needs={needsView} needsError={needsError} operator={operator} onNeedsChanged={() => setVersion((v) => v + 1)} depotAccess={layer === 'depot' ? depotAccess : null} />
+                              needs={needsView} needsError={needsError} operator={operator} onNeedsChanged={() => setVersion((v) => v + 1)} depotAccess={layer === 'depot' ? depotAccess : null}
+                              lastCall={lastCall ? { zone: lastCall.zones.find((z) => z.zone_id === zone?.zone_id), loaded: lastCall.available } : null} />
               : <p className="text-slate-500">loading…</p>}
           </Panel>
           <Panel title="Legend" className="max-h-[300px]">

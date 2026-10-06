@@ -4,7 +4,7 @@
 
 import maplibregl, { type GeoJSONSource, type StyleSpecification } from 'maplibre-gl';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import type { Run, SupplyAccess, ZonesResponse } from '../lib/api';
+import type { DepotAccess, Run, SupplyAccess, ZonesResponse } from '../lib/api';
 import { GAP_COLOR, SELECTED_COLOR, TASK_RADIUS, TASK_VERIFY_EDGE, matchColor } from '../lib/colors';
 
 const STYLE: StyleSpecification = {
@@ -68,13 +68,15 @@ interface Props {
   zones: ZonesResponse | null;
   selectedZoneId: string | null;
   onSelectZone: (zoneId: string | null) => void;
-  layer: 'risk' | 'supply'; // what the zone fill shows
+  layer: 'risk' | 'supply' | 'depot'; // what the zone fill shows
+  depot?: DepotAccess | null; // the depot-access answer for the same run and time (needed when layer is 'depot')
   refit?: number; // bump to frame the zones again (the Start here preset)
   children?: ReactNode; // overlays drawn on the map (the legend)
   supply: SupplyAccess | null; // the supply-access answer for the same run and time (needed when layer is 'supply')
 }
 
-const FILL_OPACITY = {
+const FILL_OPACITY: Record<'risk' | 'supply' | 'depot', unknown[]> = {
+  depot: ['case', ['in', ['get', 'depot_access'], ['literal', ['not_evaluated', 'outside_network']]], 0.12, ['==', ['get', 'depot_access'], null], 0, 0.55],
   risk: ['case', ['==', ['get', 'risk_level'], 'unknown'], 0.12, 0.45],
   // null = this zone has no entry yet (the answer for this time is still loading): not drawn rather than guessed.
   supply: ['case', ['==', ['get', 'supply_access'], 'not_evaluated'], 0.12, ['==', ['get', 'supply_access'], null], 0, 0.55],
@@ -93,7 +95,7 @@ export function boundsOf(zones: ZonesResponse): [number, number, number, number]
   return Number.isFinite(w) ? [w, s, e, n] : null;
 }
 
-export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply, refit = 0, children }: Props) {
+export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply, depot = null, refit = 0, children }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const onSelect = useRef(onSelectZone);
@@ -140,9 +142,14 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
     if (!map || !ready) return;
     // The supply layer joins the second API answer to the zones by id; a zone it has no entry for stays null and
     // draws UNSTYLED, so a gap in the answer is visible, never given a state.
-    const shown = layer === 'supply' && zones
-      ? { ...zones, features: zones.features.map((f) => ({ ...f, properties: { ...f.properties,
-          supply_access: supply && supply.run_id === zones.run_id && supply.at === zones.at ? supply.zones[f.properties.zone_id]?.zone_access ?? null : null } })) }
+    const joinTo = (prop: string, value: (id: string) => string | null) => zones && ({ ...zones, features: zones.features.map((f) => ({ ...f,
+      properties: { ...f.properties, [prop]: value(f.properties.zone_id) } })) });
+    const supplyOk = !!supply && !!zones && supply.run_id === zones.run_id && supply.at === zones.at;
+    // A depot answer covers the zones of one basin's network; a zone it has no entry for is "outside_network", and while the
+    // answer for this time is loading it is null (not drawn) rather than guessed.
+    const depotOk = !!depot && !!zones && depot.run_id === zones.run_id && Date.parse(depot.at) === Date.parse(zones.at);
+    const shown = layer === 'supply' ? joinTo('supply_access', (id) => (supplyOk ? supply!.zones[id]?.zone_access ?? null : null))
+      : layer === 'depot' ? joinTo('depot_access', (id) => (depotOk ? depot!.zones[id] ?? 'outside_network' : null))
       : zones;
     (map.getSource('zones') as GeoJSONSource).setData((shown ?? EMPTY) as GeoJSON.FeatureCollection);
     const withTask = (zones?.features ?? []).filter((f) => f.properties.task_count > 0 && f.properties.task_anchor);
@@ -154,12 +161,12 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
                       task_priority: f.properties.task_priority, task_verify: f.properties.task_verify },
       })),
     });
-  }, [zones, ready, layer, supply]);
+  }, [zones, ready, layer, supply, depot]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    const field = layer === 'supply' ? 'supply_access' : 'risk_level';
+    const field = layer === 'supply' ? 'supply_access' : layer === 'depot' ? 'depot_access' : 'risk_level';
     map.setPaintProperty('zone-fill', 'fill-color', matchColor(field) as maplibregl.ExpressionSpecification);
     map.setPaintProperty('zone-fill', 'fill-opacity', FILL_OPACITY[layer] as maplibregl.ExpressionSpecification);
   }, [layer, ready]);

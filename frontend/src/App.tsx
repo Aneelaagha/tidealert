@@ -11,7 +11,9 @@ import { Headline } from './components/Headline';
 import { FreshnessBanner } from './components/FreshnessBanner';
 import { ConnectionBanner } from './components/ConnectionBanner';
 import { Header } from './components/Header';
+import { AttentionList } from './components/AttentionList';
 import { Legend } from './components/Legend';
+import { MapLegend } from './components/MapLegend';
 import { type Layer, MapToolbar } from './components/MapToolbar';
 import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
@@ -20,6 +22,7 @@ import { api, type Case, type Freshness, type Needs, type Responder, type Run, t
 import { cacheKeepView, dispatch, getConnection, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
+import { rankAttention } from './lib/attention';
 import { readUrl, tickIndex, ticksFor, writeUrl } from './lib/time';
 
 function Panel({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
@@ -103,6 +106,9 @@ export default function App() {
   const [supplyError, setSupplyError] = useState<string | null>(null);
   const [needs, setNeeds] = useState<Needs | null>(null);
   const [needsError, setNeedsError] = useState<string | null>(null);
+  const [casesAt, setCasesAt] = useState<string | null>(null); // the time the loaded Cases are for
+  const [pendingStart, setPendingStart] = useState<{ runId: string; at: string } | null>(null);
+  const [refit, setRefit] = useState(0);
   const [version, setVersion] = useState(0); // bumped after a task action: everything is read again
   const [status, setStatus] = useState('loading runs…');
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +188,7 @@ export default function App() {
       .catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
     api.tasks(run.id, at, ctl.signal).then((b) => setTasks(b.tasks))
       .catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
-    api.cases(run.id, null, at, ctl.signal).then((b) => setCases(b.cases))
+    api.cases(run.id, null, at, ctl.signal).then((b) => { setCases(b.cases); setCasesAt(b.at); })
       .catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
     return () => ctl.abort();
   }, [run, at, version]);
@@ -211,6 +217,26 @@ export default function App() {
     return () => ctl.abort();
   }, [run, at, version]);
 
+  const ranked = useMemo(() => rankAttention(zones, cases, needs), [zones, cases, needs]);
+
+  // "Start here": the run with a recorded peak (the Harvey replay), opened at that tick with the map framed and the
+  // first-ranked zone and Case selected once their answers for that time have loaded.
+  const startRun = useMemo(() => runs.find((r) => r.mode === 'replay' && r.peak_at) ?? runs.find((r) => r.peak_at) ?? null, [runs]);
+  const startHere = () => {
+    if (!startRun?.peak_at) return;
+    chooseRun(startRun, startRun.peak_at);
+    setLayer('supply');
+    setPendingStart({ runId: startRun.id, at: startRun.peak_at });
+    setRefit((n) => n + 1);
+  };
+  useEffect(() => {
+    if (!pendingStart || !run || run.id !== pendingStart.runId || !zones || zones.run_id !== run.id || !cases || !casesAt) return;
+    if (Date.parse(zones.at) !== Date.parse(pendingStart.at) || Date.parse(casesAt) !== Date.parse(pendingStart.at)) return;
+    const top = ranked[0];
+    if (top) { setSelectedZoneId(top.zoneId); setSelectedCaseId(top.caseId); }
+    setPendingStart(null);
+  }, [pendingStart, run, zones, cases, casesAt, ranked]);
+
   const zoneNames = useMemo(() => new Map((zones?.features ?? []).map((f) => [f.properties.zone_id, f.properties.name])), [zones]);
 
   const zone = selectedZoneId && zones?.run_id === run?.id
@@ -220,7 +246,7 @@ export default function App() {
     <div className="flex min-h-screen flex-col pb-6 antialiased selection:bg-cyan-950 selection:text-white">
       <Header runs={runs} run={run} onRun={(id) => { const r = runs.find((x) => x.id === id); if (r) chooseRun(r, null); }}
               ticks={ticks} tick={tick} onTickInput={setTick} onTickCommit={() => setAt(ticks.length ? ticks[tick] : null)}
-              onEthics={() => setEthicsOpen(true)} />
+              onEthics={() => setEthicsOpen(true)} onStart={startRun ? startHere : null} />
       {ethicsOpen && <EthicsPanel run={run} freshness={freshness} vocabulary={vocabulary} onClose={closeEthics} />}
       <ConnectionBanner conn={conn} />
       {portalOpen && run && <DonationPortal run={run} needs={needs} needsError={needsError} operator={operator} at={zones?.at ?? at}
@@ -228,14 +254,17 @@ export default function App() {
       {run && <FreshnessBanner run={run} freshness={freshness} conn={conn} />}
 
       <main className="mx-auto mt-4 grid w-full max-w-7xl flex-1 grid-cols-1 gap-6 px-6 lg:grid-cols-3">
+        <div className="lg:col-span-3"><Headline run={run} zones={zones} cases={cases} tasks={tasks} /></div>
         <div className="flex flex-col gap-6 lg:col-span-2">
         <section className="flex flex-col overflow-hidden rounded-lg border border-accent-cyan/20 bg-navy-panel">
           <MapToolbar run={run} layer={layer} onLayer={setLayer} supply={supply} supplyError={supplyError} needs={needs}
                       needsError={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
                       onPortal={() => setPortalOpen(true)} />
           <div className="h-[560px]">
-            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply}
-                     onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
+            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply} refit={refit}
+                     onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}>
+              <MapLegend layer={layer} vocabulary={vocabulary} supply={supply} />
+            </ZoneMap>
           </div>
           {/* The zones summary, under the map. One line that scrolls sideways rather than wrapping, its thin scrollbar
               always taking its space: when "loading…" becomes the summary the bar must not grow and push the page down. */}
@@ -260,6 +289,8 @@ export default function App() {
         </div>
 
         <div className="flex flex-col gap-6">
+          <AttentionList items={ranked} selectedZoneId={selectedZoneId}
+                         onSelect={(a) => { setSelectedZoneId(a.zoneId); setSelectedCaseId(a.caseId); }} />
           {run && (
             <CopilotPanel key={run.id} run={run} at={zones?.at ?? at} zoneId={zone ? selectedZoneId : null}
                           zoneName={zone?.name ?? null} caseId={selectedCaseId}
@@ -276,10 +307,6 @@ export default function App() {
           </Panel>
         </div>
       </main>
-
-      <footer className="mx-auto mt-6 w-full max-w-7xl select-none px-6">
-        <Headline run={run} zones={zones} cases={cases} tasks={tasks} />
-      </footer>
     </div>
   );
 }

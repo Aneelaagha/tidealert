@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Run } from '../lib/api';
 import { operatorMessage } from '../App';
 
-const run = (over: Partial<Run>): Run => ({ id: 'r', name: 'n', description: null, mode: 'replay', event: 'Hurricane Harvey', window_start: null, window_end: null,
+const run = (over: Partial<Run>): Run => ({ id: 'r', name: 'n', description: null, mode: 'replay', event: 'Hurricane Harvey', peak_at: null, window_start: null, window_end: null,
   case_count: 0, regions: [], extent: null, caveats: [], task_actions_blocked: 'run n is a replay: its tasks show what the engines would have created', sources: [], ...over });
 
 describe('the operator bar in plain words', () => {

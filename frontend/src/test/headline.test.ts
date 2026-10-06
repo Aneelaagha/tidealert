@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Case, Run, Task, ZonesResponse } from '../lib/api';
 import { headlineFacts, runPhrase } from '../components/Headline';
 
-const run = (over: Partial<Run>): Run => ({ id: 'r', name: 'n', description: null, mode: 'replay', event: 'Hurricane Harvey', window_start: null, window_end: null,
+const run = (over: Partial<Run>): Run => ({ id: 'r', name: 'n', description: null, mode: 'replay', event: 'Hurricane Harvey', peak_at: null, window_start: null, window_end: null,
   case_count: 0, regions: [], extent: null, caveats: [], task_actions_blocked: null, sources: [], ...over });
 const zones = (counts: number[]): ZonesResponse => ({ type: 'FeatureCollection', run_id: 'r', mode: 'replay', at: '2017-08-27T18:30:00+00:00', gap_reasons: [],
   features: counts.map((n, i) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { zone_id: `z${i}`, case_count: n } as never })) });

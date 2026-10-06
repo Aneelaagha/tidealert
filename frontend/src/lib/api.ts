@@ -10,6 +10,7 @@ export interface Run {
   name: string;
   description: string | null;
   mode: Mode;
+  peak_at: string | null; // the tick where every flagged zone is cut off at once (Harvey), or null
   event: string | null; // the real event a replay or mixed run covers ("Hurricane Harvey"), or null
   window_start: string | null;
   window_end: string | null;

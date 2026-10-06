@@ -22,9 +22,10 @@ interface Props {
   onTickInput: (i: number) => void;
   onTickCommit: () => void;
   onEthics: () => void;
+  onStart: (() => void) | null; // open the Harvey peak, framed, with the first case selected; null when no run has a recorded peak
 }
 
-export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit, onEthics }: Props) {
+export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommit, onEthics, onStart }: Props) {
   const [muted, setMutedState] = useState(isMuted());
   const toggle = () => { setMuted(!muted); setMutedState(!muted); };
   // Keyboard stepping commits once the keys pause, not per key press: each commit refetches every zone
@@ -47,6 +48,12 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
       </div>
 
       <div className="flex flex-1 flex-wrap items-center gap-3 text-xs">
+        {onStart && (
+          <button type="button" onClick={onStart} title="Open the flood at its worst, frame the map, and select the zone that needs attention first"
+                  className="cursor-pointer rounded border border-accent-cyan bg-accent-cyan/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-accent-cyan hover:bg-accent-cyan/25">
+            Start here
+          </button>
+        )}
         <label className="flex items-center gap-2 text-xs uppercase text-slate-400">
           Run
           <select value={run?.id ?? ''} onChange={(e) => onRun(e.target.value)}
@@ -65,7 +72,7 @@ export function Header({ runs, run, onRun, ticks, tick, onTickInput, onTickCommi
                  disabled={!ticks.length} className="h-1 flex-1 cursor-pointer accent-[#00f0ff]"
                  onChange={(e) => onTickInput(Number(e.target.value))}
                  onPointerUp={commitNow} onKeyUp={commitSoon} />
-          <span className="whitespace-nowrap text-[13px] tabular-nums text-accent-cyan">
+          <span className="whitespace-nowrap font-mono text-[13px] tabular-nums text-accent-cyan">
             {ticks.length ? fmtTime(ticks[tick]) : 'now (live)'}
           </span>
         </div>

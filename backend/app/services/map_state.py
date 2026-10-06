@@ -35,7 +35,7 @@ from app.models.run import RunMode
 from app.models.task import TaskKind, TaskPriority, TaskStatus
 from app.models.zone import RiskLevel
 from app.services.confidence import case_confidence, effective, visible
-from app.services.run_events import run_event
+from app.services.run_events import run_event, run_peak
 from app.services.task_view import task_state
 
 SIMPLIFY_DEG = 0.00002  # ~2 m: zone outlines lose vertices, not shape (2.5 MB -> 1.5 MB for all zones)
@@ -98,6 +98,7 @@ def run_summary(db: Session, run: Run) -> dict:
                          .options(selectinload(RunSource.data_source))).all()
     return {
         "id": str(run.id), "name": run.name, "mode": run.mode.value, "description": run.description,
+        "peak_at": run_peak(run),  # the tick where every flagged zone is cut off at once (Harvey), or null
         "event": run_event(run),  # the real event a replay or mixed run covers ("Hurricane Harvey"), or null
         "window_start": run.window_start, "window_end": run.window_end,
         "case_count": db.scalar(select(func.count()).select_from(Case).where(Case.run_id == run.id)),

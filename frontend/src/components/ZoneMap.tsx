@@ -3,7 +3,7 @@
 // the run's extent. The grid texture and radar sweep on top are decoration and never block clicks.
 
 import maplibregl, { type GeoJSONSource, type StyleSpecification } from 'maplibre-gl';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { Run, SupplyAccess, ZonesResponse } from '../lib/api';
 import { GAP_COLOR, SELECTED_COLOR, TASK_RADIUS, TASK_VERIFY_EDGE, matchColor } from '../lib/colors';
 
@@ -69,6 +69,8 @@ interface Props {
   selectedZoneId: string | null;
   onSelectZone: (zoneId: string | null) => void;
   layer: 'risk' | 'supply'; // what the zone fill shows
+  refit?: number; // bump to frame the zones again (the Start here preset)
+  children?: ReactNode; // overlays drawn on the map (the legend)
   supply: SupplyAccess | null; // the supply-access answer for the same run and time (needed when layer is 'supply')
 }
 
@@ -91,7 +93,7 @@ export function boundsOf(zones: ZonesResponse): [number, number, number, number]
   return Number.isFinite(w) ? [w, s, e, n] : null;
 }
 
-export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply }: Props) {
+export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply, refit = 0, children }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const onSelect = useRef(onSelectZone);
@@ -119,7 +121,7 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
   // is only a first guess: the zones are what is drawn. A run with no zones has nothing to frame (see `note`).
   const fitted = useRef<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  useEffect(() => { fitted.current = null; setNote(null); }, [run?.id]);
+  useEffect(() => { fitted.current = null; setNote(null); }, [run?.id, refit]);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !run || !zones || zones.run_id !== run.id) return;
@@ -171,6 +173,7 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
       {/* h-full, not absolute: MapLibre's CSS sets position: relative on its container. */}
       <div ref={container} className="h-full w-full" />
       <div className="pointer-events-none absolute inset-0 cyber-grid opacity-40" aria-hidden="true" />
+      {children}
       {note && (
         <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
           <p className="rounded border border-white/15 bg-navy-deep/90 px-3 py-1.5 text-center text-xs text-slate-300">{note}</p>

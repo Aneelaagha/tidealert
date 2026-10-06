@@ -52,6 +52,11 @@ body {
 .maplibregl-ctrl-attrib { background: rgba(5, 9, 20, 0.8) !important; color: #94a3b8; }
 .maplibregl-ctrl-attrib a { color: #cbd5e1; }
 
+/* The 3D button in the map's control group. */
+.map3d-btn { font: 700 11px/1 ui-sans-serif, system-ui, sans-serif; width: 29px; height: 29px; }
+.map3d-btn.map3d-on { background: #0b6a86; color: #fff; }
+.map3d-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* Small, data-driven motion while the replay clock is moving (nothing here runs on a still page). */
 @keyframes count-ping { 0% { transform: scale(1); } 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
 .count-ping { animation: count-ping 200ms ease-out 1; }

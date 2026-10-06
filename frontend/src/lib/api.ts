@@ -154,6 +154,22 @@ export interface AfterAction {
   markdown: string;
 }
 
+export interface ValidationSource { file: string; path: string }
+export interface ValidationFlagRow { flag: string; flagged_bgs: number; recall_heavy: number; precision_lb_any_claim: number; share_flagged_heavy: number }
+/** /validation/harvey: the Harvey backtest's results, each read from its stored source. */
+export interface Validation {
+  run: string; event: string; data_window_utc: string[];
+  headline: { kind: 'strength' | 'weakness'; text: string }[];
+  lead: { title: string; rows: { site: string; name: string; flood_source: string; confidence: string; verified: boolean; alarm_minor_at: string; alarm_source: string;
+                                  first_road_floods_min: number | null; first_zone_isolated_min: number | null; source: ValidationSource }[] };
+  zones: { title: string; rows: { site: string; name: string; status: Record<string, { zones: number; people: number }>; source: ValidationSource }[] };
+  hand: { title: string; rows: { site: string; name: string; median: number; minimum: number; source: ValidationSource }[] };
+  nfip: { title: string; definitions: string; executed_at: string; source: ValidationSource;
+          all: { bgs: number; heavy: number; rows: ValidationFlagRow[]; base_rate_any_claim: number; base_rate_heavy: number };
+          covered: { bgs: number; heavy: number; rows: ValidationFlagRow[] } };
+  limits: string[];
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -366,6 +382,7 @@ export const api = {
     get<SupplyAccess>('/map/supply-access', { run_id: runId, at }, signal),
   afterAction: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<AfterAction>('/reports/after-action', { run_id: runId, at }, signal),
+  validation: (signal?: AbortSignal) => get<Validation>('/validation/harvey', {}, signal),
   needs: (runId: string, at: string | null, signal?: AbortSignal) =>
     get<Needs>('/needs', { run_id: runId, at }, signal),
   enterNeed: (b: NeedEntryBody) => post<ZoneNeeds & { at: string }>('/needs', b),

@@ -76,6 +76,12 @@ class GaugeSite:
     fim_zero_datum_ft: Optional[float] = None
 
     @property
+    def cache_key(self) -> str:
+        """The name of this gauge's cache directory under app/data (usgs-<cache_key>). The full-basin variant of a clipped
+        gauge keeps its own, so a full run never overwrites the clipped run's inputs or results."""
+        return f"{self.site_id}-full" if self.study_area_label == study_area.FULL_LABEL else self.site_id
+
+    @property
     def region(self) -> str:
         if self.study_area_label:
             return f"USGS-{self.site_id} basin, {self.study_area_label}"

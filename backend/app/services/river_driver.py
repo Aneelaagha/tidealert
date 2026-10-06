@@ -195,7 +195,7 @@ def load_site_context(db: Session, site_id: str, start: datetime = HARVEY_START,
 
     site = resolve_gauge(site_id)
     tz = local_zone(site)
-    cache = os.path.join(DATA_DIR, f"usgs-{site.site_id}")
+    cache = os.path.join(DATA_DIR, f"usgs-{site.cache_key}")
     osm_date = (start - timedelta(days=1)).strftime("%Y-%m-%d")
     roads_path = os.path.join(cache, f"roads-{osm_date}.json")
     terrain_path = os.path.join(cache, "terrain.npz")

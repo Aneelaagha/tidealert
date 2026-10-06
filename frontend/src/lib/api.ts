@@ -227,6 +227,16 @@ export interface LastCall {
   counts: Record<'counting' | 'passed' | 'cut_off' | 'reconnected', number>; zones: LastCallZone[];
 }
 
+export interface AerialZone {
+  rank: number; zone_id: string; zone_name: string; cut_off_minutes: number; silent_households: number | null;
+  cell_coverage_assessed: boolean; score: number | null; reason_fragments: string[];
+}
+/** /map/aerial-priority: cut-off zones ranked for an aerial look. A ranking only; on a replay silence is excluded and there is no score. */
+export interface AerialPriority {
+  run_id: string; mode: Mode; at: string; silence_active: boolean; available: boolean; note: string; caption: string; empty: string;
+  cut_off_zones: number; shown: number; zones: AerialZone[]; reason: string | null;
+}
+
 export interface Source {
   name: string;
   category: string;
@@ -445,6 +455,7 @@ export const api = {
   currentGauges: (signal?: AbortSignal) => get<CurrentGauges>('/gauges/current', {}, signal),
   validation: (signal?: AbortSignal) => get<Validation>('/validation/harvey', {}, signal),
   heleneValidation: (signal?: AbortSignal) => get<HeleneValidation>('/validation/helene', {}, signal),
+  aerialPriority: (runId: string, at: string | null, signal?: AbortSignal) => get<AerialPriority>('/map/aerial-priority', { run_id: runId, at }, signal),
   lastCall: (runId: string, at: string | null, lead: { reply: number; decision: number; travel: number }, signal?: AbortSignal) =>
     get<LastCall>('/map/last-call', { run_id: runId, at, reply_min: String(lead.reply), decision_min: String(lead.decision), travel_min: String(lead.travel) }, signal),
   reliefNeeds: (runId: string, at: string | null, signal?: AbortSignal) => get<ReliefBoard>('/relief/needs', { run_id: runId, at }, signal),

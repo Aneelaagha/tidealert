@@ -18,12 +18,13 @@ import { AttentionList } from './components/AttentionList';
 import { Legend } from './components/Legend';
 import { MapLegend } from './components/MapLegend';
 import { ReliefPanel } from './components/ReliefPanel';
+import { AerialPanel } from './components/AerialPanel';
 import { LastCallPanel } from './components/LastCallPanel';
 import { type Layer, MapToolbar } from './components/MapToolbar';
 import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
-import { api, type Case, type DepotAccess, type DepotList, type Freshness, type LastCall, type Needs, type ReliefBoard, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
+import { api, type Case, type DepotAccess, type AerialPriority, type DepotList, type Freshness, type LastCall, type Needs, type ReliefBoard, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
 import { cacheKeepView, dispatch, getConnection, restoreView, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
@@ -127,6 +128,8 @@ export default function App() {
   const [needsError, setNeedsError] = useState<string | null>(null);
   const [lastCall, setLastCall] = useState<LastCall | null>(null);
   const [lastCallError, setLastCallError] = useState<string | null>(null);
+  const [aerial, setAerial] = useState<AerialPriority | null>(null);
+  const [aerialError, setAerialError] = useState<string | null>(null);
   const [lead, setLead] = useState<Lead>(loadLead);
   const [playing, setPlaying] = useState(false);
   const [relief, setRelief] = useState<ReliefBoard | null>(null);
@@ -386,6 +389,16 @@ export default function App() {
       .catch((e: Error) => { if (e.name !== 'AbortError') setLastCallError(e.message); });
     return () => ctl.abort();
   }, [run, at, lead, version]);
+  // Aerial priority: the cut-off zones ranked for an aerial look, read again at every time step. A ranking only.
+  useEffect(() => { setAerial(null); }, [run?.id]);
+  useEffect(() => {
+    if (!run) return;
+    const ctl = new AbortController();
+    setAerialError(null);
+    api.aerialPriority(run.id, at, ctl.signal).then(setAerial)
+      .catch((e: Error) => { if (e.name !== 'AbortError') setAerialError(e.message); });
+    return () => ctl.abort();
+  }, [run, at, version]);
   const changeLead = (l: Lead) => { setLead(l); saveLead(l); };
   changeLeadRef.current = changeLead;
 
@@ -471,6 +484,8 @@ export default function App() {
           <LastCallPanel data={lastCall} error={lastCallError} lead={lead} onLead={changeLead} selectedZoneId={selectedZoneId}
                          onSelect={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
                          pinned={demo.active ? demo.pinned : null} clockMs={demo.active && demo.countdownMs !== null ? demo.countdownMs : undefined} />
+          <AerialPanel data={aerial} error={aerialError} selectedZoneId={selectedZoneId}
+                       onSelect={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
           <AttentionList items={ranked} selectedZoneId={selectedZoneId}
                          onSelect={(a) => { setSelectedZoneId(a.zoneId); setSelectedCaseId(a.caseId); }} />
           {run && (

@@ -2,39 +2,64 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  END_AT_S, FREEZE_AT_S, type Host, MIN, type Snapshot, REPLAY_MIN_PER_SEC, SCRIPT, START_AT_S, clockAt, createDriver, pickCountdown, sceneStart, tickIndexAt,
+  BEATS, type Host, MIN, PACING_ISOLATION, PACING_LISTENING, SCRIPT, SCRIPT_LISTENING, type Snapshot, clockAt, createDriver, listeningFacts, pickCountdown,
+  stepAtOrBefore, tickIndexAt,
 } from '../dev/demo-driver';
-import type { LastCall, LastCallZone } from '../lib/api';
+import type { Case, Contribution, LastCall, LastCallZone, ZonesResponse } from '../lib/api';
 import { countdownTone, minutesLeft } from '../lib/lastCall';
 
 const T = (hh: number, mm: number) => Date.UTC(2017, 7, 27, hh, mm);
-const ticks = Array.from({ length: 40 }, (_, i) => T(2, 0) + i * 15 * MIN); // 02:00, 02:15, ...
+const ticks = Array.from({ length: 60 }, (_, i) => T(2, 0) + i * 15 * MIN); // 02:00, 02:15, ...
 const lz = (id: string, cutoff: number, status: LastCallZone['status'] = 'counting'): LastCallZone => ({ zone_id: id, zone_name: `block ${id}`, status,
   cutoff_at: new Date(cutoff).toISOString(), last_call_at: new Date(cutoff).toISOString(), minutes_to_last_call: null, minutes_to_cutoff: null, hindsight: true, was_reconnected: false });
 const lastCall = (zones: LastCallZone[]): LastCall => ({ run_id: 'r', mode: 'replay', at: '', label: '', available: true, reason: null,
   lead: { reply_minutes: 0, decision_minutes: 0, travel_minutes: 0, total_minutes: 0, note: '' }, counts: { counting: zones.length, passed: 0, cut_off: 0, reconnected: 0 }, zones });
-const snap = (over: Partial<Snapshot> = {}): Snapshot => ({ tickAt: T(3, 15), clockMs: T(3, 15), ready: true, cases: 0, firstCaseAt: null, possibly: 100, cutOff: 0,
-  freshness: ['fresh', 'fresh'], lastCall: null, ranked: [], alarms: { '08074500': T(4, 30) }, pinned: [], ...over });
+const snap = (over: Partial<Snapshot> = {}): Snapshot => ({ mode: 'replay', tickAt: T(3, 15), clockMs: T(3, 15), ready: true, cases: 0, firstCaseAt: null, possibly: 100, cutOff: 0,
+  headlineCutOff: 10, headlineFlagged: 40, freshness: ['fresh', 'fresh'], lastCall: null, aerial: null, ranked: [], listening: null, pinned: [], ...over });
 
-describe('the replay clock', () => {
-  it('moves 12 replay-minutes per real second from the start offset, and is held at the freeze', () => {
+// The strings below are what the listening engine stored for the scenario (copied from /cases at 2026-09-10 14:45 UTC), not invented ones.
+const k = (engine: string, direction: string, rule_fragment: string): Contribution => ({ engine, direction, engine_confidence: 0.8, effective_confidence: 0.8, independent_sources: 1,
+  first_observed_at: '2026-09-10T14:15:00Z', last_confirmed_at: '2026-09-10T14:15:00Z', rule_fragment });
+const c = (id: string, zone: string, household: string | null, engines: string[], sentence: string, contributions: Contribution[]): Case => ({ id, zone_id: zone, household_id: household,
+  status: 'open', confidence_word: 'single_source', opened_at: '2026-09-10T14:15:00Z', inference_sentence: sentence, support: 0.8, contradiction: 0, fresh_sources: 1, engines, contributions, tasks: [] });
+const LATE = c('c1', 'A', 'h1', ['silence'], 'Household has not answered a check-in sent at 2026-09-10 14:00 UTC after 15 min', [
+  k('listening', 'procedural', '[2026-09-10T14:15:00+00:00] cascade escalated_voice: no SMS reply after 15 min'),
+  k('silence', 'supports', "[2026-09-10T14:15:00+00:00] late: probe e3670a03 unanswered after 15 min")]);
+const HELP = (id: string, zone: string, hh: string, depth?: string) => c(id, zone, hh, ['listening'], 'Household replied that it needs help; a water-depth question has been sent.', [
+  k('listening', 'supports', '[2026-09-10T14:15:00+00:00] help request: replied HELP by sms; depth follow-up sent; confidence 0.80 = source base (sms)'),
+  ...(depth ? [k('listening', 'supports', `[2026-09-10T14:30:00+00:00] reported ${depth}-deep water (single report: visible, does not change the zone); confidence 0.80`)] : [])]);
+const BLOCK = c('z1', 'A', null, ['listening'], 'Several households in this street block independently report flood water at least knee-deep.', [
+  k('listening', 'supports', '[2026-09-10T14:45:00+00:00] corroborated depth reports: 2 households reported flood depth within 27 min (knee, waist); zone risk_level unknown -> extreme')]);
+const zonesAt = (level: string) => ({ features: [{ properties: { zone_id: 'A', name: 'Synthetic listening block A', risk_level: level } }] }) as unknown as ZonesResponse;
+
+describe('the run clock', () => {
+  it('moves at each beat\'s own speed from its start offset, and is held at its freeze', () => {
     const t0 = T(3, 15);
-    expect(clockAt(0, t0)).toBe(t0);
-    expect(clockAt(START_AT_S, t0)).toBe(t0);
-    expect(clockAt(START_AT_S + 1, t0)).toBe(t0 + REPLAY_MIN_PER_SEC * MIN);
-    expect(clockAt(FREEZE_AT_S, t0)).toBe(t0 + (FREEZE_AT_S - START_AT_S) * REPLAY_MIN_PER_SEC * MIN);
-    expect(clockAt(FREEZE_AT_S + 50, t0)).toBe(clockAt(FREEZE_AT_S, t0)); // it does not run on
+    for (const p of [PACING_ISOLATION, PACING_LISTENING]) {
+      expect(clockAt(0, t0, p)).toBe(t0);
+      expect(clockAt(p.startAtS, t0, p)).toBe(t0);
+      expect(clockAt(p.startAtS + 2, t0, p)).toBe(t0 + 2 * p.minPerSec * MIN);
+      expect(clockAt(p.freezeAtS, t0, p)).toBe(t0 + (p.freezeAtS - p.startAtS) * p.minPerSec * MIN);
+      expect(clockAt(p.freezeAtS + 50, t0, p)).toBe(clockAt(p.freezeAtS, t0, p)); // it does not run on
+    }
+    expect([PACING_ISOLATION.minPerSec, PACING_ISOLATION.freezeAtS]).toEqual([12, 40]); // as briefed
   });
-  it('finds the replay step the clock is in (data exists per step), and none before the first', () => {
+  it('puts the listening scenario\'s three active steps at about 13, 23 and 33 seconds', () => {
+    const t0 = Date.UTC(2026, 8, 10, 14, 0);
+    const secondsTo = (min: number) => PACING_LISTENING.startAtS + min / PACING_LISTENING.minPerSec;
+    expect([15, 30, 45].map(secondsTo)).toEqual([13, 23, 33]);
+    expect(clockAt(33, t0, PACING_LISTENING)).toBe(Date.UTC(2026, 8, 10, 14, 45));
+  });
+  it('finds the run step the clock is in (data exists per step), and none before the first', () => {
     expect(tickIndexAt(T(2, 0) - 1, ticks)).toBe(-1);
     expect(tickIndexAt(T(2, 0), ticks)).toBe(0);
     expect(tickIndexAt(T(2, 14), ticks)).toBe(0);
     expect(tickIndexAt(T(2, 15), ticks)).toBe(1);
   });
-  it('starts the scene 45 minutes before the first Case, on a replay step, from the data it is given', () => {
-    expect(sceneStart(T(4, 0), ticks)).toBe(T(3, 15));
-    expect(sceneStart(T(4, 7), ticks)).toBe(T(3, 15)); // snapped down to a step
-    expect(sceneStart(T(1, 0), ticks)).toBeNull(); // before the replay begins: no scene
+  it('opens on the last step at or before the wanted time, and refuses a time before the run begins', () => {
+    expect(stepAtOrBefore(T(3, 15), ticks)).toBe(T(3, 15));
+    expect(stepAtOrBefore(T(3, 22), ticks)).toBe(T(3, 15));
+    expect(stepAtOrBefore(T(1, 0), ticks)).toBeNull();
   });
   it('reads a countdown as the recorded time minus the clock, never negative, and amber at an hour', () => {
     expect(minutesLeft(T(5, 0), T(3, 0))).toBe(120);
@@ -43,65 +68,103 @@ describe('the replay clock', () => {
   });
 });
 
-describe('the script', () => {
-  it('is in time order, ends on a freeze then silence, and has no repeat or loop', () => {
-    const at = SCRIPT.map((e) => e.at);
-    expect(at).toEqual([...at].sort((a, b) => a - b));
-    expect(SCRIPT.at(-2)).toMatchObject({ name: 'freeze-end', at: FREEZE_AT_S });
-    expect(SCRIPT.at(-1)).toMatchObject({ name: 'silence', at: END_AT_S });
-    expect(new Set(SCRIPT.map((e) => `${e.at}:${e.name}`)).size).toBe(SCRIPT.length);
+describe('the scripts', () => {
+  it('are in time order, end on a freeze then silence, and have no repeat or loop', () => {
+    for (const [script, p] of [[SCRIPT, PACING_ISOLATION], [SCRIPT_LISTENING, PACING_LISTENING]] as const) {
+      const at = script.map((e) => e.at);
+      expect(at).toEqual([...at].sort((a, b) => a - b));
+      expect(script.at(-2)).toMatchObject({ name: 'freeze-end', at: p.freezeAtS });
+      expect(script.at(-1)).toMatchObject({ name: 'silence', at: p.endAtS });
+      expect(new Set(script.map((e) => `${e.at}:${e.name}`)).size).toBe(script.length);
+    }
   });
-  it('reports only values taken from the snapshot: change the data and the reported value changes', () => {
-    const first = SCRIPT.find((e) => e.name === 'first-case')!;
-    const a = first.check(snap({ cases: 3, firstCaseAt: T(4, 0), tickAt: T(4, 0) }), {});
-    const b = first.check(snap({ cases: 9, firstCaseAt: T(4, 15), tickAt: T(4, 15) }), {});
-    expect(a.value).toContain('3 Cases');
-    expect(b.value).toContain('9 Cases');
-    expect(a.value).not.toBe(b.value);
+  it('keep the briefed offsets', () => {
+    expect(SCRIPT.map((e) => [e.at, e.name]).slice(0, 6)).toEqual([[0, 'open-harvey'], [3, 'playhead-start'], [8, 'cutoff-climbs'], [15, 'last-call-1'], [25, 'aerial-populates'], [35, 'last-call-2']]);
+    expect(SCRIPT_LISTENING.map((e) => e.at).slice(0, 9)).toEqual([0, 3, 8, 15, 20, 25, 30, 35, PACING_LISTENING.freezeAtS]);
   });
-  it('does not fire the first Case on a quiet map', () => {
-    expect(SCRIPT.find((e) => e.name === 'first-case')!.check(snap({ cases: 0 }), {}).ok).toBe(false);
+  it('show the REPLAY badge on Harvey and the SCENARIO badge on the scenario, and refuse the wrong run', () => {
+    expect(SCRIPT[0].check(snap({ mode: 'replay' }), {}).ok).toBe(true);
+    expect(SCRIPT[0].check(snap({ mode: 'mixed' }), {}).ok).toBe(false);
+    expect(SCRIPT_LISTENING[0].check(snap({ mode: 'scenario' }), {}).ok).toBe(true);
+    expect(SCRIPT_LISTENING[0].check(snap({ mode: 'replay' }), {}).ok).toBe(false);
   });
-  it('does not call the start frame quiet unless no Case is open and every source is fresh', () => {
-    const start = SCRIPT.find((e) => e.name === 'freeze-start')!;
-    expect(start.check(snap(), {}).ok).toBe(true);
-    expect(start.check(snap({ cases: 118 }), {}).ok).toBe(false);
-    expect(start.check(snap({ freshness: ['fresh', 'stale'] }), {}).ok).toBe(false);
-    expect(start.check(snap({ freshness: null }), {}).ok).toBe(false);
+  it('report only values taken from the snapshot: change the data and the reported value changes', () => {
+    const ev = SCRIPT.find((e) => e.name === 'cutoff-climbs')!;
+    const a = ev.check(snap({ headlineCutOff: 30 }), { headline0: 10 });
+    const b = ev.check(snap({ headlineCutOff: 55 }), { headline0: 10 });
+    expect([a.ok, b.ok]).toEqual([true, true]);
+    expect(a.value).toContain('10 → 30');
+    expect(b.value).toContain('10 → 55');
   });
-  it('shows a gauge crossing only when the stored alarm lies inside the scene, the clock has passed it, and the count rose', () => {
-    const ev = SCRIPT.find((e) => e.name === 'gauge-crossing-08074500')!;
-    const memo = { startMs: T(3, 15), possibly0: 949 };
-    expect(ev.check(snap({ clockMs: T(4, 15), possibly: 3469 }), { ...memo }).ok).toBe(false); // before the alarm
-    expect(ev.check(snap({ clockMs: T(4, 30), possibly: 949 }), { ...memo }).ok).toBe(false); // the count has not risen
-    const ok = ev.check(snap({ clockMs: T(4, 30), tickAt: T(4, 30), possibly: 3469 }), { ...memo });
-    expect(ok.ok).toBe(true);
-    expect(ok.value).toContain('04:29'.slice(0, 2)); // the stored alarm hour
-    expect(ok.value).toContain('949');
-    expect(ok.value).toContain('3,469');
-    expect(ev.check(snap({ clockMs: T(4, 30), possibly: 3469, alarms: { '08074500': T(1, 0) } }), { ...memo }).ok).toBe(false); // alarm before the scene began
-    expect(ev.check(snap({ clockMs: T(4, 30), possibly: 3469, alarms: null }), { ...memo }).ok).toBe(false);
+  it('do not claim the cut-off count climbs when it falls or holds (Harvey after the 27 Aug peak: 147 → 112)', () => {
+    const ev = SCRIPT.find((e) => e.name === 'cutoff-climbs')!;
+    expect(ev.check(snap({ headlineCutOff: 112 }), { headline0: 147 }).ok).toBe(false);
+    expect(ev.check(snap({ headlineCutOff: 147 }), { headline0: 147 }).ok).toBe(false);
+    expect(ev.check(snap({ headlineCutOff: null }), { headline0: 147 }).ok).toBe(false);
   });
-  it('shows the Cases growing only against the count the scene actually opened with', () => {
-    const ev = SCRIPT.find((e) => e.name === 'cases-growth')!;
-    expect(ev.check(snap({ cases: 11 }), { firstCases: 3 }).value).toBe('Cases 3 → 11 at the 03:15 UTC step');
-    expect(ev.check(snap({ cases: 3 }), { firstCases: 3 }).ok).toBe(false);
-    expect(ev.check(snap({ cases: 11 }), {}).ok).toBe(false);
+  it('do not show a countdown when no zone is counting down far enough ahead', () => {
+    const ev = SCRIPT.find((e) => e.name === 'last-call-1')!;
+    expect(ev.check(snap({ lastCall: lastCall([]) }), {}).ok).toBe(false);
+    expect(ev.check(snap({ lastCall: lastCall([lz('a', T(3, 20))]) }), {}).ok).toBe(false); // 5 min ahead: too close to be a countdown
+    expect(ev.check(snap({ lastCall: lastCall([lz('a', T(5, 15), 'cut_off')]) }), {}).ok).toBe(false);
+    expect(ev.check(snap({ lastCall: lastCall([lz('a', T(5, 15))]) }), {}).ok).toBe(true);
+  });
+  it('populate Aerial priority only from a real ranking, and say which rows', () => {
+    const ev = SCRIPT.find((e) => e.name === 'aerial-populates')!;
+    expect(ev.check(snap({ aerial: [] }), {}).ok).toBe(false);
+    expect(ev.check(snap({ aerial: null }), {}).ok).toBe(false);
+    const r = ev.check(snap({ aerial: [{ rank: 1, name: 'block q', minutes: 125 }, { rank: 2, name: 'block r', minutes: 90 }] }), {});
+    expect(r.ok).toBe(true);
+    expect(r.value).toContain('1. block q (125 min)');
+  });
+});
+
+describe('what the listening scenario\'s Cases say', () => {
+  const cases = [LATE, HELP('h2', 'A', 'h2', 'knee'), HELP('h3', 'A', 'h3', 'waist'), HELP('h4', 'B', 'h4', 'ankle'), BLOCK];
+  it('counts late households, cascade steps, HELP replies, depth reports, block Cases and raised zones from the engines\' own text', () => {
+    const f = listeningFacts(cases, zonesAt('extreme'));
+    expect(f.lateHouseholds).toBe(1);
+    expect(f.cascadeSteps).toEqual(['escalated_voice']);
+    expect(f.helpHouseholds).toBe(3);
+    expect(f.depths.map((d) => d.depth).sort()).toEqual(['ankle', 'knee', 'waist']);
+    expect(f.zoneCases).toHaveLength(1);
+    expect(f.raisedZones).toEqual([{ zoneId: 'A', name: 'Synthetic listening block A', level: 'extreme' }]);
+  });
+  it('counts nothing on a quiet scenario, and nothing is raised while the zone reads unknown', () => {
+    const f = listeningFacts([], zonesAt('unknown'));
+    expect(f).toEqual({ lateHouseholds: 0, cascadeSteps: [], helpHouseholds: 0, depths: [], zoneCases: [], raisedZones: [] });
+  });
+  it('fires each event only once its evidence is in the step, and not before', () => {
+    const quiet = snap({ mode: 'scenario', listening: listeningFacts([], zonesAt('unknown')) });
+    const loud = snap({ mode: 'scenario', listening: listeningFacts(cases, zonesAt('extreme')) });
+    for (const name of ['cascade-fires', 'first-reply-help', 'depth-knee', 'second-reply', 'corroboration-2', 'case-opens']) {
+      const ev = SCRIPT_LISTENING.find((e) => e.name === name)!;
+      expect([name, ev.check(quiet, {}).ok]).toEqual([name, false]);
+      expect([name, ev.check(loud, {}).ok]).toEqual([name, true]);
+    }
+  });
+  it('does not call one depth report a corroboration, and does not raise the zone on a single report', () => {
+    const one = snap({ mode: 'scenario', listening: listeningFacts([HELP('h2', 'A', 'h2', 'knee')], zonesAt('unknown')) });
+    expect(SCRIPT_LISTENING.find((e) => e.name === 'depth-knee')!.check(one, {}).ok).toBe(true);
+    expect(SCRIPT_LISTENING.find((e) => e.name === 'second-reply')!.check(one, {}).ok).toBe(false);
+    expect(SCRIPT_LISTENING.find((e) => e.name === 'corroboration-2')!.check(one, {}).ok).toBe(false);
+  });
+  it('reports the engine\'s own words for the corroboration and the Case', () => {
+    const loud = snap({ mode: 'scenario', listening: listeningFacts(cases, zonesAt('extreme')) });
+    expect(SCRIPT_LISTENING.find((e) => e.name === 'corroboration-2')!.check(loud, {}).value).toContain('zone risk_level unknown -> extreme');
+    expect(SCRIPT_LISTENING.find((e) => e.name === 'case-opens')!.check(loud, {}).value).toContain('Several households in this street block');
   });
 });
 
 describe('picking a real countdown', () => {
-  const s = snap({ clockMs: T(5, 0), lastCall: lastCall([lz('a', T(5, 45)), lz('b', T(7, 0)), lz('c', T(8, 45)), lz('d', T(8, 45))]) });
+  const s = (zones: LastCallZone[], pinned: string[] = []) => snap({ lastCall: lastCall(zones), pinned });
   it('takes the soonest recorded cut-off that is far enough ahead, and never one already shown', () => {
-    expect(pickCountdown(s, 30)?.zone_id).toBe('a');
-    expect(pickCountdown({ ...s, clockMs: T(5, 20) }, 30)?.zone_id).toBe('b'); // a zone that is too close is not picked
-    expect(pickCountdown({ ...s, pinned: ['a'] }, 60)?.zone_id).toBe('b');
-    expect(pickCountdown({ ...s, pinned: ['a', 'b'] }, 60)?.zone_id).toBe('c');
-    expect(pickCountdown({ ...s, clockMs: T(8, 30) }, 60)).toBeNull(); // nothing left an hour ahead: no countdown, not a made-up one
+    const zones = [lz('late', T(9, 0)), lz('soon', T(5, 0)), lz('near', T(3, 20))];
+    expect(pickCountdown(s(zones), 20)?.zone_id).toBe('soon');
+    expect(pickCountdown(s(zones, ['soon']), 20)?.zone_id).toBe('late');
   });
   it('ignores zones that are not counting down', () => {
-    expect(pickCountdown(snap({ clockMs: T(5, 0), lastCall: lastCall([lz('x', T(9, 0), 'cut_off')]) }), 30)).toBeNull();
-    expect(pickCountdown(snap({ lastCall: null }), 30)).toBeNull();
+    expect(pickCountdown(s([lz('x', T(9, 0), 'cut_off'), lz('y', T(9, 0), 'reconnected')]), 20)).toBeNull();
   });
 });
 
@@ -110,62 +173,117 @@ describe('the driver', () => {
   beforeEach(() => { vi.useFakeTimers(); nowMs = 0; });
   afterEach(() => { vi.useRealTimers(); });
 
-  function run(snapshotAt: (clock: number) => Snapshot, script = SCRIPT) {
-    const calls = { go: [] as number[], pinned: [] as string[], pulses: [] as string[], frozen: 0, captions: [] as (string | null)[], clocks: [] as number[] };
+  function run(snapshotAt: (clock: number) => Snapshot, beat: 'isolation' | 'listening' = 'isolation') {
+    const calls = { go: [] as number[], pinned: [] as string[], pulses: [] as string[], revealed: [] as string[], frozen: 0, captions: [] as (string | null)[], clocks: [] as number[] };
     const host: Host = {
       snapshot: () => snapshotAt(calls.clocks.at(-1) ?? T(3, 15)),
       goToTick: (i) => calls.go.push(i), setClock: (ms) => calls.clocks.push(ms), pinZone: (id) => calls.pinned.push(id), pulseZone: (id) => calls.pulses.push(id),
-      caption: (c) => calls.captions.push(c), frozen: () => { calls.frozen++; },
+      reveal: (p) => calls.revealed.push(p), caption: (cap) => calls.captions.push(cap), frozen: () => { calls.frozen++; },
     };
-    const d = createDriver(host, ticks, T(3, 15), script, () => nowMs);
+    const d = createDriver(host, ticks, T(3, 15), beat, () => nowMs);
     d.start();
     const advance = (to: number) => { while (nowMs < to * 1000) { nowMs += 100; vi.advanceTimersByTime(100); } };
     return { d, calls, advance };
   }
-  const quiet = (clock: number) => snap({ clockMs: clock, tickAt: ticks[tickIndexAt(clock, ticks)], cases: 0, freshness: ['fresh'] });
+  const quiet = (clock: number) => snap({ clockMs: clock, tickAt: ticks[tickIndexAt(clock, ticks)], cases: 0, headlineCutOff: 0, freshness: ['fresh'] });
+  const FREEZE = PACING_ISOLATION.freezeAtS;
 
   it('advances the playhead step by step, freezes at the freeze offset, stops at the end, and never runs again', () => {
     const { d, calls, advance } = run(quiet);
-    advance(FREEZE_AT_S + 1);
-    const last = calls.clocks.at(-1)!;
-    expect(last).toBe(clockAt(FREEZE_AT_S, T(3, 15)));
+    advance(FREEZE + 1);
+    expect(calls.clocks.at(-1)).toBe(clockAt(FREEZE, T(3, 15), PACING_ISOLATION));
     expect(calls.frozen).toBe(1);
     expect(calls.go).toEqual([...calls.go].sort((a, b) => a - b)); // the playhead only moves forward
     expect(new Set(calls.go).size).toBe(calls.go.length); // each step is requested once: the existing slider path
-    advance(END_AT_S + 5);
+    advance(PACING_ISOLATION.endAtS + 5);
     expect(d.running()).toBe(false);
     const n = calls.clocks.length;
-    advance(END_AT_S + 60);
+    advance(PACING_ISOLATION.endAtS + 60);
     expect(calls.clocks.length).toBe(n); // no loop: nothing happens after it stops
     expect(calls.frozen).toBe(1);
   });
-  it('captions the fast-forward while it plays and says it is paused after', () => {
-    const { calls, advance } = run(quiet);
-    advance(5);
-    expect(calls.captions).toContain('Replay playing at 12 min/s');
-    advance(FREEZE_AT_S + 1);
-    expect(calls.captions.at(-1)).toBe('Replay paused');
+  it('captions the fast-forward while it plays and says it is paused after, for each beat', () => {
+    for (const beat of ['isolation', 'listening'] as const) {
+      vi.clearAllTimers(); nowMs = 0;
+      const { calls, advance } = run(quiet, beat);
+      advance(5);
+      expect(calls.captions).toContain(BEATS[beat].caption(BEATS[beat].pacing));
+      advance(BEATS[beat].pacing.freezeAtS + 1);
+      expect(calls.captions.at(-1)).toBe('Paused');
+    }
+    expect(BEATS.isolation.caption(PACING_ISOLATION)).toBe('Replay playing at 12 min/s');
   });
   it('skips, and logs, an event the real data does not satisfy: it never fires one on a quiet map', () => {
-    const { d, advance } = run(quiet);
-    advance(END_AT_S + 1);
-    const first = d.log().find((e) => e.name === 'first-case')!;
-    expect(first.ok).toBe(false);
-    expect(first.firedAt).toBeNull();
-    expect(first.value).toMatch(/^SKIPPED/);
+    const { d, calls, advance } = run(quiet);
+    advance(PACING_ISOLATION.endAtS + 1);
+    for (const name of ['cutoff-climbs', 'last-call-1', 'aerial-populates', 'last-call-2']) {
+      const e = d.log().find((x) => x.name === name)!;
+      expect([name, e.ok, e.firedAt]).toEqual([name, false, null]);
+      expect(e.value).toMatch(/^SKIPPED/);
+    }
+    expect(calls.pinned).toEqual([]);
+    expect(calls.revealed).toEqual([]);
   });
-  it('waits for the data of a replay step before judging an event, and skips if it never arrives', () => {
-    const { d, advance } = run((c) => ({ ...quiet(c), ready: false, cases: 5, firstCaseAt: T(4, 0) }));
-    advance(END_AT_S + 1);
-    expect(d.log().find((e) => e.name === 'first-case')).toMatchObject({ ok: false, value: 'SKIPPED: the data for this replay step has not arrived' });
+  it('waits for the data of a run step before judging an event, and skips if it never arrives', () => {
+    const { d, advance } = run((cl) => ({ ...quiet(cl), ready: false, headlineCutOff: 99 }));
+    advance(400); // every step is held for its data up to the limit, so the beat takes longer; it still ends and still skips
+    expect(d.running()).toBe(false);
+    expect(d.log().find((e) => e.name === 'cutoff-climbs')).toMatchObject({ ok: false, value: 'SKIPPED: the data for this run step has not arrived' });
   });
-  it('fires an event once, with the value the data gave, and acts on it', () => {
-    const { d, calls, advance } = run((c) => snap({ clockMs: c, tickAt: ticks[tickIndexAt(c, ticks)], cases: 0, freshness: ['fresh'], ranked: [{ zoneId: 'zz', name: 'block zz', caseId: null, group: 0, access: 'isolated', since: null, assigned: false, priority: 'high', word: null, open: 0 }] }));
-    advance(FREEZE_AT_S + 1);
-    const ring = d.log().find((e) => e.name === 'pulse-ring')!;
-    expect(ring.ok).toBe(true);
-    expect(ring.value).toContain('block zz');
-    expect(calls.pulses).toEqual(['zz']); // once
+  it('holds the beat\'s own time while the playhead\'s step is still loading, so a slow load makes it slower and never different', () => {
+    // The data of a step is "ready" `lag` ms after the playhead is sent to it. Two very different lags must give the same events, the same
+    // values and the same replay time for each.
+    const runWithLag = (lag: number) => {
+      vi.clearAllTimers(); nowMs = 0;
+      let sentAt = 0; let sentTo = -1;
+      const clocks: number[] = [];
+      const host: Host = {
+        snapshot: () => { const i = tickIndexAt(clocks.at(-1) ?? T(3, 15), ticks); const ready = i === sentTo && nowMs - sentAt >= lag;
+          return snap({ clockMs: clocks.at(-1) ?? T(3, 15), tickAt: ticks[i], ready, headlineCutOff: 10 + i, aerial: [{ rank: 1, name: `q${i}`, minutes: i }], cases: i }); },
+        goToTick: (i) => { sentTo = i; sentAt = nowMs; }, setClock: (ms) => clocks.push(ms), pinZone: () => {}, pulseZone: () => {}, reveal: () => {}, caption: () => {}, frozen: () => {},
+      };
+      const d = createDriver(host, ticks, T(3, 15), 'isolation', () => nowMs);
+      d.start();
+      while (d.running() && nowMs < 400_000) { nowMs += 100; vi.advanceTimersByTime(100); }
+      return { log: d.log().map((e) => ({ name: e.name, ok: e.ok, replay: e.replay, value: e.value })), wall: nowMs };
+    };
+    const fast = runWithLag(100);
+    const slow = runWithLag(1800);
+    expect(slow.log).toEqual(fast.log);
+    expect(slow.wall).toBeGreaterThan(fast.wall); // the slow load took longer on the wall clock
+    expect(fast.log.find((e) => e.name === 'aerial-populates')).toMatchObject({ ok: true }); // and the scene still played
+  });
+  it('fires an event once, with the value the data gave, acts on it, and reveals Aerial priority only then', () => {
+    const rows = [{ rank: 1, name: 'block q', minutes: 125 }];
+    const { d, calls, advance } = run((cl) => ({ ...quiet(cl), aerial: rows }));
+    advance(FREEZE + 1);
+    const a = d.log().find((e) => e.name === 'aerial-populates')!;
+    expect(a.ok).toBe(true);
+    expect(a.firedAt).toBeGreaterThanOrEqual(25);
+    expect(a.value).toContain('block q');
+    expect(calls.revealed).toEqual(['aerial']); // once
+  });
+  it('holds Aerial priority back until its cue, on the Harvey beat only', () => {
+    expect(BEATS.isolation.hidden).toEqual(['aerial']);
+    expect(BEATS.listening.hidden).toEqual([]);
+  });
+  it('lets a listening event wait past its offset for the step that holds its evidence, and fires it then, not at the offset', () => {
+    // The scenario's evidence arrives at its steps: HELP replies at 14:15 (about 13 s), and the offset for the event is 15 s, so it waits for neither.
+    // Here the evidence lands at 18 s: the event must fire at 18 s, after its 15 s offset, with that value.
+    const start = Date.UTC(2026, 8, 10, 14, 0);
+    const stepsL = Array.from({ length: 13 }, (_, i) => start + i * 15 * MIN);
+    const snapL = (cl: number) => snap({ mode: 'scenario', clockMs: cl, tickAt: stepsL[tickIndexAt(cl, stepsL)],
+      listening: listeningFacts(cl >= clockAt(18, start, PACING_LISTENING) ? [HELP('h2', 'A', 'h2')] : [], zonesAt('unknown')) });
+    const calls = { clocks: [] as number[] };
+    const host: Host = { snapshot: () => snapL(calls.clocks.at(-1) ?? start), goToTick: () => {}, setClock: (ms) => calls.clocks.push(ms), pinZone: () => {}, pulseZone: () => {},
+                         reveal: () => {}, caption: () => {}, frozen: () => {} };
+    const d = createDriver(host, stepsL, start, 'listening', () => nowMs);
+    d.start();
+    while (nowMs < 25_000) { nowMs += 100; vi.advanceTimersByTime(100); }
+    const e = d.log().find((x) => x.name === 'first-reply-help')!;
+    expect(e.ok).toBe(true);
+    expect(e.firedAt).toBeGreaterThanOrEqual(18);
+    expect(e.value).toContain('1 household replied HELP');
   });
 });
 
@@ -188,11 +306,20 @@ describe('keeping it out of the product', () => {
       expect(readFileSync(join(SRC, f), 'utf8'), f).not.toMatch(/demo-driver|createDriver|DevPanel/);
     }
   });
-  it('types in no data: the script has no case count, gauge value, zone id, colour or countdown literal', () => {
+  it('the offline switch lives only in connection.ts, and every use of it is behind import.meta.env.DEV', () => {
+    const src = readFileSync(join(SRC, 'lib', 'connection.ts'), 'utf8');
+    expect(src).toMatch(/export const isForcedOffline = \(\): boolean => import\.meta\.env\.DEV && forcedOffline;/);
+    expect(src).toMatch(/export function devForceOffline\(on: boolean, now: \(\) => number = Date\.now\): void \{\n  if \(!import\.meta\.env\.DEV\) return;/);
+    expect(src.match(/forcedOffline/g)?.length).toBe(3); // the declaration, the DEV-gated reader, and the one write inside devForceOffline
+    const users = files(SRC).filter((f) => /devForceOffline|isForcedOffline/.test(readFileSync(f, 'utf8'))).map((f) => relative(SRC, f)).sort();
+    expect(users).toEqual(['App.tsx', 'lib/connection.ts']);
+  });
+  it('types in no data: the scripts have no case count, gauge value, zone id, colour or countdown literal', () => {
     const code = readFileSync(join(SRC, 'dev', 'demo-driver.ts'), 'utf8').replace(/\/\/.*$/gm, '');
-    const script = code.slice(code.indexOf('export const SCRIPT'), code.indexOf('export interface LogEntry'));
-    expect(script).not.toMatch(/\b(elevated|extreme)\b|#[0-9a-fA-F]{6}|zone_id: '|cases: \d|possibly: \d/);
-    expect(script.match(/\bevent\(([\w_]+|\d+),/g)?.length).toBe(SCRIPT.length); // every entry is an offset, a name and a check, nothing else
+    const script = code.slice(code.indexOf('export const SCRIPT'), code.indexOf('export type BeatName'));
+    expect(script).not.toMatch(/#[0-9a-fA-F]{6}|zone_id: '|cases: \d|possibly: \d|cutOff: \d/);
+    expect(script).not.toMatch(/['"`](elevated|extreme)['"`]/);
+    expect(script.match(/\bevent\(([\w.]+),/g)?.length).toBe(SCRIPT.length + SCRIPT_LISTENING.length); // every entry is an offset, a name and a check, nothing else
     expect(script).not.toMatch(/Math\.random|fetch\(/);
   });
 });

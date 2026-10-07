@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get, post, ApiError } from '../lib/api';
 import {
   INITIAL, OfflineError, cacheClear, cacheKeepView, cachePut, cacheGet, clock, getConnection, next, offlineSourceLabel,
-  resetConnection, isNetworkError, TimeoutError,
+  resetConnection, isNetworkError, TimeoutError, devForceOffline, isForcedOffline, probe,
 } from '../lib/connection';
 
 describe('the connection state machine', () => {
@@ -91,5 +91,42 @@ describe('api.get and api.post while the server is unreachable', () => {
   it('never sends or queues a POST offline', async () => {
     fetchMock().mockRejectedValue(new TypeError('Failed to fetch'));
     await expect(post('/copilot/ask', { question: 'q' })).rejects.toThrow(/needs the server, so nothing was sent/);
+  });
+});
+
+describe('the dev offline switch (the demo conductor)', () => {
+  const ok = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
+  beforeEach(() => { cacheClear(); resetConnection(); vi.stubGlobal('fetch', vi.fn()); });
+  afterEach(() => { devForceOffline(false); vi.unstubAllGlobals(); });
+  const fetchMock = () => globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+
+  it('goes straight to offline, and a request fails like a refused connection: the cache is served, nothing reaches the network', async () => {
+    fetchMock().mockResolvedValueOnce(ok({ n: 1 }));
+    expect(await get('/map/zones', { run_id: 'a' })).toEqual({ n: 1 });
+    fetchMock().mockClear();
+    devForceOffline(true, () => 500);
+    expect(isForcedOffline()).toBe(true);
+    expect(getConnection()).toMatchObject({ state: 'offline', offlineSince: 500 });
+    expect(await get('/map/zones', { run_id: 'a' })).toEqual({ n: 1 }); // the last response, as in a real outage
+    await expect(get('/map/tasks', { run_id: 'a' })).rejects.toBeInstanceOf(OfflineError);
+    await expect(post('/copilot/ask', { question: 'q' })).rejects.toThrow(/needs the server, so nothing was sent/);
+    expect(fetchMock()).not.toHaveBeenCalled();
+  });
+
+  it('suppresses the probe, so the state is not flipped back online while it is on', async () => {
+    devForceOffline(true);
+    fetchMock().mockResolvedValue(ok({ mode: 'template' })); // a reachable server: the probe would find it if it ran
+    await probe();
+    expect(getConnection().state).toBe('offline');
+    expect(fetchMock()).not.toHaveBeenCalled();
+  });
+
+  it('recovers on the first real answer once it is turned off', async () => {
+    devForceOffline(true);
+    fetchMock().mockResolvedValue(ok({ mode: 'template' }));
+    devForceOffline(false);
+    await vi.waitFor(() => expect(getConnection().state).toBe('online'));
+    expect(getConnection().recoveredAt).not.toBeNull();
+    expect(isForcedOffline()).toBe(false);
   });
 });

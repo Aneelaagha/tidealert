@@ -25,12 +25,13 @@ import { RespondersPanel } from './components/RespondersPanel';
 import { ZoneMap } from './components/ZoneMap';
 import { ZonePanel } from './components/ZonePanel';
 import { api, type Case, type DepotAccess, type AerialPriority, type DepotList, type Freshness, type LastCall, type Needs, type ReliefBoard, type Responder, type Run, type SupplyAccess, type Task, type Vocabulary, type ZonesResponse } from './lib/api';
-import { cacheKeepView, dispatch, getConnection, restoreView, startConnectionWatch } from './lib/connection';
+import { cacheKeepView, devForceOffline, dispatch, getConnection, restoreView, startConnectionWatch } from './lib/connection';
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
 import { rankAttention } from './lib/attention';
 import type { DevHost } from './dev/DevPanel';
-import { type Snapshot, sceneStart } from './dev/demo-driver';
+import { BEATS, HARVEY_START, type Snapshot, listeningFacts, stepAtOrBefore } from './dev/demo-driver';
+import { headlineFacts } from './components/Headline';
 import { type Lead, loadLead, saveLead } from './lib/lastCall';
 import { pulseZone } from './lib/pulse';
 import { withNeed } from './lib/relief';
@@ -49,6 +50,8 @@ function Panel({ title, children, className = '' }: { title: string; children: R
 // the driver is not in the bundle. In a dev build it also needs ?dev=1 in the URL. No user-facing route can switch it on.
 const DevPanel = import.meta.env.DEV ? lazy(() => import('./dev/DevPanel')) : null;
 const DEV_ON = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dev') === '1';
+// Read at load: the page rewrites the URL as the slider moves. Where the Harvey beat opens, if not at the briefed time (dev only).
+const HARVEY_START_PARAM = DEV_ON ? new URLSearchParams(window.location.search).get('harveyStart') : null;
 
 const OPERATOR_KEY = 'tidealert.operator';
 const PLAY_STEP_MS = 1500; // one 15-minute step of the replay clock per 1.5 s: slow enough for the zones to load each step
@@ -269,9 +272,8 @@ export default function App() {
 
   // ---- DEV ONLY: what the demo driver is allowed to see and do (dead code in a production build). It sees only what this page has
   // already fetched for the replay step the playhead is at, and drives the page through the same state the slider and Play use.
-  const [demo, setDemo] = useState<{ active: boolean; clockMs: number | null; countdownMs: number | null; caption: string | null; pinned: string[] }>(
-    { active: false, clockMs: null, countdownMs: null, caption: null, pinned: [] });
-  const [alarms, setAlarms] = useState<Record<string, number> | null>(null);
+  const [demo, setDemo] = useState<{ active: boolean; clockMs: number | null; countdownMs: number | null; caption: string | null; pinned: string[]; hidden: string[] }>(
+    { active: false, clockMs: null, countdownMs: null, caption: null, pinned: [], hidden: [] });
   const ticksRef = useRef(ticks);
   ticksRef.current = ticks;
   const runsRef = useRef(runs);
@@ -282,15 +284,24 @@ export default function App() {
   if (DEV_ON) {
     const tickAt = ticks[tick] ? Date.parse(ticks[tick]) : null;
     const forStep = (iso: string | undefined | null) => iso != null && tickAt !== null && Date.parse(iso) === tickAt;
+    const stepCases = cases && forStep(casesAt) ? cases : null;
+    const headline = stepCases && zones && forStep(zones.at) ? headlineFacts(zones, stepCases, []) : null;
     snap.current = {
+      mode: run?.mode ?? null,
       tickAt, clockMs: demo.clockMs ?? tickAt ?? 0,
-      ready: !!zones && forStep(zones.at) && forStep(casesAt) && forStep(supply?.at) && forStep(lastCall?.at) && !!freshness && forStep(freshness.at),
+      // The scenario has no isolation evidence (no supply-access or Last call answer to wait for, and the risk layer is shown), so it is
+      // ready on the zones, Cases and sources alone; every other run also waits for its supply-access and Last call answers.
+      ready: !!zones && forStep(zones.at) && forStep(casesAt) && !!freshness && forStep(freshness.at)
+        && (run?.mode === 'scenario' || (forStep(supply?.at) && forStep(lastCall?.at) && forStep(aerial?.at))),
       cases: cases && forStep(casesAt) ? cases.length : null,
       firstCaseAt: cases?.length ? Math.min(...cases.map((c) => Date.parse(c.opened_at))) : null,
       possibly: supply && forStep(supply.at) ? supply.counts.possibly_isolated?.zones ?? null : null,
       cutOff: supply && forStep(supply.at) ? supply.counts.isolated?.zones ?? null : null,
       freshness: freshness ? freshness.sources.map((s) => s.status) : null,
-      lastCall: lastCall && forStep(lastCall.at) ? lastCall : null, ranked, alarms, pinned: demo.pinned,
+      headlineCutOff: headline ? headline.cutOff : null, headlineFlagged: headline ? headline.flagged : null,
+      lastCall: lastCall && forStep(lastCall.at) ? lastCall : null, ranked, pinned: demo.pinned,
+      aerial: aerial && forStep(aerial.at) ? aerial.zones.map((z) => ({ rank: z.rank, name: z.zone_name, minutes: z.cut_off_minutes })) : null,
+      listening: stepCases && zones && forStep(zones.at) ? listeningFacts(stepCases, zones) : null,
     };
   }
   const devHost = useMemo<DevHost | null>(() => {
@@ -307,21 +318,25 @@ export default function App() {
       pulseZone,
       caption: (text) => setDemo((d) => (d.caption === text ? d : { ...d, caption: text })),
       frozen: () => setPlaying(false),
-      active: (on) => setDemo(on ? (d) => ({ ...d, active: true }) : { active: false, clockMs: null, countdownMs: null, caption: null, pinned: [] }),
-      prepare: async () => {
-        const r = runsRef.current.find((x) => x.mode === 'replay' && x.peak_at);
+      reveal: (panel) => setDemo((d) => (d.hidden.includes(panel) ? { ...d, hidden: d.hidden.filter((x) => x !== panel) } : d)),
+      active: (on) => setDemo(on ? (d) => ({ ...d, active: true }) : { active: false, clockMs: null, countdownMs: null, caption: null, pinned: [], hidden: [] }),
+      offline: (on) => devForceOffline(on),
+      connection: () => ({ state: getConnection().state, offlineSince: getConnection().offlineSince }),
+      // Open a beat's run at its start, frozen: the Harvey replay at HARVEY_START (or ?harveyStart=), the listening scenario at its window start.
+      open: async (beat) => {
+        const r = beat === 'isolation' ? runsRef.current.find((x) => x.mode === 'replay' && x.peak_at)
+          : runsRef.current.find((x) => x.mode === 'scenario' && x.sources.some((src) => src.name.startsWith('Listening')));
         if (!r) return null;
-        const first = await api.cases(r.id, null, null); // the replay's Cases over the whole window: only to find when the first one opens
-        const opened = first.cases.map((c) => Date.parse(c.opened_at));
         const tickTimes = ticksFor(r).map((t) => Date.parse(t));
-        const startMs = opened.length ? sceneStart(Math.min(...opened), tickTimes) : null;
+        const want = beat === 'isolation' ? Date.parse(HARVEY_START_PARAM ?? HARVEY_START) : Date.parse(r.window_start ?? '');
+        const startMs = Number.isFinite(want) ? stepAtOrBefore(want, tickTimes) : null;
         if (startMs === null) return null;
-        api.validation().then((v) => setAlarms(Object.fromEntries(v.lead.rows.map((g) => [g.site, Date.parse(g.alarm_minor_at)])))).catch(() => setAlarms(null));
         const startIso = ticksFor(r)[tickTimes.indexOf(startMs)];
         chooseRun(r, startIso);
-        setLayer('supply');
-        changeLeadRef.current({ reply: 0, decision: 0, travel: 0 });
-        setDemo({ active: true, clockMs: startMs, countdownMs: startMs, caption: null, pinned: [] });
+        setLayer(beat === 'isolation' ? 'supply' : 'risk');
+        if (beat === 'isolation') changeLeadRef.current({ reply: 0, decision: 0, travel: 0 });
+        setRefit((n) => n + 1);
+        setDemo({ active: true, clockMs: startMs, countdownMs: startMs, caption: null, pinned: [], hidden: BEATS[beat].hidden });
         for (let i = 0; i < 120; i++) { await new Promise((res) => setTimeout(res, 250)); if (snap.current?.ready && snap.current.tickAt === startMs) break; }
         return { startMs, tickTimes };
       },
@@ -484,8 +499,10 @@ export default function App() {
           <LastCallPanel data={lastCall} error={lastCallError} lead={lead} onLead={changeLead} selectedZoneId={selectedZoneId}
                          onSelect={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
                          pinned={demo.active ? demo.pinned : null} clockMs={demo.active && demo.countdownMs !== null ? demo.countdownMs : undefined} />
-          <AerialPanel data={aerial} error={aerialError} selectedZoneId={selectedZoneId}
-                       onSelect={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
+          {!(DEV_ON && demo.active && demo.hidden.includes('aerial')) && (
+            <AerialPanel data={aerial} error={aerialError} selectedZoneId={selectedZoneId}
+                         onSelect={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }} />
+          )}
           <AttentionList items={ranked} selectedZoneId={selectedZoneId}
                          onSelect={(a) => { setSelectedZoneId(a.zoneId); setSelectedCaseId(a.caseId); }} />
           {run && (

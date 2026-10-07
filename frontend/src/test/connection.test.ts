@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get, post, ApiError } from '../lib/api';
 import {
-  INITIAL, OfflineError, cacheClear, cacheKeepView, cachePut, cacheGet, clock, getConnection, next, offlineSourceLabel,
+  INITIAL, OfflineError, dispatch, cacheClear, cacheKeepView, cachePut, cacheGet, clock, getConnection, next, offlineSourceLabel,
   resetConnection, isNetworkError, TimeoutError, devForceOffline, isForcedOffline, probe,
 } from '../lib/connection';
 
@@ -119,6 +119,15 @@ describe('the dev offline switch (the demo conductor)', () => {
     await probe();
     expect(getConnection().state).toBe('offline');
     expect(fetchMock()).not.toHaveBeenCalled();
+  });
+
+  it('ignores an answer that was already in flight, and treats a later failure as an outage at once', () => {
+    devForceOffline(true, () => 10);
+    dispatch({ type: 'reachable', at: 20 }); // a reply that left before the switch went on
+    expect(getConnection().state).toBe('offline');
+    resetConnection(); // as if it had been online when the switch went on
+    dispatch({ type: 'network_failure', at: 30 });
+    expect(getConnection().state).toBe('offline');
   });
 
   it('recovers on the first real answer once it is turned off', async () => {

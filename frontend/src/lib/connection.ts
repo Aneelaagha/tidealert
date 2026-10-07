@@ -58,8 +58,12 @@ export function subscribe(listener: () => void): () => void {
   return () => { listeners.delete(listener); };
 }
 export function dispatch(e: ConnEvent): void {
+  // DEV switch: while it is on, an answer that was already in flight is not a sign the server is back, and a failure is an outage at once
+  // (the probe that would normally confirm it is suppressed). Dead code in a production build.
+  if (isForcedOffline() && e.type === 'reachable') return;
   const was = conn;
   conn = next(conn, e);
+  if (isForcedOffline() && conn.state === 'checking') conn = next(conn, { type: 'probe_failed', at: 'at' in e ? e.at : Date.now() });
   if (e.type === 'reachable' && !was.sawServer) dropUnrefreshed(); // the server is here: nothing restored may linger
   if (conn !== was) listeners.forEach((l) => l());
   if (conn.state === 'checking' && was.state !== 'checking') void probe();

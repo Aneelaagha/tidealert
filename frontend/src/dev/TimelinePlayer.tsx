@@ -24,7 +24,7 @@ export class PlayerClock {
 }
 
 export interface PlayerStep { at: number; label: string }
-export interface Line { text: string; sub?: string }
+export interface Line { text: string; sub?: string; skipped?: boolean }
 export type PlayerStatus = 'idle' | 'opening' | 'ready' | 'countdown' | 'running' | 'paused' | 'finished' | 'refused';
 
 /** What a tool gives the player. */

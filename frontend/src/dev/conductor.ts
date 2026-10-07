@@ -215,6 +215,11 @@ export const SCRIPT_OFFLINE: ScriptEvent[] = [
   event(PACING_OFFLINE.endAtS, 'silence', 'Nothing moves from here on', () => ({ ok: true, value: 'stopped' })),
 ];
 
+/** The read-along: the step's narration, else the beat's caption, else the step's name. */
+export function readAlong(step: { what?: string; caption?: string; name: string }): string {
+  return step.what?.trim() || step.caption?.trim() || step.name;
+}
+
 export type BeatName = 'isolation' | 'listening' | 'offline';
 export const BEATS: Record<BeatName, { script: ScriptEvent[]; pacing: Pacing; caption: (p: Pacing) => string; hidden: string[]; playhead: boolean }> = {
   isolation: { script: SCRIPT, pacing: PACING_ISOLATION, caption: (p) => `Replay playing at ${p.minPerSec} min/s`, hidden: ['aerial'], playhead: true },
@@ -319,7 +324,7 @@ export function createConductor(host: Host, tickTimes: number[], startMs: number
       for (const ev of events) if (ev.at <= t && ev.name !== 'silence') cur = ev;
       if (!cur) return null;
       const e = entries.get(keyOf(cur));
-      return { text: cur.what, sub: e ? e.value : undefined };
+      return { text: readAlong({ what: cur.what, caption: BEATS[beat].caption(pacing), name: cur.name }), sub: e ? e.value : undefined, skipped: !!e && !e.ok };
     },
     finished: () => over,
     log: () => events.map((ev) => entries.get(keyOf(ev))).filter((e): e is LogEntry => !!e),

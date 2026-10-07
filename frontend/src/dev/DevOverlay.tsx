@@ -4,9 +4,10 @@
 // Neither gate present: App never renders this file, so neither tool's code is fetched. In a production build the import is dead code.
 // Each tool's own module is imported here only for its own gate. The shared player (TimelinePlayer) draws the controls for both.
 import { useEffect, useRef, useState } from 'react';
-import type { Conductor, DevHostBase, BeatName, Host, LogEntry } from './conductor';
+import type { Conductor, DevHostBase, BeatName, Host } from './conductor';
 import type { StartState, Tour, TourHost, HighlightType } from './tour';
-import { COUNTDOWN_S, PlayerClock, type PlayerStatus, TimelinePlayer, type Tool } from './TimelinePlayer';
+import { COUNTDOWN_S, PlayerClock, type Line, type PlayerStatus, TimelinePlayer, type Tool, stepIndexAt } from './TimelinePlayer';
+import { CompactPanel, GAP_S, SEQUENCE, elapsedIn, sequenceTotals } from './CompactPanel';
 
 export type { DevHostBase as DevHost };
 export interface TourData { start(): StartState; extent(): [number, number, number, number] | null; cutOffPoints(): [number, number][] }
@@ -46,7 +47,11 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
   const [countdown, setCountdown] = useState<number | null>(null);
   const [marks, setMarks] = useState<Mark[]>([]);
   const [caption, setCaption] = useState<string | null>(null);
-  const [log, setLog] = useState<LogEntry[]>([]);
+  // The conductor runs its three beats as one sequence: which beat, and the gap left before the next one starts (ms, null: not in a gap).
+  const seq = useRef(0);
+  const gap = useRef<number | null>(null);
+  const meta = useRef<{ durations: number[]; stepCounts: number[]; titles: string[] } | null>(null);
+  const reported = useRef(new Set<string>());
   const [, setOffline] = useState(false);
   const [, force] = useState(0);
   const statusRef = useRef(status);
@@ -70,6 +75,18 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
     return () => { cancelled = true; tool.current?.stop(); };
   }, [gate, tour, clock]);
 
+  // ---- the conductor's beat lengths, for the step and time read-out (its module loads here, only under ?dev=1)
+  useEffect(() => {
+    if (gate !== 'dev') return;
+    void import('./conductor').then(({ BEATS }) => {
+      meta.current = {
+        durations: SEQUENCE.map((b) => BEATS[b].pacing.endAtS),
+        stepCounts: SEQUENCE.map((b) => BEATS[b].script.filter((e) => e.name !== 'silence').length),
+        titles: SEQUENCE.map((b) => ({ isolation: 'Beat 1: isolation on the Harvey replay', listening: 'Beat 2: silence and listening on the scenario', offline: 'Beat 3: offline' }[b])),
+      };
+    });
+  }, [gate]);
+
   // While the tour has not started, say why it cannot (the page may still be loading, or be on the wrong run).
   useEffect(() => {
     if (gate !== 'tour') return;
@@ -87,16 +104,56 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
   useEffect(() => {
     const id = window.setInterval(() => {
       const t = tool.current;
+      if (gate === 'dev') force((n) => n + 1); // the compact panel reads the clock
       if (!t || !['running', 'paused'].includes(statusRef.current)) return;
+      if (gate === 'dev' && gap.current !== null) {
+        // The 2 s between beats counts down only while running, so Pause holds it.
+        if (statusRef.current === 'running') {
+          gap.current -= 100;
+          if (gap.current <= 0) { gap.current = null; seq.current += 1; void selectBeat(SEQUENCE[seq.current], true); }
+        }
+        return;
+      }
       t.tick();
-      if (t.log) setLog(t.log());
-      if (t.finished()) { clock.pause(); setStatus('finished'); }
+      if (gate === 'dev') reportToConsole(t as Conductor);
+      if (t.finished()) {
+        if (gate === 'dev' && seq.current < SEQUENCE.length - 1) gap.current = GAP_S * 1000;
+        else { clock.pause(); setStatus('finished'); }
+      }
     }, 100);
     return () => window.clearInterval(id);
   }, [clock]);
 
   // ---- controls
+  // The conductor's logs go to the console only; a skipped event is warned about there.
+  function reportToConsole(t: Conductor) {
+    for (const e of t.log()) {
+      const key = `${seq.current}:${e.scriptedAt}:${e.name}`;
+      if (reported.current.has(key)) continue;
+      reported.current.add(key);
+      const line = `[conductor] ${SEQUENCE[seq.current]} ${e.scriptedAt}s ${e.name}: ${e.ok ? `fired @${e.firedAt}s` : 'NOT FIRED'} (${e.replay}) ${e.value}`;
+      if (e.ok) console.info(line); else console.warn(line);
+    }
+  }
+  // Play, for the conductor: after the countdown, Beat 1, a 2 s gap, Beat 2, a 2 s gap, Beat 3, then it stops.
+  function playSequence() {
+    const s = statusRef.current;
+    if (s === 'paused') { clock.play(); setStatus('running'); return; }
+    if (s === 'running' || s === 'countdown' || s === 'opening') return;
+    setStatus('countdown');
+    let n = COUNTDOWN_S;
+    setCountdown(n);
+    const step = () => {
+      n -= 1;
+      if (n > 0) { setCountdown(n); timers.current.push(setTimeout(step, 1000)); return; }
+      clearCountdown();
+      seq.current = 0; gap.current = null;
+      void selectBeat(SEQUENCE[0], true);
+    };
+    timers.current.push(setTimeout(step, 1000));
+  }
   function play() {
+    if (gate === 'dev') { playSequence(); return; }
     const t = tool.current;
     if (!t) return;
     if (statusRef.current === 'paused') { clock.play(); setStatus('running'); return; }
@@ -123,7 +180,13 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
     if (gate === 'tour') {
       const t = tool.current as Tour;
       t.stop(); clock.seek(0); t.seek(0); setStatus('ready'); setMessage(null);
-    } else if (beat.current) await selectBeat(beat.current);
+    } else {
+      // Back to Beat 1 at t=0 with nothing left over: the forced-offline switch off, pinned countdowns cleared, the run reopened at its start.
+      // (The beats write nothing to the database; this is all the state they hold.)
+      gap.current = null; seq.current = 0; reported.current.clear();
+      host?.offline(false); host?.pinZone('');
+      await selectBeat('isolation');
+    }
   }
   function skip(i: number) {
     const t = tool.current;
@@ -136,9 +199,10 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
   function speed(x: number) { clock.setSpeed(x); force((n) => n + 1); }
 
   // ---- the conductor: its own module, only under ?dev=1
-  async function selectBeat(b: BeatName) {
+  async function selectBeat(b: BeatName, auto = false) {
     if (!host) return;
-    clearCountdown(); tool.current?.stop(); clock.pause(); clock.seek(0); setLog([]); setMessage(null);
+    clearCountdown(); tool.current?.stop(); clock.pause(); clock.seek(0); setMessage(null);
+    for (const k of [...reported.current]) if (k.startsWith(`${SEQUENCE.indexOf(b)}:`)) reported.current.delete(k);
     setStatus('opening');
     const { createConductor, withListening, BEATS, HARVEY_START } = await import('./conductor');
     const adapted: Host = { ...host, snapshot: () => withListening(host.snapshot()) };
@@ -153,11 +217,11 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
     }
     beat.current = b;
     tool.current = createConductor(adapted, tickTimes, startMs, b, clock);
-    setStatus('ready');
+    if (auto) { clock.play(); tool.current.start(); setStatus('running'); } else setStatus('ready');
   }
   async function openHarvey() {
     if (!host) return;
-    clearCountdown(); tool.current?.stop(); tool.current = null; beat.current = null; clock.pause(); clock.seek(0); setLog([]);
+    clearCountdown(); tool.current?.stop(); tool.current = null; beat.current = null; clock.pause(); clock.seek(0);
     setStatus('opening');
     const { BEATS, HARVEY_START } = await import('./conductor');
     const o = await host.open('isolation', host.harveyStart() ?? HARVEY_START, BEATS.isolation.hidden);
@@ -185,33 +249,37 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
 
   const t = tool.current;
   const btn = 'rounded border border-fuchsia-400/50 px-2 py-0.5 disabled:opacity-40';
-  const busy = status === 'opening' || status === 'running' || status === 'countdown';
-  const extra = gate === 'dev' ? (
-    <>
-      <div className="mt-1 flex flex-wrap gap-1.5">
-        <button type="button" onClick={() => void openHarvey()} disabled={busy} className={btn}>Open on Harvey</button>
-        <button type="button" onClick={() => void selectBeat('isolation')} disabled={busy} className={btn}>Isolation beat</button>
-        <button type="button" onClick={() => void selectBeat('listening')} disabled={busy} className={btn}>Silence + Listening beat</button>
-        <button type="button" onClick={() => void selectBeat('offline')} disabled={busy} className={btn}>Offline beat</button>
-        <button type="button" onClick={() => goOffline(false)} className={btn}>Recover</button>
-        <button type="button" onClick={reset} className={btn}>Reset</button>
-      </div>
-      {log.length > 0 && (
-        <ul className="custom-scrollbar mt-1 max-h-28 space-y-0.5 overflow-y-auto text-[11px]">
-          {log.map((e) => <li key={e.name + e.scriptedAt} className={e.ok ? '' : 'text-orange-300'}>{e.scriptedAt}s {e.name}: {e.ok ? `@${e.firedAt}s` : ''} {e.value}</li>)}
-        </ul>
-      )}
-    </>
-  ) : (
-    <div className="mt-1 flex gap-1.5"><button type="button" onClick={reset} className={btn}>Reload clean</button></div>
-  );
+  const extra = <div className="mt-1 flex gap-1.5"><button type="button" onClick={reset} className={btn}>Reload clean</button></div>;
+
+  // The conductor's compact panel: where the sequence is, from the beat lengths and the clock.
+  let devLine: Line | null = null; let stepN = 0; let stepM = 0; let elapsed = 0; let total = 0;
+  if (gate === 'dev') {
+    const m = meta.current;
+    const totals = m ? sequenceTotals(m.durations, m.stepCounts) : { seconds: 0, steps: 0 };
+    stepM = totals.steps; total = totals.seconds;
+    const inBeat = Math.min(clock.time(), t?.duration ?? 0);
+    if (m) {
+      stepN = m.stepCounts.slice(0, seq.current).reduce((x, y) => x + y, 0) + (t ? Math.max(stepIndexAt(t.steps, inBeat) + 1, 0) : 0);
+      elapsed = elapsedIn(seq.current, m.durations, gap.current !== null ? m.durations[seq.current] : inBeat);
+    }
+    devLine = message ? { text: message }
+      : gap.current !== null && m ? { text: `Next: ${m.titles[seq.current + 1] ?? ''}` }
+      : status === 'opening' ? { text: 'Opening the next beat…' }
+      : status === 'finished' ? { text: 'All three beats done. Press Restart to run them again.' }
+      : t && ['running', 'paused'].includes(status) ? t.line(inBeat) : null;
+  }
   return (
     <>
       {gate === 'tour' && <HighlightLayer marks={marks} />}
       {caption && <div className="pointer-events-none fixed left-1/2 top-16 z-[65] -translate-x-1/2 rounded bg-black/80 px-3 py-1 text-sm text-white" data-dev-caption>{caption}</div>}
-      <TimelinePlayer title={gate === 'tour' ? 'Guided tour' : t?.title ?? 'Demo conductor'} steps={t?.steps ?? []} duration={t?.duration ?? (gate === 'tour' ? 84 : 0)} clock={clock} status={status}
-                      line={t ? t.line(Math.min(clock.time(), t.duration)) : null} message={message} countdown={countdown}
-                      onPlay={play} onPause={pause} onRestart={() => void restart()} onSkip={skip} onSpeed={speed} extra={extra} />
+      {gate === 'dev' ? (
+        <CompactPanel clock={clock} status={status} line={devLine} countdown={countdown} stepN={stepN} stepM={stepM} elapsed={elapsed} total={total}
+                      onPlay={play} onPause={pause} onRestart={() => void restart()} onSpeed={speed} />
+      ) : (
+        <TimelinePlayer title="Guided tour" steps={t?.steps ?? []} duration={t?.duration ?? 84} clock={clock} status={status}
+                        line={t ? t.line(Math.min(clock.time(), t.duration)) : null} message={message} countdown={countdown}
+                        onPlay={play} onPause={pause} onRestart={() => void restart()} onSkip={skip} onSpeed={speed} extra={extra} />
+      )}
     </>
   );
 }

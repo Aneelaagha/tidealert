@@ -16,6 +16,8 @@ import type { Attention } from '../lib/attention';
 import { minutesLeft } from '../lib/lastCall';
 import type { Case, LastCall, LastCallZone, ZonesResponse } from '../lib/api';
 import type { Line, PlayerClock, PlayerStep, Tool } from './TimelinePlayer';
+import type { CameraSpec } from './camera';
+export type { CameraSpec };
 
 export const TICK_MIN = 15; // the runs' own step: data exists at these times only
 export const GRACE_S = 2.5; // how long after its offset an event waits for the data of its run time to arrive
@@ -61,6 +63,7 @@ export function stepAtOrBefore(wantMs: number, tickTimes: number[]): number | nu
 export interface ListeningFacts {
   lateHouseholds: number; // household Cases with silence evidence: did not answer a check-in within their own usual time
   cascadeSteps: string[]; // each recorded cascade step ("escalated_voice", "escalated_neighbor", ...)
+  lateZoneIds: string[]; // the zones those households are in, most late households first (ties by id)
   helpHouseholds: number; // household Cases whose listening evidence says the household replied HELP
   depths: { depth: string; zoneId: string; caseId: string }[]; // each depth report (ankle / knee / waist)
   zoneCases: { caseId: string; zoneId: string; openedAt: string; sentence: string; evidence: string }[]; // Cases for a whole block
@@ -72,7 +75,8 @@ const STEP = /cascade (\w+):/;
 
 /** Read the listening scenario's facts from the Cases and zones the page holds. Pure: only what the engines stored is counted. */
 export function listeningFacts(cases: Case[], zones: ZonesResponse | null): ListeningFacts {
-  const f: ListeningFacts = { lateHouseholds: 0, cascadeSteps: [], helpHouseholds: 0, depths: [], zoneCases: [], raisedZones: [] };
+  const f: ListeningFacts = { lateHouseholds: 0, lateZoneIds: [], cascadeSteps: [], helpHouseholds: 0, depths: [], zoneCases: [], raisedZones: [] };
+  const lateByZone = new Map<string, number>();
   for (const c of cases) {
     if (c.household_id === null) {
       if (c.engines.includes('listening')) {
@@ -81,7 +85,7 @@ export function listeningFacts(cases: Case[], zones: ZonesResponse | null): List
       }
       continue;
     }
-    if (c.contributions.some((k) => k.engine === 'silence' && k.direction === 'supports')) f.lateHouseholds++;
+    if (c.contributions.some((k) => k.engine === 'silence' && k.direction === 'supports')) { f.lateHouseholds++; lateByZone.set(c.zone_id, (lateByZone.get(c.zone_id) ?? 0) + 1); }
     if (c.contributions.some((k) => k.engine === 'listening' && /replied HELP/.test(k.rule_fragment))) f.helpHouseholds++;
     for (const k of c.contributions) {
       const step = k.engine === 'listening' && k.direction === 'procedural' ? STEP.exec(k.rule_fragment) : null;
@@ -90,6 +94,7 @@ export function listeningFacts(cases: Case[], zones: ZonesResponse | null): List
       if (d) f.depths.push({ depth: d[1], zoneId: c.zone_id, caseId: c.id });
     }
   }
+  f.lateZoneIds = [...lateByZone].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(([id]) => id);
   for (const z of zones?.features ?? []) if (z.properties.risk_level !== 'unknown') f.raisedZones.push({ zoneId: z.properties.zone_id, name: z.properties.name, level: z.properties.risk_level });
   return f;
 }
@@ -108,7 +113,7 @@ export interface Snapshot {
   headlineFlagged: number | null;
   freshness: string[] | null; // each source's status
   lastCall: LastCall | null;
-  aerial: { rank: number; name: string; minutes: number }[] | null; // the Aerial priority ranking for this step
+  aerial: { rank: number; zoneId: string; name: string; minutes: number }[] | null; // the Aerial priority ranking for this step
   ranked: Attention[];
   listening: ListeningFacts | null;
   offline: OfflineView | null; // the connection and what the page shows of it (read from the page, not from the beat)
@@ -120,8 +125,8 @@ export interface OfflineView { state: string; offlineSince: number | null; lastL
 /** What earlier events of the same run saw, so a later event compares with the real value and not with a number typed here. */
 export interface Memo { startMs?: number; headline0?: number | null; cases0?: number | null }
 
-export interface Check { ok: boolean; value: string; act?: (host: Host) => void }
-export interface ScriptEvent { at: number; name: string; what: string; check: (s: Snapshot, m: Memo) => Check; waitS?: number; pure?: boolean }
+export interface Check { ok: boolean; value: string; act?: (host: Host) => void; zones?: string[] } // zones: the zones the step talks about (the camera's target)
+export interface ScriptEvent { at: number; name: string; what: string; check: (s: Snapshot, m: Memo) => Check; waitS?: number; pure?: boolean; camera?: CameraSpec }
 
 /** What the driver may do to the page: move the playhead, and ask panels to show something that is already in the data. */
 export interface Host {
@@ -134,6 +139,7 @@ export interface Host {
   caption(text: string | null): void;
   frozen(): void;
   offline(on: boolean): void; // force the connection offline (dev switch) or bring it back
+  look(label: string, spec: CameraSpec | null, zones: string[], why?: string): void; // move the camera to a frame resolved from the data, or (spec null) hold and say why
 }
 
 const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16);
@@ -153,7 +159,7 @@ export function pickCountdown(s: Snapshot, minAheadMin: number): LastCallZone | 
   return ahead[0] ?? null;
 }
 
-const event = (offset: number, name: string, what: string, check: ScriptEvent['check'], waitS?: number): ScriptEvent => ({ at: offset, name, what, check, waitS, pure: PURE.has(name) });
+const event = (offset: number, name: string, what: string, check: ScriptEvent['check'], waitS?: number, camera?: CameraSpec): ScriptEvent => ({ at: offset, name, what, check, waitS, pure: PURE.has(name), camera });
 const stepOf = (s: Snapshot) => hhmm(s.tickAt ?? s.clockMs);
 const countdown = (s: Snapshot, z: LastCallZone) => `${z.zone_name}: cut off ${hhmm(Date.parse(z.cutoff_at!))} UTC, ${minutesLeft(Date.parse(z.cutoff_at!), s.clockMs)} min away at ${hhmm(s.clockMs)} UTC`;
 
@@ -161,18 +167,18 @@ const countdown = (s: Snapshot, z: LastCallZone) => `${z.zone_name}: cut off ${h
 export const SCRIPT: ScriptEvent[] = [
   event(0, 'open-harvey', 'The Harvey replay opens, REPLAY badge, map fitted', (s, m) => { m.startMs = s.clockMs; m.headline0 = s.headlineCutOff; m.cases0 = s.cases;
       return { ok: s.mode === 'replay', value: `${s.mode?.toUpperCase()} badge; replay ${day(s.clockMs)} UTC; top banner: ${s.headlineCutOff} of ${s.headlineFlagged} flagged zones cut off; ${s.cutOff?.toLocaleString()} zones cut off in the engine's supply-access answer` }; }),
-  event(3, 'playhead-start', 'The playhead starts moving at 12 replay-minutes per real second', (s) => ({ ok: true, value: `from ${day(s.clockMs)} UTC` })),
+  event(3, 'playhead-start', 'The playhead starts moving at 12 replay-minutes per real second', (s) => ({ ok: true, value: `from ${day(s.clockMs)} UTC` }), undefined, { frame: 'metro', zoom: 10, bearing: 15, duration: 2000, mode: 'ease' }),
   event(8, 'cutoff-climbs', 'The cut-off count in the top banner climbs (each value is the real count at its step)', (s, m) => {
       const grew = s.headlineCutOff !== null && m.headline0 != null && s.headlineCutOff > m.headline0;
-      return { ok: grew, value: `top banner cut off: ${m.headline0} → ${s.headlineCutOff} of ${s.headlineFlagged} flagged zones at the ${stepOf(s)} UTC step` }; }, ISOLATION_WAIT_S),
+      return { ok: grew, value: `top banner cut off: ${m.headline0} → ${s.headlineCutOff} of ${s.headlineFlagged} flagged zones at the ${stepOf(s)} UTC step` }; }, ISOLATION_WAIT_S, { frame: 'metro-north', zoom: 11, duration: 1400, mode: 'fly' }),
   event(15, 'last-call-1', 'Last call shows a zone genuinely counting down (lead time 0: last call is its cut-off time)', (s) => { const z = pickCountdown(s, 20);
-      return z ? { ok: true, value: countdown(s, z), act: (h) => h.pinZone(z.zone_id) } : { ok: false, value: `no zone is counting down more than 20 min ahead at the ${stepOf(s)} UTC step (${s.lastCall?.counts.counting ?? 0} counting)` }; }, ISOLATION_WAIT_S),
+      return z ? { ok: true, value: countdown(s, z), act: (h) => h.pinZone(z.zone_id), zones: [z.zone_id] } : { ok: false, value: `no zone is counting down more than 20 min ahead at the ${stepOf(s)} UTC step (${s.lastCall?.counts.counting ?? 0} counting)` }; }, ISOLATION_WAIT_S, { frame: 'zone', zoom: 13, duration: 1600, mode: 'fly' }),
   event(25, 'aerial-populates', 'Aerial priority populates with its top 5 (the real ranking)', (s) => s.aerial && s.aerial.length > 0
-      ? { ok: true, value: `top ${s.aerial.length} at the ${stepOf(s)} UTC step: ${s.aerial.map((r) => `${r.rank}. ${r.name} (${r.minutes} min)`).join('; ')}`, act: (h) => h.reveal('aerial') }
-      : { ok: false, value: 'the ranking holds no zone at this step' }, ISOLATION_WAIT_S),
+      ? { ok: true, value: `top ${s.aerial.length} at the ${stepOf(s)} UTC step: ${s.aerial.map((r) => `${r.rank}. ${r.name} (${r.minutes} min)`).join('; ')}`, act: (h) => h.reveal('aerial'), zones: [s.aerial[0].zoneId] }
+      : { ok: false, value: 'the ranking holds no zone at this step' }, ISOLATION_WAIT_S, { frame: 'zone', zoom: 14, duration: 1400, mode: 'fly' }),
   event(35, 'last-call-2', 'A second real countdown appears beneath', (s) => { const z = pickCountdown(s, 20);
-      return z ? { ok: true, value: countdown(s, z), act: (h) => h.pinZone(z.zone_id) } : { ok: false, value: `no second zone is counting down more than 20 min ahead at the ${stepOf(s)} UTC step (${s.lastCall?.counts.counting ?? 0} counting)` }; }, ISOLATION_WAIT_S),
-  event(PACING_ISOLATION.freezeAtS, 'freeze-end', 'The playhead and the header clock stop on a mid-crisis frame', (s) => ({ ok: true, value: `frozen at replay ${day(s.clockMs)} UTC`, act: (h) => h.frozen() })),
+      return z ? { ok: true, value: countdown(s, z), act: (h) => h.pinZone(z.zone_id), zones: [z.zone_id] } : { ok: false, value: `no second zone is counting down more than 20 min ahead at the ${stepOf(s)} UTC step (${s.lastCall?.counts.counting ?? 0} counting)` }; }, ISOLATION_WAIT_S, { frame: 'zone', zoom: 13, duration: 1200, mode: 'fly' }),
+  event(PACING_ISOLATION.freezeAtS, 'freeze-end', 'The playhead and the header clock stop on a mid-crisis frame', (s) => ({ ok: true, value: `frozen at replay ${day(s.clockMs)} UTC`, act: (h) => h.frozen() }), undefined, { frame: 'metro', zoom: 10, duration: 1800, mode: 'ease' }),
   event(PACING_ISOLATION.endAtS, 'silence', 'No UI motion from here on', () => ({ ok: true, value: 'stopped' })),
 ];
 
@@ -183,23 +189,23 @@ export const SCRIPT: ScriptEvent[] = [
 export const SCRIPT_LISTENING: ScriptEvent[] = [
   event(0, 'open-scenario', 'The listening scenario opens, SCENARIO badge, map fitted to its area', (s, m) => { m.startMs = s.clockMs; m.cases0 = s.cases;
       return { ok: s.mode === 'scenario', value: `${s.mode?.toUpperCase()} badge; scenario ${day(s.clockMs)} UTC; ${s.cases} Cases open` }; }),
-  event(3, 'playhead-start', 'The playhead starts moving at 1.5 scenario-minutes per real second', (s) => ({ ok: true, value: `from ${day(s.clockMs)} UTC` })),
+  event(3, 'playhead-start', 'The playhead starts moving at 1.5 scenario-minutes per real second', (s) => ({ ok: true, value: `from ${day(s.clockMs)} UTC` }), undefined, { frame: 'metro', zoom: 11, bearing: 5, duration: 2000, mode: 'ease' }),
   event(8, 'cascade-fires', 'The probe cascade is visible: households late for their own baseline, escalated by voice call', (s) => {
       const l = s.listening; const n = l?.lateHouseholds ?? 0;
-      return { ok: n > 0 && (l?.cascadeSteps.length ?? 0) > 0, value: `${plural(n, 'household')} did not answer the check-in within their own usual time; cascade steps recorded: ${tally(l?.cascadeSteps ?? [])} (at the ${stepOf(s)} UTC step)` }; }, 8),
+      return { ok: n > 0 && (l?.cascadeSteps.length ?? 0) > 0, value: `${plural(n, 'household')} did not answer the check-in within their own usual time; cascade steps recorded: ${tally(l?.cascadeSteps ?? [])} (at the ${stepOf(s)} UTC step)`, zones: l?.lateZoneIds.slice(0, 1) }; }, 8, { frame: 'zone', zoom: 14, duration: 1400, mode: 'fly' }),
   event(15, 'first-reply-help', 'The first replies arrive: HELP', (s) => { const n = s.listening?.helpHouseholds ?? 0;
       return { ok: n > 0, value: `${plural(n, 'household')} replied HELP by SMS and got the water-depth question (at the ${stepOf(s)} UTC step)` }; }, 8),
   event(20, 'depth-knee', 'A depth follow-up arrives: knee', (s) => { const d = s.listening?.depths ?? [];
-      return { ok: d.some((x) => x.depth === 'knee'), value: `depth reports so far: ${tally(d.map((x) => x.depth))} (at the ${stepOf(s)} UTC step)` }; }, 10),
+      return { ok: d.some((x) => x.depth === 'knee'), value: `depth reports so far: ${tally(d.map((x) => x.depth))} (at the ${stepOf(s)} UTC step)`, zones: d.filter((x) => x.depth === 'knee').slice(0, 1).map((x) => x.zoneId) }; }, 10, { frame: 'zone', zoom: 14.5, mode: 'ease' }),
   event(25, 'second-reply', 'A second household in the same block reports a depth', (s) => { const d = s.listening?.depths ?? [];
       const byZone = d.reduce<Record<string, string[]>>((a, x) => ({ ...a, [x.zoneId]: [...(a[x.zoneId] ?? []), x.depth] }), {});
       const zone = Object.entries(byZone).find(([, v]) => v.length >= 2);
-      return { ok: !!zone, value: zone ? `${zone[1].length} households in one block have reported depth: ${tally(zone[1])} (at the ${stepOf(s)} UTC step)` : `no block has two depth reports yet at the ${stepOf(s)} UTC step` }; }, 12),
+      return { ok: !!zone, value: zone ? `${zone[1].length} households in one block have reported depth: ${tally(zone[1])} (at the ${stepOf(s)} UTC step)` : `no block has two depth reports yet at the ${stepOf(s)} UTC step`, zones: zone ? [zone[0]] : [] }; }, 12, { frame: 'zone', zoom: 15, duration: 1400, mode: 'fly' }),
   event(30, 'corroboration-2', 'Corroboration reaches 2 and the zone risk level rises', (s) => { const l = s.listening; const zc = l?.zoneCases[0]; const r = l?.raisedZones[0];
-      return { ok: !!zc && !!r, value: zc && r ? `${r.name}: risk level now ${r.level}. Engine's words: ${zc.evidence}` : `no block is corroborated yet at the ${stepOf(s)} UTC step` }; }, 12),
+      return { ok: !!zc && !!r, value: zc && r ? `${r.name}: risk level now ${r.level}. Engine's words: ${zc.evidence}` : `no block is corroborated yet at the ${stepOf(s)} UTC step`, zones: [...new Set((l?.depths ?? []).map((x) => x.zoneId))].sort() }; }, 12, { frame: 'zones', zoom: 13.5, duration: 1200, mode: 'ease' }),
   event(35, 'case-opens', "The block's corroborated Case opens (the Case card slides in)", (s) => { const zc = s.listening?.zoneCases[0];
       return zc ? { ok: true, value: `${zc.sentence} (opened ${hhmm(Date.parse(zc.openedAt))} UTC)`, act: (h) => h.pulseZone(zc.zoneId) } : { ok: false, value: `no block Case is open at the ${stepOf(s)} UTC step` }; }, 12),
-  event(PACING_LISTENING.freezeAtS, 'freeze-end', 'The playhead and the header clock stop', (s) => ({ ok: true, value: `frozen at scenario ${day(s.clockMs)} UTC`, act: (h) => h.frozen() })),
+  event(PACING_LISTENING.freezeAtS, 'freeze-end', 'The playhead and the header clock stop', (s) => ({ ok: true, value: `frozen at scenario ${day(s.clockMs)} UTC`, act: (h) => h.frozen() }), undefined, { frame: 'metro', zoom: 11, duration: 1600, mode: 'ease' }),
   event(PACING_LISTENING.endAtS, 'silence', 'No UI motion from here on', () => ({ ok: true, value: 'stopped' })),
 ];
 
@@ -221,15 +227,18 @@ export function readAlong(step: { what?: string; caption?: string; name: string 
 }
 
 export type BeatName = 'isolation' | 'listening' | 'offline';
-export const BEATS: Record<BeatName, { script: ScriptEvent[]; pacing: Pacing; caption: (p: Pacing) => string; hidden: string[]; playhead: boolean }> = {
-  isolation: { script: SCRIPT, pacing: PACING_ISOLATION, caption: (p) => `Replay playing at ${p.minPerSec} min/s`, hidden: ['aerial'], playhead: true },
-  listening: { script: SCRIPT_LISTENING, pacing: PACING_LISTENING, caption: (p) => `Scenario playing at ${p.minPerSec} min/s`, hidden: [], playhead: true },
-  offline: { script: SCRIPT_OFFLINE, pacing: PACING_OFFLINE, caption: () => '', hidden: [], playhead: false },
+export const BEATS: Record<BeatName, { script: ScriptEvent[]; pacing: Pacing; caption: (p: Pacing) => string; hidden: string[]; playhead: boolean; opening?: CameraSpec }> = {
+  // The opening frame is set the moment a beat is opened (and again at Play), so Restart returns to it: the run's whole extent, top-down.
+  isolation: { script: SCRIPT, pacing: PACING_ISOLATION, caption: (p) => `Replay playing at ${p.minPerSec} min/s`, hidden: ['aerial'], playhead: true, opening: { frame: 'metro', zoom: 10, duration: 0, mode: 'jump' } },
+  listening: { script: SCRIPT_LISTENING, pacing: PACING_LISTENING, caption: (p) => `Scenario playing at ${p.minPerSec} min/s`, hidden: [], playhead: true, opening: { frame: 'metro', zoom: 11, duration: 0, mode: 'jump' } },
+  offline: { script: SCRIPT_OFFLINE, pacing: PACING_OFFLINE, caption: () => '', hidden: [], playhead: false }, // no camera: the panel is the focus
 };
 
 /** What the page gives the conductor on top of the Host: open a beat's run frozen at its start, and read the connection. */
-export interface DevHostBase extends Omit<Host, 'snapshot'> {
+export interface DevHostBase extends Omit<Host, 'snapshot' | 'look'> {
   snapshot(): RawSnapshot;
+  extent(): [number, number, number, number] | null; // the run's zone extent (from /runs)
+  zoneGeometry(zoneId: string): { type?: string; coordinates?: unknown } | null; // a loaded zone's own shape
   harveyStart(): string | null; // ?harveyStart= from the page's own URL, read at load
   open(beat: 'isolation' | 'listening', wantAt: string | null, hidden: string[]): Promise<{ startMs: number; tickTimes: number[] } | null>;
   active(on: boolean): void;
@@ -259,6 +268,7 @@ export function createConductor(host: Host, tickTimes: number[], startMs: number
   let started = false;
   let over = false;
 
+  if (BEATS[beat].opening) host.look('opening', BEATS[beat].opening!, []); // a beat opens on its frame, so Restart returns to it
   const label = (e: ScriptEvent) => ({ name: e.name, what: e.what, scriptedAt: e.at });
   const stop = () => { started = false; over = true; };
 
@@ -293,11 +303,13 @@ export function createConductor(host: Host, tickTimes: number[], startMs: number
       if (judging) judged.set(key, res.value);
       if (res.ok) {
         res.act?.(host);
+        if (ev.camera) host.look(ev.name, ev.camera, res.zones ?? []);
         entries.set(key, { ...label(ev), firedAt: Math.round(t * 100) / 100, replay: day(cue), ok: true, value: res.value });
         done.add(key);
       } else if (t > ev.at + (ev.waitS ?? GRACE_S) || (playhead && t >= pacing.freezeAtS)) {
         // Not satisfied by the real data in time: skipped and logged, never faked.
         entries.set(key, { ...label(ev), firedAt: null, replay: day(cue), ok: false, value: `SKIPPED: ${res.value}` });
+        if (ev.camera) host.look(ev.name, null, [], 'the step was skipped, so the camera holds');
         done.add(key);
       }
     }
@@ -308,7 +320,7 @@ export function createConductor(host: Host, tickTimes: number[], startMs: number
     title: beat === 'isolation' ? 'Isolation beat (Harvey replay)' : beat === 'listening' ? 'Silence + Listening beat (scenario)' : 'Offline beat',
     steps: events.filter((e) => e.name !== 'silence').map((e) => ({ at: e.at, label: e.name } as PlayerStep)),
     duration: pacing.endAtS,
-    start() { started = true; over = false; lastPoll = clock.now(); heldFor = 0; lastTick = -2; tick(); },
+    start() { started = true; over = false; lastPoll = clock.now(); heldFor = 0; lastTick = -2; if (BEATS[beat].opening) host.look('opening', BEATS[beat].opening!, []); tick(); },
     tick,
     // Skip: events before the chosen one are not run (logged as such, never presented as having fired); the playhead jumps to its time.
     seek(i) {

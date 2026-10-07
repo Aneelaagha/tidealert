@@ -291,6 +291,8 @@ export default function App() {
   const lastSecond = useRef(-1);
   const changeLeadRef = useRef<(l: Lead) => void>(() => {});
   const snap = useRef<RawSnapshot | null>(null);
+  const devNow = useRef<{ run: Run | null; zones: ZonesResponse | null }>({ run: null, zones: null }); // for the conductor's camera targets
+  if (DEV_ON) devNow.current = { run, zones };
   if (DEV_ON) {
     const tickAt = ticks[tick] ? Date.parse(ticks[tick]) : null;
     const forStep = (iso: string | undefined | null) => iso != null && tickAt !== null && Date.parse(iso) === tickAt;
@@ -310,7 +312,7 @@ export default function App() {
       freshness: freshness ? freshness.sources.map((s) => s.status) : null,
       headlineCutOff: headline ? headline.cutOff : null, headlineFlagged: headline ? headline.flagged : null,
       lastCall: lastCall && forStep(lastCall.at) ? lastCall : null, ranked, pinned: demo.pinned,
-      aerial: aerial && forStep(aerial.at) ? aerial.zones.map((z) => ({ rank: z.rank, name: z.zone_name, minutes: z.cut_off_minutes })) : null,
+      aerial: aerial && forStep(aerial.at) ? aerial.zones.map((z) => ({ rank: z.rank, zoneId: z.zone_id, name: z.zone_name, minutes: z.cut_off_minutes })) : null,
       stepCases, stepZones: zones && forStep(zones.at) ? zones : null, // the conductor reads the scenario's evidence from these
       offline: null,
     };
@@ -363,6 +365,8 @@ export default function App() {
       offline: (on) => devForceOffline(on),
       connection: () => ({ state: getConnection().state, offlineSince: getConnection().offlineSince }),
       harveyStart: () => HARVEY_START_PARAM,
+      extent: () => devNow.current.run?.extent ?? null,
+      zoneGeometry: (id) => devNow.current.zones?.features.find((f) => f.properties.zone_id === id)?.geometry ?? null,
       // Open a beat's run at its start, frozen: the Harvey replay at `wantAt`, the listening scenario at its window start. `hidden`: panels to hold back.
       open: async (beat, wantAt, hidden) => {
         const r = beat === 'isolation' ? runsRef.current.find((x) => x.mode === 'replay' && x.peak_at)
@@ -505,7 +509,7 @@ export default function App() {
                       needsError={needsError} onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}
                       onPortal={() => setPortalOpen(true)} />
           <div className="h-[560px]">
-            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply} depot={depotAccess} refit={refit} pulseNew={playing || demo.active} flat={demo.active}
+            <ZoneMap run={run} zones={zones} selectedZoneId={selectedZoneId} layer={layer} supply={supply} depot={depotAccess} refit={refit} pulseNew={playing || demo.active} flat={demo.active} holdView={demo.active}
                      onSelectZone={(id) => { setSelectedZoneId(id); setSelectedCaseId(null); }}>
               <MapLegend layer={layer} vocabulary={vocabulary} supply={supply} depot={depotAccess} />
             </ZoneMap>

@@ -93,6 +93,7 @@ interface Props {
   depot?: DepotAccess | null; // the depot-access answer for the same run and time (needed when layer is 'depot')
   refit?: number; // bump to frame the zones again (the Start here preset)
   flat?: boolean; // force the flat 2D camera (the auto-advance demo runs in 2D)
+  holdView?: boolean; // keep the camera where it is when a new time step arrives for the run already framed (the dev conductor steers it)
   pulseNew?: boolean; // ring a zone's marker when its first task appears (only while the replay clock is moving)
   children?: ReactNode; // overlays drawn on the map (the legend)
   supply: SupplyAccess | null; // the supply-access answer for the same run and time (needed when layer is 'supply')
@@ -118,7 +119,7 @@ export function boundsOf(zones: ZonesResponse): [number, number, number, number]
   return Number.isFinite(w) ? [w, s, e, n] : null;
 }
 
-export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply, depot = null, refit = 0, pulseNew = false, flat = false, children }: Props) {
+export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, supply, depot = null, refit = 0, pulseNew = false, flat = false, holdView = false, children }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const onSelect = useRef(onSelectZone);
@@ -171,6 +172,7 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
   // answer for a new time). Pan and zoom work freely in between. The zones are what is drawn, so their extent is the view.
   // A run with no zones has nothing to frame (see `note`).
   const fitted = useRef<string | null>(null);
+  const framedRun = useRef<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => { fitted.current = null; setNote(null); }, [run?.id, refit]);
   useEffect(() => {
@@ -184,6 +186,8 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
     const key = `${run.id}|${zones.at}`;
     if (fitted.current === key) return; // the same answer re-rendered (a supply or depot join): the user's view stays
     fitted.current = key;
+    if (holdView && framedRun.current === run.id) return; // already framed this run, and something else is steering the camera
+    framedRun.current = run.id;
     map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding: 40, duration: 0, maxZoom: 15 });
   }, [zones, run]);
 

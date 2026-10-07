@@ -1,10 +1,11 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  BEATS, type Host, MIN, PACING_ISOLATION, PACING_LISTENING, SCRIPT, SCRIPT_LISTENING, type Snapshot, clockAt, createDriver, listeningFacts, pickCountdown,
+  BEATS, type Host, MIN, PACING_ISOLATION, PACING_LISTENING, SCRIPT, SCRIPT_LISTENING, SCRIPT_OFFLINE, type Snapshot, clockAt, createConductor, listeningFacts, pickCountdown,
   stepAtOrBefore, tickIndexAt,
-} from '../dev/demo-driver';
+} from '../dev/conductor';
+import { PlayerClock } from '../dev/TimelinePlayer';
 import type { Case, Contribution, LastCall, LastCallZone, ZonesResponse } from '../lib/api';
 import { countdownTone, minutesLeft } from '../lib/lastCall';
 
@@ -15,7 +16,7 @@ const lz = (id: string, cutoff: number, status: LastCallZone['status'] = 'counti
 const lastCall = (zones: LastCallZone[]): LastCall => ({ run_id: 'r', mode: 'replay', at: '', label: '', available: true, reason: null,
   lead: { reply_minutes: 0, decision_minutes: 0, travel_minutes: 0, total_minutes: 0, note: '' }, counts: { counting: zones.length, passed: 0, cut_off: 0, reconnected: 0 }, zones });
 const snap = (over: Partial<Snapshot> = {}): Snapshot => ({ mode: 'replay', tickAt: T(3, 15), clockMs: T(3, 15), ready: true, cases: 0, firstCaseAt: null, possibly: 100, cutOff: 0,
-  headlineCutOff: 10, headlineFlagged: 40, freshness: ['fresh', 'fresh'], lastCall: null, aerial: null, ranked: [], listening: null, pinned: [], ...over });
+  headlineCutOff: 10, headlineFlagged: 40, freshness: ['fresh', 'fresh'], lastCall: null, aerial: null, ranked: [], listening: null, offline: null, pinned: [], ...over });
 
 // The strings below are what the listening engine stored for the scenario (copied from /cases at 2026-09-10 14:45 UTC), not invented ones.
 const k = (engine: string, direction: string, rule_fragment: string): Contribution => ({ engine, direction, engine_confidence: 0.8, effective_confidence: 0.8, independent_sources: 1,
@@ -168,35 +169,38 @@ describe('picking a real countdown', () => {
   });
 });
 
-describe('the driver', () => {
+describe('the conductor on the shared clock', () => {
   let nowMs = 0;
-  beforeEach(() => { vi.useFakeTimers(); nowMs = 0; });
-  afterEach(() => { vi.useRealTimers(); });
 
-  function run(snapshotAt: (clock: number) => Snapshot, beat: 'isolation' | 'listening' = 'isolation') {
-    const calls = { go: [] as number[], pinned: [] as string[], pulses: [] as string[], revealed: [] as string[], frozen: 0, captions: [] as (string | null)[], clocks: [] as number[] };
+  type Calls = { go: number[]; pinned: string[]; pulses: string[]; revealed: string[]; offline: boolean[]; frozen: number; captions: (string | null)[]; clocks: number[] };
+  function run(snapshotAt: (clock: number) => Snapshot, beat: 'isolation' | 'listening' | 'offline' = 'isolation', lag?: { ms: number }) {
+    nowMs = 0;
+    const calls: Calls = { go: [], pinned: [], pulses: [], revealed: [], offline: [], frozen: 0, captions: [], clocks: [] };
     const host: Host = {
       snapshot: () => snapshotAt(calls.clocks.at(-1) ?? T(3, 15)),
       goToTick: (i) => calls.go.push(i), setClock: (ms) => calls.clocks.push(ms), pinZone: (id) => calls.pinned.push(id), pulseZone: (id) => calls.pulses.push(id),
-      reveal: (p) => calls.revealed.push(p), caption: (cap) => calls.captions.push(cap), frozen: () => { calls.frozen++; },
+      reveal: (p) => calls.revealed.push(p), caption: (cap) => calls.captions.push(cap), frozen: () => { calls.frozen++; }, offline: (on) => calls.offline.push(on),
     };
-    const d = createDriver(host, ticks, T(3, 15), beat, () => nowMs);
-    d.start();
-    const advance = (to: number) => { while (nowMs < to * 1000) { nowMs += 100; vi.advanceTimersByTime(100); } };
-    return { d, calls, advance };
+    void lag;
+    const clock = new PlayerClock(() => nowMs);
+    const c = createConductor(host, ticks, T(3, 15), beat, clock);
+    clock.play();
+    c.start();
+    const advance = (to: number) => { while (nowMs < to * 1000) { nowMs += 100; c.tick(); } };
+    return { c, clock, calls, advance };
   }
   const quiet = (clock: number) => snap({ clockMs: clock, tickAt: ticks[tickIndexAt(clock, ticks)], cases: 0, headlineCutOff: 0, freshness: ['fresh'] });
   const FREEZE = PACING_ISOLATION.freezeAtS;
 
   it('advances the playhead step by step, freezes at the freeze offset, stops at the end, and never runs again', () => {
-    const { d, calls, advance } = run(quiet);
+    const { c, calls, advance } = run(quiet);
     advance(FREEZE + 1);
     expect(calls.clocks.at(-1)).toBe(clockAt(FREEZE, T(3, 15), PACING_ISOLATION));
     expect(calls.frozen).toBe(1);
     expect(calls.go).toEqual([...calls.go].sort((a, b) => a - b)); // the playhead only moves forward
     expect(new Set(calls.go).size).toBe(calls.go.length); // each step is requested once: the existing slider path
     advance(PACING_ISOLATION.endAtS + 5);
-    expect(d.running()).toBe(false);
+    expect(c.running()).toBe(false);
     const n = calls.clocks.length;
     advance(PACING_ISOLATION.endAtS + 60);
     expect(calls.clocks.length).toBe(n); // no loop: nothing happens after it stops
@@ -204,7 +208,6 @@ describe('the driver', () => {
   });
   it('captions the fast-forward while it plays and says it is paused after, for each beat', () => {
     for (const beat of ['isolation', 'listening'] as const) {
-      vi.clearAllTimers(); nowMs = 0;
       const { calls, advance } = run(quiet, beat);
       advance(5);
       expect(calls.captions).toContain(BEATS[beat].caption(BEATS[beat].pacing));
@@ -213,11 +216,36 @@ describe('the driver', () => {
     }
     expect(BEATS.isolation.caption(PACING_ISOLATION)).toBe('Replay playing at 12 min/s');
   });
+  it('stands still while paused, picks up where it left off, and runs at the chosen speed', () => {
+    const { clock, calls, advance } = run(quiet);
+    advance(10);
+    const at10 = calls.clocks.at(-1)!;
+    clock.pause();
+    advance(30); // 20 s pass while paused
+    expect(calls.clocks.at(-1)).toBe(at10);
+    clock.play();
+    advance(32);
+    expect(calls.clocks.at(-1)).toBe(clockAt(12, T(3, 15), PACING_ISOLATION)); // 10 s + 2 s of timeline, not 22
+    clock.setSpeed(1.5);
+    advance(34);
+    expect(calls.clocks.at(-1)).toBe(clockAt(12 + 3, T(3, 15), PACING_ISOLATION)); // 2 wall s at 1.5x = 3 timeline s
+  });
+  it('skips to a step: events before it are logged as not run, never as fired, and the playhead jumps to its time', () => {
+    const { c, clock, calls, advance } = run((cl) => ({ ...quiet(cl), aerial: [{ rank: 1, name: 'block q', minutes: 125 }] }));
+    c.seek(c.steps.findIndex((s) => s.label === 'aerial-populates'));
+    expect(clock.time()).toBe(25);
+    advance(26);
+    const log = c.log();
+    expect(log.find((e) => e.name === 'cutoff-climbs')).toMatchObject({ ok: false, value: 'NOT RUN: skipped past to aerial-populates' });
+    expect(log.find((e) => e.name === 'last-call-1')).toMatchObject({ ok: false });
+    expect(log.find((e) => e.name === 'aerial-populates')).toMatchObject({ ok: true });
+    expect(calls.clocks.at(-1)!).toBeGreaterThanOrEqual(clockAt(25, T(3, 15), PACING_ISOLATION));
+  });
   it('skips, and logs, an event the real data does not satisfy: it never fires one on a quiet map', () => {
-    const { d, calls, advance } = run(quiet);
+    const { c, calls, advance } = run(quiet);
     advance(PACING_ISOLATION.endAtS + 1);
     for (const name of ['cutoff-climbs', 'last-call-1', 'aerial-populates', 'last-call-2']) {
-      const e = d.log().find((x) => x.name === name)!;
+      const e = c.log().find((x) => x.name === name)!;
       expect([name, e.ok, e.firedAt]).toEqual([name, false, null]);
       expect(e.value).toMatch(/^SKIPPED/);
     }
@@ -225,39 +253,16 @@ describe('the driver', () => {
     expect(calls.revealed).toEqual([]);
   });
   it('waits for the data of a run step before judging an event, and skips if it never arrives', () => {
-    const { d, advance } = run((cl) => ({ ...quiet(cl), ready: false, headlineCutOff: 99 }));
+    const { c, advance } = run((cl) => ({ ...quiet(cl), ready: false, headlineCutOff: 99 }));
     advance(400); // every step is held for its data up to the limit, so the beat takes longer; it still ends and still skips
-    expect(d.running()).toBe(false);
-    expect(d.log().find((e) => e.name === 'cutoff-climbs')).toMatchObject({ ok: false, value: 'SKIPPED: the data for this run step has not arrived' });
-  });
-  it('holds the beat\'s own time while the playhead\'s step is still loading, so a slow load makes it slower and never different', () => {
-    // The data of a step is "ready" `lag` ms after the playhead is sent to it. Two very different lags must give the same events, the same
-    // values and the same replay time for each.
-    const runWithLag = (lag: number) => {
-      vi.clearAllTimers(); nowMs = 0;
-      let sentAt = 0; let sentTo = -1;
-      const clocks: number[] = [];
-      const host: Host = {
-        snapshot: () => { const i = tickIndexAt(clocks.at(-1) ?? T(3, 15), ticks); const ready = i === sentTo && nowMs - sentAt >= lag;
-          return snap({ clockMs: clocks.at(-1) ?? T(3, 15), tickAt: ticks[i], ready, headlineCutOff: 10 + i, aerial: [{ rank: 1, name: `q${i}`, minutes: i }], cases: i }); },
-        goToTick: (i) => { sentTo = i; sentAt = nowMs; }, setClock: (ms) => clocks.push(ms), pinZone: () => {}, pulseZone: () => {}, reveal: () => {}, caption: () => {}, frozen: () => {},
-      };
-      const d = createDriver(host, ticks, T(3, 15), 'isolation', () => nowMs);
-      d.start();
-      while (d.running() && nowMs < 400_000) { nowMs += 100; vi.advanceTimersByTime(100); }
-      return { log: d.log().map((e) => ({ name: e.name, ok: e.ok, replay: e.replay, value: e.value })), wall: nowMs };
-    };
-    const fast = runWithLag(100);
-    const slow = runWithLag(1800);
-    expect(slow.log).toEqual(fast.log);
-    expect(slow.wall).toBeGreaterThan(fast.wall); // the slow load took longer on the wall clock
-    expect(fast.log.find((e) => e.name === 'aerial-populates')).toMatchObject({ ok: true }); // and the scene still played
+    expect(c.running()).toBe(false);
+    expect(c.log().find((e) => e.name === 'cutoff-climbs')).toMatchObject({ ok: false, value: 'SKIPPED: the data for this run step has not arrived' });
   });
   it('fires an event once, with the value the data gave, acts on it, and reveals Aerial priority only then', () => {
     const rows = [{ rank: 1, name: 'block q', minutes: 125 }];
-    const { d, calls, advance } = run((cl) => ({ ...quiet(cl), aerial: rows }));
+    const { c, calls, advance } = run((cl) => ({ ...quiet(cl), aerial: rows }));
     advance(FREEZE + 1);
-    const a = d.log().find((e) => e.name === 'aerial-populates')!;
+    const a = c.log().find((e) => e.name === 'aerial-populates')!;
     expect(a.ok).toBe(true);
     expect(a.firedAt).toBeGreaterThanOrEqual(25);
     expect(a.value).toContain('block q');
@@ -267,23 +272,83 @@ describe('the driver', () => {
     expect(BEATS.isolation.hidden).toEqual(['aerial']);
     expect(BEATS.listening.hidden).toEqual([]);
   });
+  it('holds the beat\'s own time while a due event\'s step is still loading, so a slow load makes it slower and never different', () => {
+    const runWithLag = (lag: number) => {
+      let sentAt = 0; let sentTo = -1;
+      const clocks: number[] = [];
+      nowMs = 0;
+      const host: Host = {
+        snapshot: () => { const i = tickIndexAt(clocks.at(-1) ?? T(3, 15), ticks); const ready = i === sentTo && nowMs - sentAt >= lag;
+          return snap({ clockMs: clocks.at(-1) ?? T(3, 15), tickAt: ticks[i], ready, headlineCutOff: 10 + i, aerial: [{ rank: 1, name: `q${i}`, minutes: i }], cases: i }); },
+        goToTick: (i) => { sentTo = i; sentAt = nowMs; }, setClock: (ms) => clocks.push(ms), pinZone: () => {}, pulseZone: () => {}, reveal: () => {}, caption: () => {}, frozen: () => {}, offline: () => {},
+      };
+      const clock = new PlayerClock(() => nowMs);
+      const c = createConductor(host, ticks, T(3, 15), 'isolation', clock);
+      clock.play(); c.start();
+      while (c.running() && nowMs < 400_000) { nowMs += 100; c.tick(); }
+      return { log: c.log().map((e) => ({ name: e.name, ok: e.ok, replay: e.replay, value: e.value })), wall: nowMs };
+    };
+    const fast = runWithLag(100);
+    const slow = runWithLag(1800);
+    expect(slow.log).toEqual(fast.log);
+    expect(slow.wall).toBeGreaterThan(fast.wall); // the slow load took longer on the wall clock
+    expect(fast.log.find((e) => e.name === 'aerial-populates')).toMatchObject({ ok: true }); // and the scene still played
+  });
   it('lets a listening event wait past its offset for the step that holds its evidence, and fires it then, not at the offset', () => {
-    // The scenario's evidence arrives at its steps: HELP replies at 14:15 (about 13 s), and the offset for the event is 15 s, so it waits for neither.
-    // Here the evidence lands at 18 s: the event must fire at 18 s, after its 15 s offset, with that value.
     const start = Date.UTC(2026, 8, 10, 14, 0);
     const stepsL = Array.from({ length: 13 }, (_, i) => start + i * 15 * MIN);
+    nowMs = 0;
+    const clocks: number[] = [];
     const snapL = (cl: number) => snap({ mode: 'scenario', clockMs: cl, tickAt: stepsL[tickIndexAt(cl, stepsL)],
       listening: listeningFacts(cl >= clockAt(18, start, PACING_LISTENING) ? [HELP('h2', 'A', 'h2')] : [], zonesAt('unknown')) });
-    const calls = { clocks: [] as number[] };
-    const host: Host = { snapshot: () => snapL(calls.clocks.at(-1) ?? start), goToTick: () => {}, setClock: (ms) => calls.clocks.push(ms), pinZone: () => {}, pulseZone: () => {},
-                         reveal: () => {}, caption: () => {}, frozen: () => {} };
-    const d = createDriver(host, stepsL, start, 'listening', () => nowMs);
-    d.start();
-    while (nowMs < 25_000) { nowMs += 100; vi.advanceTimersByTime(100); }
-    const e = d.log().find((x) => x.name === 'first-reply-help')!;
+    const host: Host = { snapshot: () => snapL(clocks.at(-1) ?? start), goToTick: () => {}, setClock: (ms) => clocks.push(ms), pinZone: () => {}, pulseZone: () => {},
+                         reveal: () => {}, caption: () => {}, frozen: () => {}, offline: () => {} };
+    const clock = new PlayerClock(() => nowMs);
+    const c = createConductor(host, stepsL, start, 'listening', clock);
+    clock.play(); c.start();
+    while (nowMs < 25_000) { nowMs += 100; c.tick(); }
+    const e = c.log().find((x) => x.name === 'first-reply-help')!;
     expect(e.ok).toBe(true);
     expect(e.firedAt).toBeGreaterThanOrEqual(18);
     expect(e.value).toContain('1 household replied HELP');
+  });
+});
+
+describe('the offline beat', () => {
+  let nowMs = 0;
+  const off = (o: Partial<NonNullable<Snapshot['offline']>>) => snap({ offline: { state: 'offline', offlineSince: 1, lastLoadedAt: 1, recoveredAt: null, banner: true, cached: 3, unknown: 0, ...o } });
+  const ev = (n: string) => SCRIPT_OFFLINE.find((e) => e.name === n)!;
+  it('is the briefed 15 seconds: switch at 0, banner at 2, hold at 8, recover at 15', () => {
+    expect(SCRIPT_OFFLINE.map((e) => [e.at, e.name]).slice(0, 4)).toEqual([[0, 'offline-on'], [2, 'offline-banner'], [8, 'offline-hold'], [15, 'recover']]);
+  });
+  it('turns the switch on and off through the host, and reads the banner from the page, not from the script', () => {
+    const acted: boolean[] = [];
+    const host = { offline: (on: boolean) => acted.push(on) } as unknown as Host;
+    ev('offline-on').check(snap(), {}).act?.(host);
+    ev('recover').check(snap(), {}).act?.(host);
+    expect(acted).toEqual([true, false]);
+    expect(ev('offline-banner').check(off({}), {}).ok).toBe(true);
+    expect(ev('offline-banner').check(off({ banner: false }), {}).ok).toBe(false); // no banner on the page: not claimed
+    expect(ev('offline-banner').check(off({ cached: 0, unknown: 0 }), {}).ok).toBe(false);
+    expect(ev('offline-banner').check(snap(), {}).ok).toBe(false);
+  });
+  it('confirms the refresh only when the page is online again and has re-read its view after recovering', () => {
+    const on = (o: Partial<NonNullable<Snapshot['offline']>>) => off({ state: 'online', banner: false, recoveredAt: 100, lastLoadedAt: 250, ...o });
+    expect(ev('confirm-refresh').check(on({}), {}).ok).toBe(true);
+    expect(ev('confirm-refresh').check(on({ lastLoadedAt: 50 }), {}).ok).toBe(false); // the view was not re-read yet
+    expect(ev('confirm-refresh').check(on({ state: 'offline' }), {}).ok).toBe(false);
+    expect(ev('confirm-refresh').check(on({ banner: true }), {}).ok).toBe(false);
+  });
+  it('runs its checks without a playhead and ends by itself', () => {
+    const clocks = { n: 0 };
+    nowMs = 0;
+    const host = { snapshot: () => off({}), goToTick: () => { clocks.n++; }, setClock: () => { clocks.n++; }, caption: () => { clocks.n++; }, offline: () => {} } as unknown as Host;
+    const clock = new PlayerClock(() => nowMs);
+    const c = createConductor(host, [], T(3, 15), 'offline', clock);
+    clock.play(); c.start();
+    while (c.running() && nowMs < 60_000) { nowMs += 100; c.tick(); }
+    expect(clocks.n).toBe(0); // it never touches the slider
+    expect(c.log().find((e) => e.name === 'offline-banner')).toMatchObject({ ok: true });
   });
 });
 
@@ -297,13 +362,26 @@ describe('keeping it out of the product', () => {
     const importers = files(SRC).filter((f) => !relative(SRC, f).startsWith('dev') && /from ['"]\.{1,2}\/(dev|\.\.\/dev)/.test(readFileSync(f, 'utf8')) || (/import\(['"]\.\/dev\//.test(readFileSync(f, 'utf8')) && !relative(SRC, f).startsWith('dev')));
     expect(importers.map((f) => relative(SRC, f))).toEqual(['App.tsx']);
     const app = readFileSync(join(SRC, 'App.tsx'), 'utf8');
-    expect(app).toMatch(/import\.meta\.env\.DEV \? lazy\(\(\) => import\('\.\/dev\/DevPanel'\)\) : null/);
+    expect(app).toMatch(/import\.meta\.env\.DEV \? lazy\(\(\) => import\('\.\/dev\/DevOverlay'\)\) : null/);
     expect(app).toMatch(/DEV_ON = import\.meta\.env\.DEV && typeof window !== 'undefined' && new URLSearchParams\(window\.location\.search\)\.get\('dev'\) === '1'/);
-    expect(app).toMatch(/\{DEV_ON && DevPanel && devHost &&/);
+    expect(app).toMatch(/TOUR_ON = import\.meta\.env\.DEV && typeof window !== 'undefined' && new URLSearchParams\(window\.location\.search\)\.get\('tour'\) === '1'/);
+    expect(app).toMatch(/\{DevOverlay && DEV_ON && !TOUR_ON && devHost && /); // both gates at once: the tour mounts alone
+    expect(app).toMatch(/\{DevOverlay && TOUR_ON && tourData && /);
+  });
+  it('the page takes no value from either tool, and the overlay loads each tool only by a dynamic import, so a gate loads only its own code', () => {
+    const app = readFileSync(join(SRC, 'App.tsx'), 'utf8');
+    const devImports = app.split('\n').filter((l) => /from '\.\/dev\//.test(l));
+    expect(devImports.every((l) => /^import type /.test(l))).toBe(true); // types are erased: nothing from dev/ is fetched until its gate lazy-loads the overlay
+    const overlay = readFileSync(join(SRC, 'dev', 'DevOverlay.tsx'), 'utf8');
+    expect(overlay).not.toMatch(/^import (?!type )[^\n]*from '\.\/(tour|conductor)'/m);
+    expect(overlay).toMatch(/await import\('\.\/conductor'\)/);
+    expect(overlay).toMatch(/import\('\.\/tour'\)/);
+    expect(readFileSync(join(SRC, 'dev', 'tour.ts'), 'utf8')).not.toMatch(/from '\.\/conductor'/);
+    expect(readFileSync(join(SRC, 'dev', 'conductor.ts'), 'utf8')).not.toMatch(/from '\.\/tour'/);
   });
   it('the production-reachable pieces use no driver code', () => {
     for (const f of ['lib/pulse.ts', 'lib/lastCall.ts', 'components/LastCallPanel.tsx', 'components/Header.tsx', 'components/ZoneMap.tsx']) {
-      expect(readFileSync(join(SRC, f), 'utf8'), f).not.toMatch(/demo-driver|createDriver|DevPanel/);
+      expect(readFileSync(join(SRC, f), 'utf8'), f).not.toMatch(/dev\/conductor|dev\/tour|createConductor|createTour|DevOverlay|TimelinePlayer/);
     }
   });
   it('the offline switch lives only in connection.ts, and every use of it is behind import.meta.env.DEV', () => {
@@ -315,11 +393,11 @@ describe('keeping it out of the product', () => {
     expect(users).toEqual(['App.tsx', 'lib/connection.ts']);
   });
   it('types in no data: the scripts have no case count, gauge value, zone id, colour or countdown literal', () => {
-    const code = readFileSync(join(SRC, 'dev', 'demo-driver.ts'), 'utf8').replace(/\/\/.*$/gm, '');
+    const code = readFileSync(join(SRC, 'dev', 'conductor.ts'), 'utf8').replace(/\/\/.*$/gm, '');
     const script = code.slice(code.indexOf('export const SCRIPT'), code.indexOf('export type BeatName'));
     expect(script).not.toMatch(/#[0-9a-fA-F]{6}|zone_id: '|cases: \d|possibly: \d|cutOff: \d/);
     expect(script).not.toMatch(/['"`](elevated|extreme)['"`]/);
-    expect(script.match(/\bevent\(([\w.]+),/g)?.length).toBe(SCRIPT.length + SCRIPT_LISTENING.length); // every entry is an offset, a name and a check, nothing else
+    expect(script.match(/\bevent\(([\w.]+),/g)?.length).toBe(SCRIPT.length + SCRIPT_LISTENING.length + SCRIPT_OFFLINE.length); // every entry is an offset, a name and a check, nothing else
     expect(script).not.toMatch(/Math\.random|fetch\(/);
   });
 });

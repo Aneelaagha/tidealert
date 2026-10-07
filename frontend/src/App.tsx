@@ -29,8 +29,8 @@ import { cacheKeepView, devForceOffline, dispatch, getConnection, restoreView, s
 import { useConnection } from './lib/useConnection';
 import { fmtTime } from './lib/format';
 import { rankAttention } from './lib/attention';
-import type { DevHost } from './dev/DevPanel';
-import { BEATS, HARVEY_START, type Snapshot, listeningFacts, stepAtOrBefore } from './dev/demo-driver';
+import type { DevHost, TourData } from './dev/DevOverlay';
+import type { RawSnapshot } from './dev/conductor';
 import { headlineFacts } from './components/Headline';
 import { type Lead, loadLead, saveLead } from './lib/lastCall';
 import { pulseZone } from './lib/pulse';
@@ -48,10 +48,20 @@ function Panel({ title, children, className = '' }: { title: string; children: R
 
 // DEV ONLY: the demo driver. `import.meta.env.DEV` is a literal false in a production build, so this import is dead code there and
 // the driver is not in the bundle. In a dev build it also needs ?dev=1 in the URL. No user-facing route can switch it on.
-const DevPanel = import.meta.env.DEV ? lazy(() => import('./dev/DevPanel')) : null;
+const DevOverlay = import.meta.env.DEV ? lazy(() => import('./dev/DevOverlay')) : null;
 const DEV_ON = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dev') === '1';
+// ?tour=1: the guided tour (camera and highlights only; it changes no state). A separate gate from ?dev=1: each tool's code loads only for its own.
+const TOUR_ON = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tour') === '1';
 // Read at load: the page rewrites the URL as the slider moves. Where the Harvey beat opens, if not at the briefed time (dev only).
 const HARVEY_START_PARAM = DEV_ON ? new URLSearchParams(window.location.search).get('harveyStart') : null;
+/** DEV ONLY: the connection as the page shows it, read back for the offline beat's checks. */
+function offlineView() {
+  const c = getConnection();
+  const banner = [...document.querySelectorAll('[role="status"]')].some((e) => /Offline since/i.test(e.textContent ?? ''));
+  const sources = [...document.querySelectorAll('[aria-live="polite"]')].map((e) => e.textContent ?? '').find((t) => /Sources/.test(t)) ?? '';
+  return { state: c.state, offlineSince: c.offlineSince, lastLoadedAt: c.lastLoadedAt, recoveredAt: c.recoveredAt, banner,
+           cached: (sources.match(/\bcached\b/gi) ?? []).length, unknown: (sources.match(/\bunknown\b/gi) ?? []).length };
+}
 
 const OPERATOR_KEY = 'tidealert.operator';
 const PLAY_STEP_MS = 1500; // one 15-minute step of the replay clock per 1.5 s: slow enough for the zones to load each step
@@ -280,7 +290,7 @@ export default function App() {
   runsRef.current = runs;
   const lastSecond = useRef(-1);
   const changeLeadRef = useRef<(l: Lead) => void>(() => {});
-  const snap = useRef<Snapshot | null>(null);
+  const snap = useRef<RawSnapshot | null>(null);
   if (DEV_ON) {
     const tickAt = ticks[tick] ? Date.parse(ticks[tick]) : null;
     const forStep = (iso: string | undefined | null) => iso != null && tickAt !== null && Date.parse(iso) === tickAt;
@@ -301,13 +311,43 @@ export default function App() {
       headlineCutOff: headline ? headline.cutOff : null, headlineFlagged: headline ? headline.flagged : null,
       lastCall: lastCall && forStep(lastCall.at) ? lastCall : null, ranked, pinned: demo.pinned,
       aerial: aerial && forStep(aerial.at) ? aerial.zones.map((z) => ({ rank: z.rank, name: z.zone_name, minutes: z.cut_off_minutes })) : null,
-      listening: stepCases && zones && forStep(zones.at) ? listeningFacts(stepCases, zones) : null,
+      stepCases, stepZones: zones && forStep(zones.at) ? zones : null, // the conductor reads the scenario's evidence from these
+      offline: null,
     };
   }
+  // ---- DEV ONLY (?tour=1): what the guided tour may READ. It sees the run, the time and the layer on screen and which zones the engine finds
+  // cut off; it is given no setter for any of them. Dead code in a production build.
+  const tourNow = useRef<{ run: Run | null; zones: ZonesResponse | null; supply: SupplyAccess | null; layer: Layer; ready: boolean }>({ run: null, zones: null, supply: null, layer: 'risk', ready: false });
+  if (TOUR_ON) {
+    const tickAt = ticks[tick] ? Date.parse(ticks[tick]) : null;
+    const forStep = (iso: string | undefined | null) => iso != null && tickAt !== null && Date.parse(iso) === tickAt;
+    tourNow.current = { run, zones, supply, layer,
+      ready: !!zones && forStep(zones.at) && forStep(casesAt) && forStep(supply?.at) && forStep(lastCall?.at) && forStep(aerial?.at) && !!freshness && forStep(freshness.at) };
+  }
+  const tourData = useMemo<TourData | null>(() => {
+    if (!TOUR_ON) return null;
+    return {
+      start: () => { const n = tourNow.current; return { mode: n.run?.mode ?? null, event: n.run?.event ?? null, at: n.zones?.at ?? null, layer: n.layer, ready: n.ready, runId: n.run?.id ?? null }; },
+      extent: () => tourNow.current.run?.extent ?? null,
+      cutOffPoints: () => {
+        const { zones: z, supply: sp } = tourNow.current;
+        if (!z || !sp) return [];
+        const pts: [number, number][] = [];
+        for (const f of z.features) {
+          if (sp.zones[f.properties.zone_id]?.zone_access !== 'isolated') continue;
+          let w = Infinity, e = -Infinity, s = Infinity, n = -Infinity;
+          const walk = (c: unknown): void => { if (Array.isArray(c) && typeof c[0] === 'number') { w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1] as number); n = Math.max(n, c[1] as number); } else if (Array.isArray(c)) c.forEach(walk); };
+          walk((f.geometry as { coordinates?: unknown }).coordinates);
+          if (Number.isFinite(w)) pts.push([(w + e) / 2, (s + n) / 2]);
+        }
+        return pts;
+      },
+    };
+  }, []);
   const devHost = useMemo<DevHost | null>(() => {
     if (!DEV_ON) return null;
     return {
-      snapshot: () => snap.current!,
+      snapshot: () => ({ ...snap.current!, offline: offlineView() }),
       goToTick: (i) => { setPlaying(false); setTick(i); setAt(ticksRef.current[i]); },
       setClock: (ms, second) => {
         const newSecond = second !== lastSecond.current; // decided here, not inside the updater (StrictMode runs updaters twice)
@@ -322,21 +362,23 @@ export default function App() {
       active: (on) => setDemo(on ? (d) => ({ ...d, active: true }) : { active: false, clockMs: null, countdownMs: null, caption: null, pinned: [], hidden: [] }),
       offline: (on) => devForceOffline(on),
       connection: () => ({ state: getConnection().state, offlineSince: getConnection().offlineSince }),
-      // Open a beat's run at its start, frozen: the Harvey replay at HARVEY_START (or ?harveyStart=), the listening scenario at its window start.
-      open: async (beat) => {
+      harveyStart: () => HARVEY_START_PARAM,
+      // Open a beat's run at its start, frozen: the Harvey replay at `wantAt`, the listening scenario at its window start. `hidden`: panels to hold back.
+      open: async (beat, wantAt, hidden) => {
         const r = beat === 'isolation' ? runsRef.current.find((x) => x.mode === 'replay' && x.peak_at)
           : runsRef.current.find((x) => x.mode === 'scenario' && x.sources.some((src) => src.name.startsWith('Listening')));
         if (!r) return null;
         const tickTimes = ticksFor(r).map((t) => Date.parse(t));
-        const want = beat === 'isolation' ? Date.parse(HARVEY_START_PARAM ?? HARVEY_START) : Date.parse(r.window_start ?? '');
-        const startMs = Number.isFinite(want) ? stepAtOrBefore(want, tickTimes) : null;
+        const want = Date.parse(beat === 'isolation' ? wantAt ?? '' : r.window_start ?? '');
+        const at = tickTimes.filter((t) => t <= want).at(-1); // the last run step at or before the wanted time
+        const startMs = Number.isFinite(want) && at !== undefined ? at : null;
         if (startMs === null) return null;
         const startIso = ticksFor(r)[tickTimes.indexOf(startMs)];
         chooseRun(r, startIso);
         setLayer(beat === 'isolation' ? 'supply' : 'risk');
         if (beat === 'isolation') changeLeadRef.current({ reply: 0, decision: 0, travel: 0 });
         setRefit((n) => n + 1);
-        setDemo({ active: true, clockMs: startMs, countdownMs: startMs, caption: null, pinned: [], hidden: BEATS[beat].hidden });
+        setDemo({ active: true, clockMs: startMs, countdownMs: startMs, caption: null, pinned: [], hidden });
         for (let i = 0; i < 120; i++) { await new Promise((res) => setTimeout(res, 250)); if (snap.current?.ready && snap.current.tickAt === startMs) break; }
         return { startMs, tickTimes };
       },
@@ -522,7 +564,8 @@ export default function App() {
           </Panel>
         </div>
       </main>
-      {DEV_ON && DevPanel && devHost && <Suspense fallback={null}><DevPanel host={devHost} /></Suspense>}
+      {DevOverlay && DEV_ON && !TOUR_ON && devHost && <Suspense fallback={null}><DevOverlay gate="dev" host={devHost} tour={null} /></Suspense>}
+      {DevOverlay && TOUR_ON && tourData && <Suspense fallback={null}><DevOverlay gate="tour" host={null} tour={tourData} /></Suspense>}
     </div>
   );
 }

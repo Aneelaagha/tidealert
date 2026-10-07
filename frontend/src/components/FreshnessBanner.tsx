@@ -8,7 +8,7 @@ import { useState } from 'react';
 
 import type { Freshness, Run } from '../lib/api';
 import { type Connection, offlineSourceLabel } from '../lib/connection';
-import { fmtAge, label } from '../lib/format';
+import { fmtAge, label, sourceId, sourceStatus } from '../lib/format';
 
 const DOT: Record<string, string> = {
   fresh: 'bg-safe-green', stale: 'bg-danger-red', no_data: 'bg-slate-500', event_driven: 'bg-sky-500',
@@ -44,17 +44,16 @@ export function FreshnessBanner({ run, freshness, conn }: { run: Run; freshness:
               return (
                 <span key={s.name} className="inline-flex items-center gap-1.5">
                   <span className={`h-2 w-2 rounded-full ${o.unknown ? 'bg-slate-500' : DOT[o.status] ?? 'bg-unstyled'}`} />
-                  {s.name}: <b>{label(o.status)}</b> ({o.note})
+                  {sourceId(s.name)} · <b>{label(o.status)}</b> · {o.note}
                 </span>
               );
             }
-            const age = s.status === 'no_data' ? 'no data yet' : `last ${fmtAge(s.age_seconds)} ago`;
             const rule = s.status === 'event_driven' ? 'event-driven, not judged'
               : `stale after ${fmtAge(s.stale_after_seconds)}${s.stale_after_overridden ? ' (run override)' : ''}`;
             return (
               <span key={s.name} title={rule} className="inline-flex items-center gap-1.5">
                 <span className={`h-2 w-2 rounded-full ${DOT[s.status] ?? 'bg-unstyled'}`} />
-                {s.name}: <b>{label(s.status)}</b> ({age})
+                {sourceId(s.name)} · <b>{sourceStatus(s.status, s.age_seconds)}</b>
               </span>
             );
           })}
@@ -70,7 +69,7 @@ export function FreshnessBanner({ run, freshness, conn }: { run: Run; freshness:
           {run.sources.map((s) => (
             <span key={s.name} className="inline-flex items-center gap-1.5 text-slate-500">
               <span className="h-2 w-2 rounded-full bg-slate-700" />
-              {s.name}: <b>loading…</b>
+              {sourceId(s.name)} · <b>loading…</b>
             </span>
           ))}
         </>

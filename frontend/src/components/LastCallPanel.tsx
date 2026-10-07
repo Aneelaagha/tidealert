@@ -6,7 +6,7 @@
 import { Hourglass } from 'lucide-react';
 import { useState } from 'react';
 import type { LastCall, LastCallZone } from '../lib/api';
-import { type Lead, countdownTone, fmtCountdown, minutesLeft, parseMinutes, totalLead } from '../lib/lastCall';
+import { type Lead, countdownTone, fmtCountdown, minutesLeft, parseMinutes } from '../lib/lastCall';
 import { Mono, Time } from './ui';
 
 function Countdown({ z, clockMs }: { z: LastCallZone; clockMs?: number }) {
@@ -64,10 +64,6 @@ export function LastCallPanel({ data, error, lead, onLead, onSelect, selectedZon
       <div className="mt-2 grid grid-cols-3 gap-2">
         {field('reply', 'Reply wait')}{field('decision', 'Decision')}{field('travel', 'Travel')}
       </div>
-      <p className="mt-1 text-xs text-slate-400">
-        Lead time <b className="text-slate-200">{totalLead(lead)} min</b>, set by you, not measured.{' '}
-        {totalLead(lead) === 0 && 'With none set, last call is the cut-off time itself.'}
-      </p>
 
       {error ? <p className="mt-2 text-sm text-danger-red">{error}</p>
         : !data ? <p className="mt-2 text-sm text-slate-500">loading…</p>
@@ -93,10 +89,6 @@ export function LastCallPanel({ data, error, lead, onLead, onSelect, selectedZon
             )}
           </>
         )}
-      <p className="mt-2 text-[11px] leading-snug text-slate-500">
-        Replay: the engine's recorded cut-off times are known in hindsight and stand in for a forecast; a live system needs a river forecast. Per zone, not per household.
-        "Cut off" means no dry road route out: roads reopen, and it says nothing about phones or other ways to reach people.
-      </p>
     </section>
   );
 }

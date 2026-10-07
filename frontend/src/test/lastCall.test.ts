@@ -34,8 +34,7 @@ describe('the Last call panel', () => {
     expect(html).toContain('to last call');
     expect(html).toContain('Last call passed');
     expect(html).toContain('cut off in 12 min');
-    expect(html).toContain('Lead time <b class="text-slate-200">60 min</b>');
-    expect(html).toContain('set by you, not measured');
+    expect(html).not.toContain('set by you, not measured'); // the lead-time explanation is in the write-up, not on the screen
   });
   it('shows the short block name (the unique part) and keeps the full name on hover', () => {
     const html = panel(data());
@@ -46,16 +45,12 @@ describe('the Last call panel', () => {
     const html = panel(data());
     for (const n of ['>1</b> counting down', '>130</b> cut off', '>20</b> reconnected']) expect(html).toContain(n);
   });
-  it('says plainly that it is a replay in hindsight, per zone, and what "cut off" means', () => {
+  it('carries no replay or hindsight paragraph: that lives in docs/algorithms/last-call.md', () => {
     const html = panel(data());
-    expect(html).toContain('known in hindsight');
-    expect(html).toContain('stand in for a forecast');
-    expect(html).toContain('Per zone, not per household');
-    expect(html).toContain('no dry road route out');
-    expect(html).toContain('roads reopen');
+    for (const t of ['known in hindsight', 'stand in for a forecast', 'Per zone, not per household', 'roads reopen']) expect(html).not.toContain(t);
   });
-  it('with no lead set, says last call is the cut-off time itself', () => {
-    expect(panel(data({ lead: { reply_minutes: 0, decision_minutes: 0, travel_minutes: 0, total_minutes: 0, note: '' } }), { lead: NO_LEAD })).toContain('last call is the cut-off time itself');
+  it('with no lead set, shows no lead-time sentence', () => {
+    expect(panel(data({ lead: { reply_minutes: 0, decision_minutes: 0, travel_minutes: 0, total_minutes: 0, note: '' } }), { lead: NO_LEAD })).not.toContain('last call is the cut-off time itself');
   });
   it('unavailable: gives the server\'s reason and draws no countdown', () => {
     const html = panel(data({ available: false, reason: 'The isolation engine has not run on this run. Unknown stays unknown.', zones: [] }));

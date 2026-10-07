@@ -16,14 +16,14 @@ describe('the aerial priority panel', () => {
     expect(h).toContain('Aerial priority');
     expect(h).toContain('No dry route, Cut off 4h 12m, cell coverage: not assessed');
     expect(h).toContain('Aerial task recommended');
-    expect(h).toContain('Replay: ranked by cut-off duration. Silence inputs excluded — no opt-in registry existed in 2017.');
+    expect(h).not.toContain('Silence inputs excluded'); // explanation lives in the write-up
     expect(h).not.toContain('score');
     expect(h).not.toContain('Silence inputs active');
   });
   it('off replay shows the silence label and the score', () => {
     const h = html(data({ mode: 'scenario', silence_active: true, note: 'Ranked by silent households. Cell coverage not assessed.', zones: [zone({ silent_households: 9, score: 9, reason_fragments: ['No dry route', 'Cut off 1h 00m', '9 silent households', 'cell coverage: not assessed'] })] }));
     expect(h).toContain('Silence inputs active');
-    expect(h).toContain('Ranked by silent households. Cell coverage not assessed.');
+    expect(h).not.toContain('Ranked by silent households');
     expect(h).toContain('9 silent households');
     expect(h).toContain('score');
   });
@@ -32,9 +32,9 @@ describe('the aerial priority panel', () => {
     expect(h).toContain('No zone meets the aerial-priority threshold at this time.');
     expect(h).not.toContain('Aerial task recommended');
   });
-  it('always carries the caption, and shows no feed, video, image or aircraft', () => {
+  it('shows no feed, video, image or aircraft, and no footer caption', () => {
     for (const h of [html(data()), html(null), html(null, 'boom'), html(data({ zones: [] }))]) {
-      expect(h).toContain('Ranking only. No live feed. No asset is tasked by this system.');
+      expect(h).not.toContain('No asset is tasked by this system');
       expect(h).not.toMatch(/<(video|img|canvas|iframe)\b/);
     }
   });

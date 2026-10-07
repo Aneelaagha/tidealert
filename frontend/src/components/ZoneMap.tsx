@@ -167,8 +167,9 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
     if (b) { b.setAttribute('aria-pressed', String(on3d)); b.classList.toggle('map3d-on', on3d); b.disabled = flat; b.title = flat ? '3D is off while the demo runs' : on3d ? 'Back to the flat map' : 'Tilt the map: terrain, 55° pitch'; }
   }, [on3d, flat, ready]);
 
-  // Fit the view to the zones that loaded for the run (once per run, not on every slider tick). The run's extent
-  // is only a first guess: the zones are what is drawn. A run with no zones has nothing to frame (see `note`).
+  // Fit the view to the zones that loaded: on mount, when the run changes, and at every slider change (each brings a new zones
+  // answer for a new time). Pan and zoom work freely in between. The zones are what is drawn, so their extent is the view.
+  // A run with no zones has nothing to frame (see `note`).
   const fitted = useRef<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => { fitted.current = null; setNote(null); }, [run?.id, refit]);
@@ -180,8 +181,9 @@ export function ZoneMap({ run, zones, selectedZoneId, onSelectZone, layer, suppl
     // Synthetic scenario zones are placed at about 0°N 0°E: they have no real-world location, and a basemap there is
     // open ocean. Say so rather than show an empty globe.
     setNote(box[0] > -1 && box[2] < 1 && box[1] > -1 && box[3] < 1 ? 'Synthetic zones: they have no real-world location, so there is no basemap here.' : null);
-    if (fitted.current === run.id) return;
-    fitted.current = run.id;
+    const key = `${run.id}|${zones.at}`;
+    if (fitted.current === key) return; // the same answer re-rendered (a supply or depot join): the user's view stays
+    fitted.current = key;
     map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding: 40, duration: 0, maxZoom: 15 });
   }, [zones, run]);
 

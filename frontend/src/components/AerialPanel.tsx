@@ -26,7 +26,6 @@ export function AerialPanel({ data, error, selectedZoneId, onSelect }: Props) {
         : !data.available ? <p className="mt-2 rounded border border-white/10 p-2 text-sm text-slate-400">{data.reason}</p>
         : (
           <>
-            <p className="mt-1 text-xs text-slate-400">{data.note}</p>
             {data.zones.length === 0 ? <p className="mt-2 text-sm text-slate-500">{data.empty}</p> : (
               <>
                 <p className="mt-1 text-xs text-slate-500">Top {data.shown} of {data.cut_off_zones.toLocaleString()} cut-off zones.</p>
@@ -54,7 +53,6 @@ export function AerialPanel({ data, error, selectedZoneId, onSelect }: Props) {
         Cell coverage is not assessed: no coverage data exists here, so the ranking leaves it out instead of guessing. "Cut off" means no dry road route, as the engine finds it.
         {data && !data.silence_active && ' Isolation is recorded data.'}
       </p>
-      <p className="mt-1 text-[11px] font-bold leading-snug text-slate-400">{data?.caption ?? 'Ranking only. No live feed. No asset is tasked by this system.'}</p>
     </section>
   );
 }

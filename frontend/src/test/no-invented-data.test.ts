@@ -55,7 +55,9 @@ describe('no invented data in src/', () => {
   it('declares no hardcoded list of records', () => {
     // A module-level array of object literals is how the reference app seeded its fake sectors, alerts, responders,
     // routes and donations.
-    expect(offenders(/=\s*\[\s*\{/)).toEqual([]);
+    // One exception, dev only: the guided tour's timeline (dev/tour.ts) is a list of narration lines, camera moves and selectors. It holds no
+    // zone, case, responder or number about the flood (tour.test.ts pins that), and it is not in the production bundle.
+    expect(offenders(/=\s*\[\s*\{/, (path) => path === 'dev/tour.ts')).toEqual([]);
   });
 
   it('depends on no outside model SDK and has no server of its own (the copilot is /copilot/ask)', () => {

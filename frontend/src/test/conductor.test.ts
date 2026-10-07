@@ -114,7 +114,7 @@ describe('the scripts', () => {
     const ev = SCRIPT.find((e) => e.name === 'aerial-populates')!;
     expect(ev.check(snap({ aerial: [] }), {}).ok).toBe(false);
     expect(ev.check(snap({ aerial: null }), {}).ok).toBe(false);
-    const r = ev.check(snap({ aerial: [{ rank: 1, name: 'block q', minutes: 125 }, { rank: 2, name: 'block r', minutes: 90 }] }), {});
+    const r = ev.check(snap({ aerial: [{ rank: 1, zoneId: 'zq', name: 'block q', minutes: 125 }, { rank: 2, zoneId: 'zr', name: 'block r', minutes: 90 }] }), {});
     expect(r.ok).toBe(true);
     expect(r.value).toContain('1. block q (125 min)');
   });
@@ -133,7 +133,7 @@ describe('what the listening scenario\'s Cases say', () => {
   });
   it('counts nothing on a quiet scenario, and nothing is raised while the zone reads unknown', () => {
     const f = listeningFacts([], zonesAt('unknown'));
-    expect(f).toEqual({ lateHouseholds: 0, cascadeSteps: [], helpHouseholds: 0, depths: [], zoneCases: [], raisedZones: [] });
+    expect(f).toEqual({ lateHouseholds: 0, lateZoneIds: [], cascadeSteps: [], helpHouseholds: 0, depths: [], zoneCases: [], raisedZones: [] });
   });
   it('fires each event only once its evidence is in the step, and not before', () => {
     const quiet = snap({ mode: 'scenario', listening: listeningFacts([], zonesAt('unknown')) });
@@ -172,14 +172,15 @@ describe('picking a real countdown', () => {
 describe('the conductor on the shared clock', () => {
   let nowMs = 0;
 
-  type Calls = { go: number[]; pinned: string[]; pulses: string[]; revealed: string[]; offline: boolean[]; frozen: number; captions: (string | null)[]; clocks: number[] };
+  type Look = { label: string; spec: unknown; zones: string[]; why?: string };
+  type Calls = { looks: Look[]; go: number[]; pinned: string[]; pulses: string[]; revealed: string[]; offline: boolean[]; frozen: number; captions: (string | null)[]; clocks: number[] };
   function run(snapshotAt: (clock: number) => Snapshot, beat: 'isolation' | 'listening' | 'offline' = 'isolation', lag?: { ms: number }) {
     nowMs = 0;
-    const calls: Calls = { go: [], pinned: [], pulses: [], revealed: [], offline: [], frozen: 0, captions: [], clocks: [] };
+    const calls: Calls = { looks: [], go: [], pinned: [], pulses: [], revealed: [], offline: [], frozen: 0, captions: [], clocks: [] };
     const host: Host = {
       snapshot: () => snapshotAt(calls.clocks.at(-1) ?? T(3, 15)),
       goToTick: (i) => calls.go.push(i), setClock: (ms) => calls.clocks.push(ms), pinZone: (id) => calls.pinned.push(id), pulseZone: (id) => calls.pulses.push(id),
-      reveal: (p) => calls.revealed.push(p), caption: (cap) => calls.captions.push(cap), frozen: () => { calls.frozen++; }, offline: (on) => calls.offline.push(on),
+      reveal: (p) => calls.revealed.push(p), caption: (cap) => calls.captions.push(cap), frozen: () => { calls.frozen++; }, offline: (on) => calls.offline.push(on), look: (label, spec, zones, why) => calls.looks.push({ label, spec, zones, why }),
     };
     void lag;
     const clock = new PlayerClock(() => nowMs);
@@ -231,7 +232,7 @@ describe('the conductor on the shared clock', () => {
     expect(calls.clocks.at(-1)).toBe(clockAt(12 + 3, T(3, 15), PACING_ISOLATION)); // 2 wall s at 1.5x = 3 timeline s
   });
   it('skips to a step: events before it are logged as not run, never as fired, and the playhead jumps to its time', () => {
-    const { c, clock, calls, advance } = run((cl) => ({ ...quiet(cl), aerial: [{ rank: 1, name: 'block q', minutes: 125 }] }));
+    const { c, clock, calls, advance } = run((cl) => ({ ...quiet(cl), aerial: [{ rank: 1, zoneId: 'zq', name: 'block q', minutes: 125 }] }));
     c.seek(c.steps.findIndex((s) => s.label === 'aerial-populates'));
     expect(clock.time()).toBe(25);
     advance(26);
@@ -259,7 +260,7 @@ describe('the conductor on the shared clock', () => {
     expect(c.log().find((e) => e.name === 'cutoff-climbs')).toMatchObject({ ok: false, value: 'SKIPPED: the data for this run step has not arrived' });
   });
   it('fires an event once, with the value the data gave, acts on it, and reveals Aerial priority only then', () => {
-    const rows = [{ rank: 1, name: 'block q', minutes: 125 }];
+    const rows = [{ rank: 1, zoneId: 'zq', name: 'block q', minutes: 125 }];
     const { c, calls, advance } = run((cl) => ({ ...quiet(cl), aerial: rows }));
     advance(FREEZE + 1);
     const a = c.log().find((e) => e.name === 'aerial-populates')!;
@@ -279,8 +280,8 @@ describe('the conductor on the shared clock', () => {
       nowMs = 0;
       const host: Host = {
         snapshot: () => { const i = tickIndexAt(clocks.at(-1) ?? T(3, 15), ticks); const ready = i === sentTo && nowMs - sentAt >= lag;
-          return snap({ clockMs: clocks.at(-1) ?? T(3, 15), tickAt: ticks[i], ready, headlineCutOff: 10 + i, aerial: [{ rank: 1, name: `q${i}`, minutes: i }], cases: i }); },
-        goToTick: (i) => { sentTo = i; sentAt = nowMs; }, setClock: (ms) => clocks.push(ms), pinZone: () => {}, pulseZone: () => {}, reveal: () => {}, caption: () => {}, frozen: () => {}, offline: () => {},
+          return snap({ clockMs: clocks.at(-1) ?? T(3, 15), tickAt: ticks[i], ready, headlineCutOff: 10 + i, aerial: [{ rank: 1, zoneId: `z${i}`, name: `q${i}`, minutes: i }], cases: i }); },
+        goToTick: (i) => { sentTo = i; sentAt = nowMs; }, setClock: (ms) => clocks.push(ms), pinZone: () => {}, pulseZone: () => {}, reveal: () => {}, caption: () => {}, frozen: () => {}, offline: () => {}, look: () => {},
       };
       const clock = new PlayerClock(() => nowMs);
       const c = createConductor(host, ticks, T(3, 15), 'isolation', clock);
@@ -302,7 +303,7 @@ describe('the conductor on the shared clock', () => {
     const snapL = (cl: number) => snap({ mode: 'scenario', clockMs: cl, tickAt: stepsL[tickIndexAt(cl, stepsL)],
       listening: listeningFacts(cl >= clockAt(18, start, PACING_LISTENING) ? [HELP('h2', 'A', 'h2')] : [], zonesAt('unknown')) });
     const host: Host = { snapshot: () => snapL(clocks.at(-1) ?? start), goToTick: () => {}, setClock: (ms) => clocks.push(ms), pinZone: () => {}, pulseZone: () => {},
-                         reveal: () => {}, caption: () => {}, frozen: () => {}, offline: () => {} };
+                         reveal: () => {}, caption: () => {}, frozen: () => {}, offline: () => {}, look: () => {} };
     const clock = new PlayerClock(() => nowMs);
     const c = createConductor(host, stepsL, start, 'listening', clock);
     clock.play(); c.start();
@@ -342,7 +343,7 @@ describe('the offline beat', () => {
   it('runs its checks without a playhead and ends by itself', () => {
     const clocks = { n: 0 };
     nowMs = 0;
-    const host = { snapshot: () => off({}), goToTick: () => { clocks.n++; }, setClock: () => { clocks.n++; }, caption: () => { clocks.n++; }, offline: () => {} } as unknown as Host;
+    const host = { snapshot: () => off({}), goToTick: () => { clocks.n++; }, setClock: () => { clocks.n++; }, caption: () => { clocks.n++; }, offline: () => {}, look: () => { clocks.n++; } } as unknown as Host;
     const clock = new PlayerClock(() => nowMs);
     const c = createConductor(host, [], T(3, 15), 'offline', clock);
     clock.play(); c.start();

@@ -52,6 +52,7 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
   const gap = useRef<number | null>(null);
   const meta = useRef<{ durations: number[]; stepCounts: number[]; titles: string[] } | null>(null);
   const reported = useRef(new Set<string>());
+  const cam = useRef<ReturnType<typeof import('./camera').createCamera> | null>(null);
   const [, setOffline] = useState(false);
   const [, force] = useState(0);
   const statusRef = useRef(status);
@@ -174,7 +175,7 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
     };
     timers.current.push(setTimeout(step, 1000));
   }
-  function pause() { clock.pause(); (window as unknown as { __map?: { stop(): void } }).__map?.stop(); setStatus('paused'); }
+  function pause() { clock.pause(); cam.current?.stop(); (window as unknown as { __map?: { stop(): void } }).__map?.stop(); setStatus('paused'); }
   async function restart() {
     clearCountdown(); clock.pause();
     if (gate === 'tour') {
@@ -183,7 +184,7 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
     } else {
       // Back to Beat 1 at t=0 with nothing left over: the forced-offline switch off, pinned countdowns cleared, the run reopened at its start.
       // (The beats write nothing to the database; this is all the state they hold.)
-      gap.current = null; seq.current = 0; reported.current.clear();
+      gap.current = null; seq.current = 0; reported.current.clear(); cam.current?.stop(); cam.current?.clear();
       host?.offline(false); host?.pinZone('');
       await selectBeat('isolation');
     }
@@ -205,7 +206,18 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
     for (const k of [...reported.current]) if (k.startsWith(`${SEQUENCE.indexOf(b)}:`)) reported.current.delete(k);
     setStatus('opening');
     const { createConductor, withListening, BEATS, HARVEY_START } = await import('./conductor');
-    const adapted: Host = { ...host, snapshot: () => withListening(host.snapshot()) };
+    const { createCamera, frameCenter, planMove, geometryCentroid } = await import('./camera');
+    // The camera layer: targets come from the loaded data (the run's extent, a zone's own centroid); an unknown target holds the view.
+    const map = () => (window as unknown as { __map?: import('./camera').MapView }).__map ?? null;
+    cam.current ??= createCamera(map, (d) => { const line = `[camera] ${d.label}: ${d.move ? `${d.move.mode} to zoom ${d.move.zoom} over ${d.move.duration} ms` : d.note}`; if (d.move) console.info(line); else console.warn(line); });
+    const places = { extent: () => host.extent(), zoneCenter: (id: string) => geometryCentroid(host.zoneGeometry(id)) };
+    const look: Host['look'] = (label, spec, zones, why) => {
+      if (!spec) { cam.current!.hold(label, why ?? 'no target'); return; }
+      const c = frameCenter(spec.frame, zones, places);
+      if (!c) { cam.current!.hold(label, `the loaded data does not give a ${spec.frame} target`); return; }
+      cam.current!.go(label, planMove(spec, c, map()?.getZoom() ?? spec.zoom));
+    };
+    const adapted: Host = { ...host, snapshot: () => withListening(host.snapshot()), look };
     let startMs: number; let tickTimes: number[] = [];
     if (b === 'offline') {
       host.offline(false); setOffline(false);
@@ -242,7 +254,7 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
       gate, play, pause, restart, skip, speed, selectBeat, openHarvey, offline: goOffline, reset,
       status: () => statusRef.current, message: () => message, clock: () => clock.time(),
       log: () => tool.current?.log?.() ?? [], report: () => tool.current?.report?.() ?? [], snaps: () => tool.current?.snaps?.() ?? [],
-      line: () => tool.current?.line(clock.time()) ?? null, marks: () => marks.map((m) => ({ label: m.label, type: m.type })),
+      line: () => tool.current?.line(clock.time()) ?? null, camMoves: () => cam.current?.moves() ?? [], marks: () => marks.map((m) => ({ label: m.label, type: m.type })),
     };
     return () => { delete (window as unknown as { __dev?: unknown }).__dev; };
   });

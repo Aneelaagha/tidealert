@@ -85,8 +85,26 @@ export function isNetworkError(e: unknown): boolean {
   return e instanceof TypeError || (e instanceof Error && e.name === 'TimeoutError');
 }
 
+// DEV ONLY (the demo conductor's offline beat). `import.meta.env.DEV` is a literal false in a production build, so every use below is
+// dead code there and the switch cannot be turned on. While it is on, a request fails the way a refused connection does (a TypeError,
+// so the cache and offline paths run exactly as in a real outage), and the connection watch and the probe are suppressed, or the
+// 5-second probe would find the server and flip the state back online.
+let forcedOffline = false;
+export const isForcedOffline = (): boolean => import.meta.env.DEV && forcedOffline;
+export function devForceOffline(on: boolean, now: () => number = Date.now): void {
+  if (!import.meta.env.DEV) return;
+  forcedOffline = on;
+  if (on) {
+    dispatch({ type: 'network_failure', at: now() });
+    dispatch({ type: 'probe_failed', at: now() });
+  } else {
+    void probe(now); // the first real answer returns the page to online, and the view is read again from the server
+  }
+}
+
 /** fetch with a timeout; the caller's signal still aborts it. Rejects with TimeoutError when the time runs out. */
 export async function fetchTimed(url: string, init: RequestInit, ms: number, signal?: AbortSignal): Promise<Response> {
+  if (isForcedOffline()) throw new TypeError('forced offline (dev switch): the request was not sent');
   const ctl = new AbortController();
   let timedOut = false;
   const timer = setTimeout(() => { timedOut = true; ctl.abort(); }, ms);
@@ -106,7 +124,7 @@ export async function fetchTimed(url: string, init: RequestInit, ms: number, sig
 let probing = false;
 /** One request to the cheapest endpoint: any HTTP response means reachable. */
 export async function probe(now: () => number = Date.now): Promise<void> {
-  if (probing) return;
+  if (probing || isForcedOffline()) return;
   probing = true;
   try {
     await fetchTimed(PROBE_PATH, {}, TIMEOUT_MS);
@@ -122,6 +140,7 @@ export async function probe(now: () => number = Date.now): Promise<void> {
  *  by a second probe), and on the browser's online/offline events. Returns a stop function. */
 export function startConnectionWatch(): () => void {
   const tick = async () => {
+    if (isForcedOffline()) return;
     if (conn.state === 'online') {
       try {
         await fetchTimed(PROBE_PATH, {}, TIMEOUT_MS);

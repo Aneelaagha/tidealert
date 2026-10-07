@@ -1,45 +1,95 @@
-// DEV ONLY. The demo driver for the Harvey opening scene: it moves the replay playhead by itself and, at fixed real-time
-// offsets, fires named events so panels animate in sync. The PACING (offsets, speed, the freeze) is hardcoded here. The DATA
-// is not: every value an event reports comes from what the page has fetched for the replay time the playhead is at, and an
-// event whose condition is not met by that data is SKIPPED and logged, never faked.
+// DEV ONLY. The demo conductor's driver: it moves a run's playhead by itself and, at fixed real-time offsets, fires named events so
+// panels animate in sync. The PACING (offsets, speed, the freeze) is hardcoded here. The DATA is not: every value an event reports
+// comes from what the page has fetched for the run time the playhead is at, and an event whose condition is not met by that data is
+// SKIPPED and logged, never faked. Nothing is written anywhere: the runs are precomputed and the conductor only reveals them through
+// the same slider path a person uses.
 //
-// It is reachable only in a Vite dev build with ?dev=1 (see DevPanel and App): in a production build the import is dead
-// code and this file is not in the bundle (tests/build check it). It never loops: it freezes at FREEZE_AT_S and stops.
+// Two beats use it (a third, the offline beat, is a connection switch and needs no script):
+//   isolation  the Harvey replay: cut-off count, Last call countdowns, Aerial priority.
+//   listening  the synthetic listening scenario: probe cascade, HELP replies, depth reports, corroboration, a Case.
+//
+// It is reachable only in a Vite dev build with ?dev=1 (see DevPanel and App): in a production build the import is dead code and this
+// file is not in the bundle (tests/build check it). It never loops: it freezes at the beat's freeze offset and stops.
 import type { Attention } from '../lib/attention';
 import { minutesLeft } from '../lib/lastCall';
-import type { LastCall, LastCallZone } from '../lib/api';
+import type { Case, LastCall, LastCallZone, ZonesResponse } from '../lib/api';
 
-export const REPLAY_MIN_PER_SEC = 12; // replay minutes per real second
-export const START_AT_S = 2; // the playhead starts moving
-export const FREEZE_AT_S = 22; // the playhead stops: the still frame
-export const END_AT_S = 24; // nothing moves after this; the driver stops itself
-export const TICK_MIN = 15; // the replay's own step: data exists at these times only
-export const LEAD_IN_MIN = 45; // pacing: the first Case lands about 4 s after the playhead starts
-export const GRACE_S = 2.5; // how long after its offset an event waits for the data of its replay time to arrive
+export const TICK_MIN = 15; // the runs' own step: data exists at these times only
+export const GRACE_S = 2.5; // how long after its offset an event waits for the data of its run time to arrive
+export const HOLD_MAX_S = 4; // the longest the playhead waits at one step for that step's data before moving on (and the event then skips, saying so)
+export const ISOLATION_WAIT_S = 6; // the Harvey beat steps every 1.25 s and its zones are slow to load, so its events wait longer
 export const MIN = 60_000;
 
-/** The replay time at `t` real seconds after Start, given the start of the scene. Linear, then held at the freeze. */
-export function clockAt(t: number, startMs: number): number {
-  const moving = Math.min(Math.max(t - START_AT_S, 0), FREEZE_AT_S - START_AT_S);
-  return startMs + moving * REPLAY_MIN_PER_SEC * MIN;
+/** How a beat moves the playhead. `minPerSec` is run minutes per real second. */
+export interface Pacing { minPerSec: number; startAtS: number; freezeAtS: number; endAtS: number }
+/** The Harvey replay: 12 run-minutes per real second, 37 s of motion, frozen at 40 s. */
+export const PACING_ISOLATION: Pacing = { minPerSec: 12, startAtS: 3, freezeAtS: 40, endAtS: 42 };
+/** The listening scenario: its recorded activity is the first 45 minutes of a 3 hour window (the stored sweeps show nothing new after
+ *  the 14:45 step), so 1.5 run-minutes per real second puts its three steps (14:15, 14:30, 14:45) at about 13, 23 and 33 s. */
+export const PACING_LISTENING: Pacing = { minPerSec: 1.5, startAtS: 3, freezeAtS: 45, endAtS: 47 };
+
+/** Where the Harvey beat opens, as briefed. A dev URL may override it with ?harveyStart=<ISO time>. */
+export const HARVEY_START = '2017-08-28T05:15:00Z';
+
+/** The run time at `t` real seconds after Start, given the beat's start. Linear, then held at the freeze. */
+export function clockAt(t: number, startMs: number, pacing: Pacing = PACING_ISOLATION): number {
+  const moving = Math.min(Math.max(t - pacing.startAtS, 0), pacing.freezeAtS - pacing.startAtS);
+  return startMs + moving * pacing.minPerSec * MIN;
 }
 
-/** The index of the replay step the clock is in (data exists per step), or -1 before the first. */
+/** The index of the run step the clock is in (data exists per step), or -1 before the first. */
 export function tickIndexAt(clockMs: number, tickTimes: number[]): number {
   let lo = -1;
   for (let i = 0; i < tickTimes.length && tickTimes[i] <= clockMs; i++) lo = i;
   return lo;
 }
 
-/** The scene's start: the last replay step at or before (first Case time - LEAD_IN_MIN). Derived from the data, not typed in. */
-export function sceneStart(firstCaseMs: number, tickTimes: number[]): number | null {
-  const i = tickIndexAt(firstCaseMs - LEAD_IN_MIN * MIN, tickTimes);
+/** The last run step at or before `wantMs`, or null when the run has none that early. */
+export function stepAtOrBefore(wantMs: number, tickTimes: number[]): number | null {
+  const i = tickIndexAt(wantMs, tickTimes);
   return i < 0 ? null : tickTimes[i];
 }
 
+// ---------------------------------------------------------------- what the listening scenario's Cases say, as the engines wrote it
+export interface ListeningFacts {
+  lateHouseholds: number; // household Cases with silence evidence: did not answer a check-in within their own usual time
+  cascadeSteps: string[]; // each recorded cascade step ("escalated_voice", "escalated_neighbor", ...)
+  helpHouseholds: number; // household Cases whose listening evidence says the household replied HELP
+  depths: { depth: string; zoneId: string; caseId: string }[]; // each depth report (ankle / knee / waist)
+  zoneCases: { caseId: string; zoneId: string; openedAt: string; sentence: string; evidence: string }[]; // Cases for a whole block
+  raisedZones: { zoneId: string; name: string; level: string }[]; // zones whose risk level is no longer unknown
+}
 
-/** What the page has loaded for the replay step the playhead is at. `ready` is true only when everything is for that step. */
+const DEPTH = /reported (\w+)-deep water/;
+const STEP = /cascade (\w+):/;
+
+/** Read the listening scenario's facts from the Cases and zones the page holds. Pure: only what the engines stored is counted. */
+export function listeningFacts(cases: Case[], zones: ZonesResponse | null): ListeningFacts {
+  const f: ListeningFacts = { lateHouseholds: 0, cascadeSteps: [], helpHouseholds: 0, depths: [], zoneCases: [], raisedZones: [] };
+  for (const c of cases) {
+    if (c.household_id === null) {
+      if (c.engines.includes('listening')) {
+        const ev = c.contributions.find((k) => k.engine === 'listening' && k.direction === 'supports');
+        f.zoneCases.push({ caseId: c.id, zoneId: c.zone_id, openedAt: c.opened_at, sentence: c.inference_sentence, evidence: ev?.rule_fragment ?? '' });
+      }
+      continue;
+    }
+    if (c.contributions.some((k) => k.engine === 'silence' && k.direction === 'supports')) f.lateHouseholds++;
+    if (c.contributions.some((k) => k.engine === 'listening' && /replied HELP/.test(k.rule_fragment))) f.helpHouseholds++;
+    for (const k of c.contributions) {
+      const step = k.engine === 'listening' && k.direction === 'procedural' ? STEP.exec(k.rule_fragment) : null;
+      if (step) f.cascadeSteps.push(step[1]);
+      const d = k.engine === 'listening' ? DEPTH.exec(k.rule_fragment) : null;
+      if (d) f.depths.push({ depth: d[1], zoneId: c.zone_id, caseId: c.id });
+    }
+  }
+  for (const z of zones?.features ?? []) if (z.properties.risk_level !== 'unknown') f.raisedZones.push({ zoneId: z.properties.zone_id, name: z.properties.name, level: z.properties.risk_level });
+  return f;
+}
+
+/** What the page has loaded for the run step the playhead is at. `ready` is true only when everything is for that step. */
 export interface Snapshot {
+  mode: string | null; // the run's mode badge: replay / scenario / ...
   tickAt: number | null; // the step the playhead is at (ms)
   clockMs: number;
   ready: boolean;
@@ -47,32 +97,38 @@ export interface Snapshot {
   firstCaseAt: number | null;
   possibly: number | null; // zones "may be cut off" in the supply-access answer
   cutOff: number | null;
+  headlineCutOff: number | null; // the number in the top banner: flagged zones that are cut off
+  headlineFlagged: number | null;
   freshness: string[] | null; // each source's status
   lastCall: LastCall | null;
+  aerial: { rank: number; name: string; minutes: number }[] | null; // the Aerial priority ranking for this step
   ranked: Attention[];
-  alarms: Record<string, number> | null; // gauge -> NWS minor-flood alarm time (ms), from the stored thresholds
+  listening: ListeningFacts | null;
   pinned: string[];
 }
 
 /** What earlier events of the same run saw, so a later event compares with the real value and not with a number typed here. */
-export interface Memo { startMs?: number; cases0?: number | null; possibly0?: number | null; firstCases?: number | null }
+export interface Memo { startMs?: number; headline0?: number | null; cases0?: number | null }
 
 export interface Check { ok: boolean; value: string; act?: (host: Host) => void }
-export interface ScriptEvent { at: number; name: string; what: string; check: (s: Snapshot, m: Memo) => Check }
+export interface ScriptEvent { at: number; name: string; what: string; check: (s: Snapshot, m: Memo) => Check; waitS?: number }
 
 /** What the driver may do to the page: move the playhead, and ask panels to show something that is already in the data. */
 export interface Host {
   snapshot(): Snapshot;
   goToTick(i: number): void;
-  setClock(ms: number, wholeSecond: number): void; // the continuous replay clock (header) and the real second it is read at (countdowns tick once a second)
+  setClock(ms: number, wholeSecond: number): void; // the continuous clock (header) and the real second it is read at (countdowns tick once a second)
   pinZone(zoneId: string): void; // show this zone's countdown in the Last call panel
   pulseZone(zoneId: string): void;
+  reveal(panel: string): void; // show a panel the beat kept back until its cue (its data is already loaded)
   caption(text: string | null): void;
   frozen(): void;
 }
 
 const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16);
 const day = (ms: number) => new Date(ms).toISOString().slice(5, 16).replace('T', ' ');
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const tally = (xs: string[]) => [...new Set(xs)].sort().map((x) => `${x} ×${xs.filter((y) => y === x).length}`).join(', ');
 
 function countingZones(s: Snapshot): LastCallZone[] {
   return (s.lastCall?.zones ?? []).filter((z) => z.status === 'counting' && z.cutoff_at);
@@ -86,84 +142,127 @@ export function pickCountdown(s: Snapshot, minAheadMin: number): LastCallZone | 
   return ahead[0] ?? null;
 }
 
-/** A gauge crossing is shown only if the stored alarm time falls inside the scene (after it began) and the replay clock has passed it,
- *  and the zones "may be cut off" count has risen above what it was when the scene began. All three are real values. */
-const gaugeCrossing = (gauge: string): ((s: Snapshot, m: Memo) => Check) => (s, m) => {
-  const alarm = s.alarms?.[gauge];
-  if (alarm === undefined) return { ok: false, value: `no stored alarm time for USGS ${gauge}` };
-  if (m.startMs !== undefined && alarm < m.startMs) return { ok: false, value: `USGS ${gauge} crossed its alarm at ${day(alarm)} UTC, before this scene begins` };
-  if (s.clockMs < alarm) return { ok: false, value: `the replay is at ${hhmm(s.clockMs)} UTC, before USGS ${gauge}'s alarm at ${hhmm(alarm)} UTC` };
-  const grew = s.possibly !== null && m.possibly0 != null && s.possibly > m.possibly0;
-  return { ok: grew, value: `USGS ${gauge} reached its NWS minor-flood alarm at ${hhmm(alarm)} UTC; zones that may be cut off: ${m.possibly0?.toLocaleString()} → ${s.possibly?.toLocaleString()} at the ${hhmm(s.tickAt ?? s.clockMs)} UTC step` };
-};
+const event = (offset: number, name: string, what: string, check: ScriptEvent['check'], waitS?: number): ScriptEvent => ({ at: offset, name, what, check, waitS });
+const stepOf = (s: Snapshot) => hhmm(s.tickAt ?? s.clockMs);
+const countdown = (s: Snapshot, z: LastCallZone) => `${z.zone_name}: cut off ${hhmm(Date.parse(z.cutoff_at!))} UTC, ${minutesLeft(Date.parse(z.cutoff_at!), s.clockMs)} min away at ${hhmm(s.clockMs)} UTC`;
 
-const event = (at: number, name: string, what: string, check: ScriptEvent['check']): ScriptEvent => ({ at, name, what, check });
-
+// ---------------------------------------------------------------- beat 1: isolation, on the Harvey replay
 export const SCRIPT: ScriptEvent[] = [
-  event(0, 'freeze-start', 'Frozen at the scene start: no Case open, every source fresh (banner green)', (s, m) => { m.startMs = s.clockMs; m.cases0 = s.cases; m.possibly0 = s.possibly;
-      return { ok: s.cases === 0 && !!s.freshness && s.freshness.length > 0 && s.freshness.every((f) => f === 'fresh'),
-               value: `replay ${day(s.clockMs)} UTC: ${s.cases} Cases open; sources ${s.freshness?.join(', ')}; ${s.possibly?.toLocaleString()} zones already may be cut off` }; }),
-  event(START_AT_S, 'playhead-start', 'The playhead starts moving at 12 replay-minutes per real second', (s) => ({ ok: true, value: `from ${day(s.clockMs)} UTC` })),
-  event(6, 'first-case', 'The first Case opens (the Case card slides in)', (s, m) => { m.firstCases = s.cases; return { ok: (s.cases ?? 0) > 0 && s.firstCaseAt !== null, value: `${s.cases} Cases open at the ${hhmm(s.tickAt ?? s.clockMs)} UTC step (first opened ${s.firstCaseAt ? hhmm(s.firstCaseAt) : '?'} UTC)` }; }),
-  event(8, 'gauge-crossing-08074500', 'USGS 08074500 reaches its NWS minor-flood alarm and zones flip to "may be cut off"', gaugeCrossing('08074500')),
-  event(11, 'cases-growth', 'The Cases counter grows with the data (each value is the real count at its step)', (s, m) => ({ ok: m.firstCases != null && (s.cases ?? 0) > m.firstCases, value: `Cases ${m.firstCases} → ${s.cases} at the ${hhmm(s.tickAt ?? s.clockMs)} UTC step` })),
-  event(11, 'last-call-focus-1', 'Last call focuses a zone genuinely counting down (lead time 0: last call is its cut-off time)', (s) => { const z = pickCountdown(s, 20); return z ? { ok: true, value: `${z.zone_name}: cut off ${hhmm(Date.parse(z.cutoff_at!))} UTC, ${minutesLeft(Date.parse(z.cutoff_at!), s.clockMs)} min away at ${hhmm(s.clockMs)} UTC`, act: (h) => h.pinZone(z.zone_id) } : { ok: false, value: 'no zone counting down more than 20 min ahead' }; }),
-  event(12, 'gauge-crossing-08075770', 'USGS 08075770 reaches its alarm (replaces 08076000, whose alarm was the day before)', gaugeCrossing('08075770')),
-  event(15, 'last-call-focus-2', 'A second real countdown appears beneath', (s) => { const z = pickCountdown(s, 60); return z ? { ok: true, value: `${z.zone_name}: cut off ${hhmm(Date.parse(z.cutoff_at!))} UTC, ${minutesLeft(Date.parse(z.cutoff_at!), s.clockMs)} min away at ${hhmm(s.clockMs)} UTC`, act: (h) => h.pinZone(z.zone_id) } : { ok: false, value: 'no second zone counting down more than 60 min ahead' }; }),
-  event(16, 'countdown-amber', 'The second countdown crosses 1 h 00 m and turns amber', (s) => { const z = (s.lastCall?.zones ?? []).find((x) => x.zone_id === s.pinned[1]); if (!z?.cutoff_at) return { ok: false, value: 'the second countdown is not on screen' };
-      const m = minutesLeft(Date.parse(z.cutoff_at), s.clockMs); return { ok: m <= 60 && m > 0, value: `${z.zone_name}: ${m} min left at ${hhmm(s.clockMs)} UTC` }; }),
-  event(17, 'pulse-ring', 'One pulse ring from a zone with an open task (the top zone in Needs attention)', (s) => { const z = s.ranked.find((r) => r.group <= 3); return z ? { ok: true, value: `${z.name} (${z.priority ?? 'no'} priority task, ${z.access ?? 'access not assessed'})`, act: (h) => h.pulseZone(z.zoneId) } : { ok: false, value: 'no zone with an open task' }; }),
-  event(21, 'last-call-focus-3', 'A third real countdown appears', (s) => { const z = pickCountdown(s, 60); return z ? { ok: true, value: `${z.zone_name}: cut off ${hhmm(Date.parse(z.cutoff_at!))} UTC, ${minutesLeft(Date.parse(z.cutoff_at!), s.clockMs)} min away at ${hhmm(s.clockMs)} UTC`, act: (h) => h.pinZone(z.zone_id) } : { ok: false, value: 'no third zone counting down more than 60 min ahead' }; }),
-  event(FREEZE_AT_S, 'freeze-end', 'The playhead and the header clock stop on a mid-crisis frame', (s) => ({ ok: true, value: `frozen at replay ${day(s.clockMs)} UTC with ${s.cases} Cases open`, act: (h) => h.frozen() })),
-  event(END_AT_S, 'silence', 'No UI motion from here on', () => ({ ok: true, value: 'stopped' })),
+  event(0, 'open-harvey', 'The Harvey replay opens, REPLAY badge, map fitted', (s, m) => { m.startMs = s.clockMs; m.headline0 = s.headlineCutOff; m.cases0 = s.cases;
+      return { ok: s.mode === 'replay', value: `${s.mode?.toUpperCase()} badge; replay ${day(s.clockMs)} UTC; top banner: ${s.headlineCutOff} of ${s.headlineFlagged} flagged zones cut off; ${s.cutOff?.toLocaleString()} zones cut off in the engine's supply-access answer` }; }),
+  event(3, 'playhead-start', 'The playhead starts moving at 12 replay-minutes per real second', (s) => ({ ok: true, value: `from ${day(s.clockMs)} UTC` })),
+  event(8, 'cutoff-climbs', 'The cut-off count in the top banner climbs (each value is the real count at its step)', (s, m) => {
+      const grew = s.headlineCutOff !== null && m.headline0 != null && s.headlineCutOff > m.headline0;
+      return { ok: grew, value: `top banner cut off: ${m.headline0} → ${s.headlineCutOff} of ${s.headlineFlagged} flagged zones at the ${stepOf(s)} UTC step` }; }, ISOLATION_WAIT_S),
+  event(15, 'last-call-1', 'Last call shows a zone genuinely counting down (lead time 0: last call is its cut-off time)', (s) => { const z = pickCountdown(s, 20);
+      return z ? { ok: true, value: countdown(s, z), act: (h) => h.pinZone(z.zone_id) } : { ok: false, value: `no zone is counting down more than 20 min ahead at the ${stepOf(s)} UTC step (${s.lastCall?.counts.counting ?? 0} counting)` }; }, ISOLATION_WAIT_S),
+  event(25, 'aerial-populates', 'Aerial priority populates with its top 5 (the real ranking)', (s) => s.aerial && s.aerial.length > 0
+      ? { ok: true, value: `top ${s.aerial.length} at the ${stepOf(s)} UTC step: ${s.aerial.map((r) => `${r.rank}. ${r.name} (${r.minutes} min)`).join('; ')}`, act: (h) => h.reveal('aerial') }
+      : { ok: false, value: 'the ranking holds no zone at this step' }, ISOLATION_WAIT_S),
+  event(35, 'last-call-2', 'A second real countdown appears beneath', (s) => { const z = pickCountdown(s, 20);
+      return z ? { ok: true, value: countdown(s, z), act: (h) => h.pinZone(z.zone_id) } : { ok: false, value: `no second zone is counting down more than 20 min ahead at the ${stepOf(s)} UTC step (${s.lastCall?.counts.counting ?? 0} counting)` }; }, ISOLATION_WAIT_S),
+  event(PACING_ISOLATION.freezeAtS, 'freeze-end', 'The playhead and the header clock stop on a mid-crisis frame', (s) => ({ ok: true, value: `frozen at replay ${day(s.clockMs)} UTC`, act: (h) => h.frozen() })),
+  event(PACING_ISOLATION.endAtS, 'silence', 'No UI motion from here on', () => ({ ok: true, value: 'stopped' })),
 ];
+
+// ---------------------------------------------------------------- beat 2: silence + listening, on the synthetic scenario
+// The scenario's sweeps are 15 minutes apart and its recorded activity falls on three of them, so several brief events share a step.
+// Each event fires once its offset has passed AND the playhead's step holds its evidence (waitS is how long it waits for that step);
+// the offset is the earliest it may fire, never a time it is forced at.
+export const SCRIPT_LISTENING: ScriptEvent[] = [
+  event(0, 'open-scenario', 'The listening scenario opens, SCENARIO badge, map fitted to its area', (s, m) => { m.startMs = s.clockMs; m.cases0 = s.cases;
+      return { ok: s.mode === 'scenario', value: `${s.mode?.toUpperCase()} badge; scenario ${day(s.clockMs)} UTC; ${s.cases} Cases open` }; }),
+  event(3, 'playhead-start', 'The playhead starts moving at 1.5 scenario-minutes per real second', (s) => ({ ok: true, value: `from ${day(s.clockMs)} UTC` })),
+  event(8, 'cascade-fires', 'The probe cascade is visible: households late for their own baseline, escalated by voice call', (s) => {
+      const l = s.listening; const n = l?.lateHouseholds ?? 0;
+      return { ok: n > 0 && (l?.cascadeSteps.length ?? 0) > 0, value: `${plural(n, 'household')} did not answer the check-in within their own usual time; cascade steps recorded: ${tally(l?.cascadeSteps ?? [])} (at the ${stepOf(s)} UTC step)` }; }, 8),
+  event(15, 'first-reply-help', 'The first replies arrive: HELP', (s) => { const n = s.listening?.helpHouseholds ?? 0;
+      return { ok: n > 0, value: `${plural(n, 'household')} replied HELP by SMS and got the water-depth question (at the ${stepOf(s)} UTC step)` }; }, 8),
+  event(20, 'depth-knee', 'A depth follow-up arrives: knee', (s) => { const d = s.listening?.depths ?? [];
+      return { ok: d.some((x) => x.depth === 'knee'), value: `depth reports so far: ${tally(d.map((x) => x.depth))} (at the ${stepOf(s)} UTC step)` }; }, 10),
+  event(25, 'second-reply', 'A second household in the same block reports a depth', (s) => { const d = s.listening?.depths ?? [];
+      const byZone = d.reduce<Record<string, string[]>>((a, x) => ({ ...a, [x.zoneId]: [...(a[x.zoneId] ?? []), x.depth] }), {});
+      const zone = Object.entries(byZone).find(([, v]) => v.length >= 2);
+      return { ok: !!zone, value: zone ? `${zone[1].length} households in one block have reported depth: ${tally(zone[1])} (at the ${stepOf(s)} UTC step)` : `no block has two depth reports yet at the ${stepOf(s)} UTC step` }; }, 12),
+  event(30, 'corroboration-2', 'Corroboration reaches 2 and the zone risk level rises', (s) => { const l = s.listening; const zc = l?.zoneCases[0]; const r = l?.raisedZones[0];
+      return { ok: !!zc && !!r, value: zc && r ? `${r.name}: risk level now ${r.level}. Engine's words: ${zc.evidence}` : `no block is corroborated yet at the ${stepOf(s)} UTC step` }; }, 12),
+  event(35, 'case-opens', "The block's corroborated Case opens (the Case card slides in)", (s) => { const zc = s.listening?.zoneCases[0];
+      return zc ? { ok: true, value: `${zc.sentence} (opened ${hhmm(Date.parse(zc.openedAt))} UTC)`, act: (h) => h.pulseZone(zc.zoneId) } : { ok: false, value: `no block Case is open at the ${stepOf(s)} UTC step` }; }, 12),
+  event(PACING_LISTENING.freezeAtS, 'freeze-end', 'The playhead and the header clock stop', (s) => ({ ok: true, value: `frozen at scenario ${day(s.clockMs)} UTC`, act: (h) => h.frozen() })),
+  event(PACING_LISTENING.endAtS, 'silence', 'No UI motion from here on', () => ({ ok: true, value: 'stopped' })),
+];
+
+export type BeatName = 'isolation' | 'listening';
+export const BEATS: Record<BeatName, { script: ScriptEvent[]; pacing: Pacing; caption: (p: Pacing) => string; hidden: string[] }> = {
+  isolation: { script: SCRIPT, pacing: PACING_ISOLATION, caption: (p) => `Replay playing at ${p.minPerSec} min/s`, hidden: ['aerial'] },
+  listening: { script: SCRIPT_LISTENING, pacing: PACING_LISTENING, caption: (p) => `Scenario playing at ${p.minPerSec} min/s`, hidden: [] },
+};
 
 export interface LogEntry { name: string; what: string; scriptedAt: number; firedAt: number | null; replay: string; ok: boolean; value: string }
 
 export interface Driver { start(): void; stop(): void; log(): LogEntry[]; running(): boolean }
 
 /** The driver loop. Fixed pacing; every event's condition is checked against the page's data. It never loops. */
-export function createDriver(host: Host, tickTimes: number[], startMs: number, script: ScriptEvent[] = SCRIPT, now: () => number = () => performance.now()): Driver {
+export function createDriver(host: Host, tickTimes: number[], startMs: number, beat: BeatName = 'isolation', now: () => number = () => performance.now(), script?: ScriptEvent[]): Driver {
+  const { pacing } = BEATS[beat];
+  const events = script ?? BEATS[beat].script;
   const entries = new Map<string, LogEntry>();
   const done = new Set<string>();
   const memo: Memo = {};
+  const judged = new Map<string, string>(); // each event's last verdict on real data, so a skip says why, not just that the data was late
   let timer: ReturnType<typeof setInterval> | undefined;
   let t0 = 0;
   let lastTick = -2;
+  let lastPoll = 0;
+  let heldFor = 0;
   let running = false;
 
   const stop = () => { if (timer !== undefined) clearInterval(timer); timer = undefined; running = false; };
+  const pure = (name: string) => name === 'playhead-start' || name === 'freeze-end' || name === 'silence'; // pacing only: no data to wait for
 
   function step() {
-    const t = (now() - t0) / 1000;
-    const clock = clockAt(t, startMs);
+    // The run's data loads with variable lag, but the driver's time must not: an event at offset X has to see the step the clock is in at X,
+    // every run. So when an event is due and its step has not fully loaded, the beat's own time stands still (bounded by HOLD_MAX_S per step)
+    // until it has. Between events nothing waits, so only a slow load at a cue makes the scene longer, and never different.
+    const nw = now();
+    const dt = nw - lastPoll; lastPoll = nw;
+    let t = (nw - t0) / 1000;
+    if (t >= pacing.startAtS && t < pacing.freezeAtS && lastTick >= 0) {
+      const due = events.some((ev) => !done.has(`${ev.at}:${ev.name}`) && !pure(ev.name) && t >= ev.at);
+      const here = host.snapshot();
+      const loaded = here.ready && here.tickAt === tickTimes[lastTick];
+      if (due && !loaded && heldFor < HOLD_MAX_S * 1000) { t0 += dt; heldFor += dt; t = (nw - t0) / 1000; } else if (loaded) heldFor = 0;
+    }
+    const clock = clockAt(t, startMs, pacing);
+    const cue = clockAt(Math.floor(t), startMs, pacing); // what an event reads: the clock at the whole second, so a run's values do not move with a few ms of timing
     host.setClock(clock, Math.floor(t));
     const i = tickIndexAt(clock, tickTimes);
-    if (i !== lastTick && i >= 0) { lastTick = i; host.goToTick(i); }
-    host.caption(t < START_AT_S ? null : t < FREEZE_AT_S ? `Replay playing at ${REPLAY_MIN_PER_SEC} min/s` : 'Replay paused');
-    for (const ev of script) {
+    if (i !== lastTick && i >= 0) { lastTick = i; heldFor = 0; host.goToTick(i); }
+    host.caption(t < pacing.startAtS ? null : t < pacing.freezeAtS ? BEATS[beat].caption(pacing) : 'Paused');
+    for (const ev of events) {
       const key = `${ev.at}:${ev.name}`;
       if (done.has(key) || t < ev.at) continue;
-      const snap = host.snapshot();
-      const dataReady = snap.ready || ev.at === END_AT_S || ev.name === 'playhead-start' || ev.name === 'freeze-end'; // the last three are pure pacing
-      const res = dataReady ? ev.check(snap, memo) : { ok: false, value: 'the data for this replay step has not arrived' };
+      const snap = { ...host.snapshot(), clockMs: cue };
+      const judging = snap.ready || pure(ev.name);
+      const res = judging ? ev.check(snap, memo) : { ok: false, value: judged.get(key) ?? 'the data for this run step has not arrived' };
+      if (judging) judged.set(key, res.value);
       if (res.ok) {
         res.act?.(host);
-        entries.set(key, { name: ev.name, what: ev.what, scriptedAt: ev.at, firedAt: Math.round(t * 100) / 100, replay: day(clock), ok: true, value: res.value });
+        entries.set(key, { name: ev.name, what: ev.what, scriptedAt: ev.at, firedAt: Math.round(t * 100) / 100, replay: day(cue), ok: true, value: res.value });
         done.add(key);
-      } else if (t > ev.at + GRACE_S) {
+      } else if (t > ev.at + (ev.waitS ?? GRACE_S) || t >= pacing.freezeAtS) {
         // Not satisfied by the real data in time: skipped and logged, never faked.
-        entries.set(key, { name: ev.name, what: ev.what, scriptedAt: ev.at, firedAt: null, replay: day(clock), ok: false, value: `SKIPPED: ${res.value}` });
+        entries.set(key, { name: ev.name, what: ev.what, scriptedAt: ev.at, firedAt: null, replay: day(cue), ok: false, value: `SKIPPED: ${res.value}` });
         done.add(key);
       }
     }
-    if (t >= END_AT_S) stop();
+    if (t >= pacing.endAtS) stop();
   }
 
   return {
-    start() { if (running) return; running = true; t0 = now(); lastTick = -2; timer = setInterval(step, 100); step(); },
+    start() { if (running) return; running = true; t0 = now(); lastPoll = t0; heldFor = 0; lastTick = -2; timer = setInterval(step, 100); step(); },
     stop,
-    log: () => script.map((ev) => entries.get(`${ev.at}:${ev.name}`)).filter((e): e is LogEntry => !!e),
+    log: () => events.map((ev) => entries.get(`${ev.at}:${ev.name}`)).filter((e): e is LogEntry => !!e),
     running: () => running,
   };
 }

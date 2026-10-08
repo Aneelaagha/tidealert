@@ -14,10 +14,10 @@ export type { DevHostBase as DevHost };
 export interface TourData { start(): StartState; extent(): [number, number, number, number] | null; cutOffPoints(): [number, number][] }
 export type Gate = 'tour' | 'dev';
 
-interface Mark { el: Element; type: HighlightType; label: string }
+export interface Mark { el: Element; type: HighlightType; label: string }
 
 /** The tour's highlight boxes. They are drawn here, over the page, from each element's own rectangle: nothing in the app's markup is touched. */
-function HighlightLayer({ marks }: { marks: Mark[] }) {
+export function HighlightLayer({ marks }: { marks: Mark[] }) {
   const [, setFrame] = useState(0);
   useEffect(() => {
     if (marks.length === 0) return;

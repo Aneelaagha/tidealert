@@ -222,3 +222,13 @@ def test_dev_reset_deletes_only_the_demos_rows_and_a_second_call_deletes_nothing
 def test_dev_reset_on_an_unknown_run_is_a_404(tx):
     _, db = tx
     assert reset_client(db).post("/needs/dev-reset", json={"run_id": str(uuid.uuid4())}).status_code == 404
+
+
+def test_dev_build_reports_the_commit_the_api_was_started_from(tx):
+    """The Full Demo's pre-flight compares this with the commit checked out, to catch a stale server. Dev-only, like Reset."""
+    _, db = tx
+    body = reset_client(db).get("/needs/dev-build").json()
+    assert set(body) == {"sha", "dirty"} and isinstance(body["dirty"], bool)
+    assert body["sha"] is None or (len(body["sha"]) == 40 and set(body["sha"]) <= set("0123456789abcdef"))
+    paths = {(m, r.path) for r in app.routes for m in getattr(r, "methods", set())}
+    assert ("GET", "/needs/dev-build") not in paths  # not part of the normal app

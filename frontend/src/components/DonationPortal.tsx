@@ -143,7 +143,7 @@ export function DonationPortal({ run, needs, needsError, operator, at, onChanged
           <button onClick={onClose} aria-label="Close" className="cursor-pointer rounded p-1 text-slate-400 hover:text-white"><X className="h-4 w-4" /></button>
         </div>
         <p className="mb-3 font-sans text-[12px] leading-relaxed text-slate-300">
-          Offer supplies against what operators say zones need{needs ? ` as of ${fmtTime(needs.at)}` : ''}. <b>No money is taken, no goods move, and no contact details are kept</b>:
+          <b>Test pledges.</b> Offer supplies against what operators say zones need{needs ? ` as of ${fmtTime(needs.at)}` : ''}. <b>No money is taken, no goods move, and no contact details are kept</b>:
           an offer is a claim typed in here, and an operator records what actually arrived. There is no login.
         </p>
 

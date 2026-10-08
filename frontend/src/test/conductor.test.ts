@@ -364,9 +364,9 @@ describe('keeping it out of the product', () => {
     expect(importers.map((f) => relative(SRC, f))).toEqual(['App.tsx']);
     const app = readFileSync(join(SRC, 'App.tsx'), 'utf8');
     expect(app).toMatch(/import\.meta\.env\.DEV \? lazy\(\(\) => import\('\.\/dev\/DevOverlay'\)\) : null/);
-    expect(app).toMatch(/DEV_ON = import\.meta\.env\.DEV && typeof window !== 'undefined' && new URLSearchParams\(window\.location\.search\)\.get\('dev'\) === '1'/);
+    expect(app).toMatch(/DEV_ON = import\.meta\.env\.DEV && typeof window !== 'undefined' && \(new URLSearchParams\(window\.location\.search\)\.get\('dev'\) === '1' \|\| DEMO_ON\)/); // ?demo=1 also gives the Full Demo the conductor's read-only view
     expect(app).toMatch(/TOUR_ON = import\.meta\.env\.DEV && typeof window !== 'undefined' && new URLSearchParams\(window\.location\.search\)\.get\('tour'\) === '1'/);
-    expect(app).toMatch(/\{DevOverlay && DEV_ON && !TOUR_ON && devHost && /); // both gates at once: the tour mounts alone
+    expect(app).toMatch(/\{DevOverlay && DEV_ON && !TOUR_ON && !DEMO_ON && devHost && /); // both gates at once: the tour mounts alone; ?demo=1 mounts the Full Demo instead of this
     expect(app).toMatch(/\{DevOverlay && TOUR_ON && tourData && /);
   });
   it('the page takes no value from either tool, and the overlay loads each tool only by a dynamic import, so a gate loads only its own code', () => {

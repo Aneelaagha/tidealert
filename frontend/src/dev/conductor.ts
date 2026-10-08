@@ -238,6 +238,7 @@ export const BEATS: Record<BeatName, { script: ScriptEvent[]; pacing: Pacing; ca
 /** What the page gives the conductor on top of the Host: open a beat's run frozen at its start, and read the connection. */
 export interface DevHostBase extends Omit<Host, 'snapshot' | 'look'> {
   scene2: Scene2Host; // the Scene 2 tab's view of the page (dev/scene2.ts)
+  demo: { openHarvey(): Promise<boolean> }; // the Full Demo's first frame (dev/demo.ts)
   snapshot(): RawSnapshot;
   extent(): [number, number, number, number] | null; // the run's zone extent (from /runs)
   zoneGeometry(zoneId: string): { type?: string; coordinates?: unknown } | null; // a loaded zone's own shape

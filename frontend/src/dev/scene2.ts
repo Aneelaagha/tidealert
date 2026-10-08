@@ -83,6 +83,11 @@ const operatorBar = (c: Ctx): Element[] => { const i = c.q(operatorInput); const
 const mapSection = (c: Ctx): Element | null => c.env.doc.querySelector('.maplibregl-canvas')?.closest('section') ?? null;
 
 const huntingIds = (f: Scene2Facts): string[] => f.zones.filter((z) => HB_GAUGE.test(z.name) && z.taskStatus === 'assigned').map((z) => z.id).sort();
+/** The cut-off zone the scene opens: a Hunting Bayou one if any is cut off, else the first cut-off zone by id; undefined when none is cut off. */
+const pickCutOff = (f: Scene2Facts): string | undefined => {
+  const cut = f.zones.filter((z) => z.access === 'isolated').map((z) => z.id).sort();
+  return huntingIds(f).find((id) => cut.includes(id)) ?? cut[0];
+};
 const nameOf = (f: Scene2Facts, id: string): string => f.zones.find((z) => z.id === id)?.name ?? id.slice(0, 8);
 
 async function tickTo(c: Ctx, iso: string): Promise<number> {
@@ -216,9 +221,7 @@ export const SCENE2: Step[] = [
     acts: [
       { at: 0, name: 'scroll to the map', run: async (c) => { await scrollMap(c); return 'in view'; } },
       { at: 0.8, name: 'click a cut-off zone on the map', run: async (c) => {
-        const f = c.facts();
-        const cut = f.zones.filter((z) => z.access === 'isolated').map((z) => z.id).sort();
-        const pick = huntingIds(f).find((id) => cut.includes(id)) ?? cut[0];
+        const pick = pickCutOff(c.facts());
         if (!pick) return skip('no zone is cut off at this time');
         const said = await clickZoneOnMap(c, pick);
         c.state.cutOff = pick;
@@ -302,8 +305,40 @@ export const SCENE2_STEPS: PlayerStep[] = SCENE2.map((s) => ({ at: s.at, label: 
 
 // ---------------------------------------------------------------- the runner
 export interface LogRow { step: string; kind: 'act' | 'highlight'; name: string; ok: boolean; value: string }
-export interface Scene2 extends Tool { log(): LogRow[]; reset(): Promise<string>; precheck(): Promise<string | null> }
+/** A state the scene can be put into without playing the steps before it (the Full Demo's resume points). */
+export type PrepareTarget = 'dispatch' | 'needs' | 'copilot' | 'end';
+export interface Scene2 extends Tool {
+  log(): LogRow[]; reset(): Promise<string>; precheck(): Promise<string | null>;
+  /** Like start(), but from `from` seconds in: earlier steps are not run (and not reported as skipped). */
+  startFrom(from: number): void;
+  /** Put the page in the state the scene is in at a resume point, with no row written: the slider, the camera, the selected zone. */
+  prepare(target: PrepareTarget): Promise<string>;
+}
 export interface Scene2Ui { highlight(items: { el: Element; type: HighlightType; label: string }[]): void }
+
+/** Resume-point states. Each ends scrolled to the top, so no resume point leaves the page half-scrolled. */
+async function prepareState(c: Ctx, target: PrepareTarget): Promise<string> {
+  const top = () => c.env.win.scrollTo({ top: 0, behavior: 'auto' });
+  const jump = (label: string, where: [number, number] | null, zoom: number) => {
+    if (!where) { c.camera.hold(label, 'the loaded data does not give this target'); return; }
+    c.camera.go(label, planMove({ frame: 'zone', zoom, mode: 'jump', duration: 0 }, where, zoom));
+  };
+  top();
+  if (target === 'dispatch') return 'mixed run at its peak';
+  await tickTo(c, HB_TO);
+  const ids = huntingIds(c.facts());
+  jump('resume: Hunting Bayou', ids.length ? frameCenter('zones', ids, places(c)) : null, 13);
+  let said = `slider at ${HB_TO.slice(11, 16)} UTC, map at Hunting Bayou`;
+  if (target === 'copilot' || target === 'end') {
+    const pick = pickCutOff(c.facts());
+    if (!pick) return skip('no zone is cut off at this time');
+    said += `; ${await clickZoneOnMap(c, pick)}`;
+    c.state.cutOff = pick;
+  }
+  if (target === 'end') { jump('resume: metro', frameCenter('metro', [], places(c)), 10); said += '; map at the metro'; }
+  top();
+  return said;
+}
 
 /** True when part of an element is outside the window, or outside a scrolling panel it sits in: its highlight box would point at blank space. */
 export function clippedBy(el: Element, win: Pick<Window, 'innerHeight' | 'getComputedStyle'>): boolean {
@@ -318,7 +353,7 @@ export function clippedBy(el: Element, win: Pick<Window, 'innerHeight' | 'getCom
   return false;
 }
 
-export function createScene2(host: Scene2Host, ui: Scene2Ui, clock: PlayerClock, steps: Step[] = SCENE2, env?: Partial<Env>): Scene2 {
+export function createScene2(host: Scene2Host, ui: Scene2Ui, clock: Pick<PlayerClock, 'time'>, steps: Step[] = SCENE2, env?: Partial<Env>): Scene2 {
   const e: Env = {
     doc: env?.doc ?? document, win: env?.win ?? (window as Env['win']),
     sleep: env?.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms))),
@@ -404,6 +439,8 @@ export function createScene2(host: Scene2Host, ui: Scene2Ui, clock: PlayerClock,
     title: 'Scene 2',
     steps: SCENE2_STEPS,
     duration: SCENE2_DURATION_S,
+    startFrom(from: number) { this.start(); steps.forEach((s, i) => { if (s.at < from) { started.add(i); s.highlights.forEach((_, k) => reportedHl.add(`${s.id}:${k}`)); } }); },
+    async prepare(target: PrepareTarget) { cancelled = false; return prepareState(ctx, target); },
     start() { cancelled = false; gen += 1; started.clear(); skippedSteps.clear(); seen.clear(); reportedHl.clear(); rows.length = 0; shown = ''; for (const k of Object.keys(state)) delete state[k]; camera.clear(); },
     tick() {
       const t = clock.time();

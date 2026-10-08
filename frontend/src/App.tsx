@@ -50,7 +50,10 @@ function Panel({ title, children, className = '' }: { title: string; children: R
 // DEV ONLY: the demo driver. `import.meta.env.DEV` is a literal false in a production build, so this import is dead code there and
 // the driver is not in the bundle. In a dev build it also needs ?dev=1 in the URL. No user-facing route can switch it on.
 const DevOverlay = import.meta.env.DEV ? lazy(() => import('./dev/DevOverlay')) : null;
-const DEV_ON = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dev') === '1';
+// ?demo=1: the Full Demo (the guided tour, then Scene 2, as one live sequence). A third gate; it needs the conductor's read-only view of the page too.
+const DEMO_ON = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('demo') === '1';
+const DemoOverlay = import.meta.env.DEV ? lazy(() => import('./dev/DemoOverlay')) : null;
+const DEV_ON = import.meta.env.DEV && typeof window !== 'undefined' && (new URLSearchParams(window.location.search).get('dev') === '1' || DEMO_ON);
 // ?tour=1: the guided tour (camera and highlights only; it changes no state). A separate gate from ?dev=1: each tool's code loads only for its own.
 const TOUR_ON = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tour') === '1';
 // Read at load: the page rewrites the URL as the slider moves. Where the Harvey beat opens, if not at the briefed time (dev only).
@@ -322,14 +325,14 @@ export default function App() {
   // ---- DEV ONLY (?tour=1): what the guided tour may READ. It sees the run, the time and the layer on screen and which zones the engine finds
   // cut off; it is given no setter for any of them. Dead code in a production build.
   const tourNow = useRef<{ run: Run | null; zones: ZonesResponse | null; supply: SupplyAccess | null; layer: Layer; ready: boolean }>({ run: null, zones: null, supply: null, layer: 'risk', ready: false });
-  if (TOUR_ON) {
+  if (TOUR_ON || DEMO_ON) {
     const tickAt = ticks[tick] ? Date.parse(ticks[tick]) : null;
     const forStep = (iso: string | undefined | null) => iso != null && tickAt !== null && Date.parse(iso) === tickAt;
     tourNow.current = { run, zones, supply, layer,
       ready: !!zones && forStep(zones.at) && forStep(casesAt) && forStep(supply?.at) && forStep(lastCall?.at) && forStep(aerial?.at) && !!freshness && forStep(freshness.at) };
   }
   const tourData = useMemo<TourData | null>(() => {
-    if (!TOUR_ON) return null;
+    if (!TOUR_ON && !DEMO_ON) return null;
     return {
       start: () => { const n = tourNow.current; return { mode: n.run?.mode ?? null, event: n.run?.event ?? null, at: n.zones?.at ?? null, layer: n.layer, ready: n.ready, runId: n.run?.id ?? null }; },
       extent: () => tourNow.current.run?.extent ?? null,
@@ -369,6 +372,23 @@ export default function App() {
     };
     const mixedRun = () => runsRef.current.find((x) => x.mode === 'mixed' && x.event != null && x.peak_at) ?? runsRef.current.find((x) => x.mode === 'mixed') ?? null;
     return {
+      demo: {
+        // The Harvey replay at the tour's start (2017-08-28 05:15 UTC, coloured by supply access), read-only, nothing open: the Full Demo's first frame.
+        openHarvey: async () => {
+          const r = runsRef.current.find((x) => x.mode === 'replay' && x.peak_at && x.event?.includes('Harvey'));
+          if (!r) return false;
+          const start = '2017-08-28T05:15:00.000Z';
+          const tickTimes = ticksFor(r).map((t) => Date.parse(t));
+          if (!tickTimes.includes(Date.parse(start))) return false;
+          chooseRun(r, start);
+          setLayer('supply');
+          setPortalOpen(false);
+          setRefit((n) => n + 1);
+          setDemo({ active: false, clockMs: null, countdownMs: null, caption: null, pinned: [], hidden: [] });
+          for (let i = 0; i < 120; i++) { await new Promise((res) => setTimeout(res, 250)); if (tourNow.current.ready && tourNow.current.run?.id === r.id && tourNow.current.zones?.at && Date.parse(tourNow.current.zones.at) === Date.parse(start)) return true; }
+          return false;
+        },
+      },
       scene2: {
         mixedRunId: () => mixedRun()?.id ?? null,
         goToTick: (i) => { setPlaying(false); setTick(i); setAt(ticksRef.current[i]); },
@@ -612,7 +632,8 @@ export default function App() {
           </Panel>
         </div>
       </main>
-      {DevOverlay && DEV_ON && !TOUR_ON && devHost && <Suspense fallback={null}><DevOverlay gate="dev" host={devHost} tour={null} /></Suspense>}
+      {DevOverlay && DEV_ON && !TOUR_ON && !DEMO_ON && devHost && <Suspense fallback={null}><DevOverlay gate="dev" host={devHost} tour={null} /></Suspense>}
+      {DemoOverlay && DEMO_ON && !TOUR_ON && devHost && tourData && <Suspense fallback={null}><DemoOverlay host={devHost} tour={tourData} /></Suspense>}
       {DevOverlay && TOUR_ON && tourData && <Suspense fallback={null}><DevOverlay gate="tour" host={null} tour={tourData} /></Suspense>}
     </div>
   );

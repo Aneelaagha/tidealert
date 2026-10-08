@@ -58,7 +58,7 @@ describe('no invented data in src/', () => {
     // One exception, dev only: the guided tour's timeline (dev/tour.ts) is a list of narration lines, camera moves and selectors. It holds no
     // zone, case, responder or number about the flood (tour.test.ts pins that), and it is not in the production bundle.
     // Same for Scene 2's step list (dev/scene2.ts): narration, selectors and actions, no records (scene2.test.ts pins that it names no zone).
-    expect(offenders(/=\s*\[\s*\{/, (path) => path === 'dev/tour.ts' || path === 'dev/scene2.ts')).toEqual([]);
+    expect(offenders(/=\s*\[\s*\{/, (path) => path === 'dev/tour.ts' || path === 'dev/scene2.ts' || path === 'dev/demo.ts')).toEqual([]);
   });
 
   it('depends on no outside model SDK and has no server of its own (the copilot is /copilot/ask)', () => {

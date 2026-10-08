@@ -370,11 +370,14 @@ export default function App() {
         selectedZoneId: n.selected, needsWritable: n.needs?.writable ?? null,
       };
     };
+    // The overlay can be built before /runs has answered: wait for the run list (bounded) before looking for a run in it.
+    const runsLoaded = async () => { for (let i = 0; i < 80 && runsRef.current.length === 0; i++) await new Promise((res) => setTimeout(res, 250)); };
     const mixedRun = () => runsRef.current.find((x) => x.mode === 'mixed' && x.event != null && x.peak_at) ?? runsRef.current.find((x) => x.mode === 'mixed') ?? null;
     return {
       demo: {
         // The Harvey replay at the tour's start (2017-08-28 05:15 UTC, coloured by supply access), read-only, nothing open: the Full Demo's first frame.
         openHarvey: async () => {
+          await runsLoaded();
           const r = runsRef.current.find((x) => x.mode === 'replay' && x.peak_at && x.event?.includes('Harvey'));
           if (!r) return false;
           const start = '2017-08-28T05:15:00.000Z';
@@ -398,6 +401,7 @@ export default function App() {
         active: (on) => setDemo(on ? (d) => ({ ...d, active: true }) : { active: false, clockMs: null, countdownMs: null, caption: null, pinned: [], hidden: [] }),
         // The mixed Harvey run at its recorded peak, frozen, nothing open: the scene's starting point.
         open: async () => {
+          await runsLoaded();
           const r = mixedRun();
           if (!r?.peak_at) return null;
           const tickTimes = ticksFor(r).map((t) => Date.parse(t));

@@ -22,6 +22,10 @@ app.include_router(validation.router)
 app.include_router(gauges.router)
 app.include_router(copilot.router)
 app.include_router(data_practices.router)
+if os.environ.get("TIDEALERT_DEV_RESET") == "1":  # DEV ONLY: the demo conductor's Reset; absent from every normal run
+    from app.routes import dev_reset
+
+    app.include_router(dev_reset.router)
 
 
 # The page: the React app in frontend/, built to frontend/dist (`npm run build`), reading the API above.

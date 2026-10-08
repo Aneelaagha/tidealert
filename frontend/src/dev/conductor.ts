@@ -12,6 +12,7 @@
 //
 // It is reachable only in a Vite dev build with ?dev=1 (see DevPanel and App): in a production build the import is dead code and this
 // file is not in the bundle (tests/build check it). It never loops: it freezes at the beat's freeze offset and stops.
+import type { Scene2Host } from './scene2';
 import type { Attention } from '../lib/attention';
 import { minutesLeft } from '../lib/lastCall';
 import type { Case, LastCall, LastCallZone, ZonesResponse } from '../lib/api';
@@ -236,6 +237,7 @@ export const BEATS: Record<BeatName, { script: ScriptEvent[]; pacing: Pacing; ca
 
 /** What the page gives the conductor on top of the Host: open a beat's run frozen at its start, and read the connection. */
 export interface DevHostBase extends Omit<Host, 'snapshot' | 'look'> {
+  scene2: Scene2Host; // the Scene 2 tab's view of the page (dev/scene2.ts)
   snapshot(): RawSnapshot;
   extent(): [number, number, number, number] | null; // the run's zone extent (from /runs)
   zoneGeometry(zoneId: string): { type?: string; coordinates?: unknown } | null; // a loaded zone's own shape

@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Conductor, DevHostBase, BeatName, Host } from './conductor';
 import type { StartState, Tour, TourHost, HighlightType } from './tour';
+import type { Scene2 } from './scene2';
 import { COUNTDOWN_S, PlayerClock, type Line, type PlayerStatus, TimelinePlayer, type Tool, stepIndexAt } from './TimelinePlayer';
 import { CompactPanel, GAP_S, SEQUENCE, elapsedIn, sequenceTotals } from './CompactPanel';
 
@@ -47,6 +48,11 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
   const [countdown, setCountdown] = useState<number | null>(null);
   const [marks, setMarks] = useState<Mark[]>([]);
   const [caption, setCaption] = useState<string | null>(null);
+  // ?dev=1 has two timelines: the three beats, and Scene 2 (one coordinator, one decision, on the mixed run).
+  const [scene, setScene] = useState<'beats' | 'scene2'>('beats');
+  const sceneRef = useRef(scene);
+  sceneRef.current = scene;
+  const scene2 = useRef<Scene2 | null>(null);
   // The conductor runs its three beats as one sequence: which beat, and the gap left before the next one starts (ms, null: not in a gap).
   const seq = useRef(0);
   const gap = useRef<number | null>(null);
@@ -107,7 +113,7 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
       const t = tool.current;
       if (gate === 'dev') force((n) => n + 1); // the compact panel reads the clock
       if (!t || !['running', 'paused'].includes(statusRef.current)) return;
-      if (gate === 'dev' && gap.current !== null) {
+      if (gate === 'dev' && sceneRef.current === 'beats' && gap.current !== null) {
         // The 2 s between beats counts down only while running, so Pause holds it.
         if (statusRef.current === 'running') {
           gap.current -= 100;
@@ -116,10 +122,10 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
         return;
       }
       t.tick();
-      if (gate === 'dev') reportToConsole(t as Conductor);
+      if (gate === 'dev' && sceneRef.current === 'beats') reportToConsole(t as Conductor);
       if (t.finished()) {
-        if (gate === 'dev' && seq.current < SEQUENCE.length - 1) gap.current = GAP_S * 1000;
-        else { clock.pause(); setStatus('finished'); }
+        if (gate === 'dev' && sceneRef.current === 'beats' && seq.current < SEQUENCE.length - 1) gap.current = GAP_S * 1000;
+        else { clock.pause(); setMarks([]); setStatus('finished'); }
       }
     }, 100);
     return () => window.clearInterval(id);
@@ -154,7 +160,7 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
     timers.current.push(setTimeout(step, 1000));
   }
   function play() {
-    if (gate === 'dev') { playSequence(); return; }
+    if (gate === 'dev') { if (sceneRef.current === 'scene2') void playScene2(); else playSequence(); return; }
     const t = tool.current;
     if (!t) return;
     if (statusRef.current === 'paused') { clock.play(); setStatus('running'); return; }
@@ -181,6 +187,8 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
     if (gate === 'tour') {
       const t = tool.current as Tour;
       t.stop(); clock.seek(0); t.seek(0); setStatus('ready'); setMessage(null);
+    } else if (sceneRef.current === 'scene2') {
+      await prepareScene2();
     } else {
       // Back to Beat 1 at t=0 with nothing left over: the forced-offline switch off, pinned countdowns cleared, the run reopened at its start.
       // (The beats write nothing to the database; this is all the state they hold.)
@@ -198,6 +206,53 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
     force((n) => n + 1);
   }
   function speed(x: number) { clock.setSpeed(x); force((n) => n + 1); }
+
+  // ---- Scene 2: its own module, only under ?dev=1 and only when its tab is chosen
+  function switchScene(next: 'beats' | 'scene2') {
+    if (next === sceneRef.current) return;
+    clearCountdown(); tool.current?.stop(); tool.current = null; scene2.current = null; clock.pause(); clock.seek(0);
+    setMarks([]); setMessage(null); host?.offline(false); host?.pinZone(''); host?.active(false);
+    gap.current = null; seq.current = 0;
+    sceneRef.current = next; setScene(next); setStatus('idle');
+  }
+  /** Open the mixed run at its peak and build the scene; ready only when no earlier demo rows are left on the board. */
+  async function prepareScene2(): Promise<boolean> {
+    if (!host) return false;
+    clearCountdown(); tool.current?.stop(); clock.pause(); clock.seek(0); setMessage(null); setMarks([]);
+    setStatus('opening');
+    const o = await host.scene2.open();
+    if (!o) { host.active(false); setStatus('idle'); setMessage('Could not open: there is no mixed Harvey run in this database.'); return false; }
+    const { createScene2 } = await import('./scene2');
+    const t = createScene2(host.scene2, { highlight: (items) => setMarks(items) }, clock);
+    scene2.current = t; tool.current = t as unknown as typeof tool.current;
+    const pre = await t.precheck();
+    if (pre) { setStatus('idle'); setMessage(pre); return false; }
+    setStatus('ready');
+    return true;
+  }
+  async function playScene2() {
+    const s = statusRef.current;
+    if (s === 'paused') { clock.play(); setStatus('running'); return; }
+    if (s === 'running' || s === 'countdown' || s === 'opening') return;
+    if (s !== 'ready' && !(await prepareScene2())) return;
+    setMessage(null); setStatus('countdown');
+    let n = COUNTDOWN_S;
+    setCountdown(n);
+    const step = () => {
+      n -= 1;
+      if (n > 0) { setCountdown(n); timers.current.push(setTimeout(step, 1000)); return; }
+      clearCountdown();
+      clock.pause(); clock.seek(0); clock.play();
+      scene2.current?.start();
+      setStatus('running');
+    };
+    timers.current.push(setTimeout(step, 1000));
+  }
+  async function resetScene2() {
+    if (!host) return;
+    const { resetDemo } = await import('./scene2');
+    setMessage(await resetDemo(host.scene2));
+  }
 
   // ---- the conductor: its own module, only under ?dev=1
   async function selectBeat(b: BeatName, auto = false) {
@@ -252,6 +307,7 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
   useEffect(() => {
     (window as unknown as { __dev: unknown }).__dev = {
       gate, play, pause, restart, skip, speed, selectBeat, openHarvey, offline: goOffline, reset,
+      switchScene, resetScene2, prepareScene2, scene: () => sceneRef.current, scene2Log: () => scene2.current?.log() ?? [],
       status: () => statusRef.current, message: () => message, clock: () => clock.time(),
       log: () => tool.current?.log?.() ?? [], report: () => tool.current?.report?.() ?? [], snaps: () => tool.current?.snaps?.() ?? [],
       line: () => tool.current?.line(clock.time()) ?? null, camMoves: () => cam.current?.moves() ?? [], marks: () => marks.map((m) => ({ label: m.label, type: m.type })),
@@ -265,7 +321,15 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
 
   // The conductor's compact panel: where the sequence is, from the beat lengths and the clock.
   let devLine: Line | null = null; let stepN = 0; let stepM = 0; let elapsed = 0; let total = 0;
-  if (gate === 'dev') {
+  if (gate === 'dev' && scene === 'scene2') {
+    stepM = t?.steps.length ?? 19; total = t?.duration ?? 116;
+    const into = Math.min(clock.time(), total);
+    stepN = t ? Math.max(stepIndexAt(t.steps, into) + 1, 0) : 0; elapsed = into;
+    devLine = message ? { text: message }
+      : status === 'opening' ? { text: 'Opening the mixed run…' }
+      : status === 'finished' ? { text: 'Scene 2 done. Press Reset to remove its rows, then Restart to run it again.' }
+      : t && ['running', 'paused'].includes(status) ? t.line(into) : null;
+  } else if (gate === 'dev') {
     const m = meta.current;
     const totals = m ? sequenceTotals(m.durations, m.stepCounts) : { seconds: 0, steps: 0 };
     stepM = totals.steps; total = totals.seconds;
@@ -282,11 +346,12 @@ export default function DevOverlay({ gate, host, tour }: { gate: Gate; host: Dev
   }
   return (
     <>
-      {gate === 'tour' && <HighlightLayer marks={marks} />}
+      {(gate === 'tour' || (gate === 'dev' && scene === 'scene2')) && <HighlightLayer marks={marks} />}
       {caption && <div className="pointer-events-none fixed left-1/2 top-16 z-[65] -translate-x-1/2 rounded bg-black/80 px-3 py-1 text-sm text-white" data-dev-caption>{caption}</div>}
       {gate === 'dev' ? (
         <CompactPanel clock={clock} status={status} line={devLine} countdown={countdown} stepN={stepN} stepM={stepM} elapsed={elapsed} total={total}
-                      onPlay={play} onPause={pause} onRestart={() => void restart()} onSpeed={speed} />
+                      onPlay={play} onPause={pause} onRestart={() => void restart()} onSpeed={speed}
+                      scene={scene} onScene={switchScene} onReset={() => void resetScene2()} />
       ) : (
         <TimelinePlayer title="Guided tour" steps={t?.steps ?? []} duration={t?.duration ?? 84} clock={clock} status={status}
                         line={t ? t.line(Math.min(clock.time(), t.duration)) : null} message={message} countdown={countdown}

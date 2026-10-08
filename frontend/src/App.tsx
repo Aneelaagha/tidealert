@@ -31,6 +31,7 @@ import { fmtTime } from './lib/format';
 import { rankAttention } from './lib/attention';
 import type { DevHost, TourData } from './dev/DevOverlay';
 import type { RawSnapshot } from './dev/conductor';
+import type { Scene2Facts } from './dev/scene2';
 import { headlineFacts } from './components/Headline';
 import { type Lead, loadLead, saveLead } from './lib/lastCall';
 import { pulseZone } from './lib/pulse';
@@ -123,6 +124,7 @@ export default function App() {
   const [zones, setZones] = useState<ZonesResponse | null>(null);
   const [freshness, setFreshness] = useState<Freshness | null>(null);
   const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [tasksAt, setTasksAt] = useState<string | null>(null); // the time the loaded tasks are for
   const [cases, setCases] = useState<Case[] | null>(null);
   const [responderList, setResponderList] = useState<Responder[] | null>(null);
   const [responderError, setResponderError] = useState<string | null>(null);
@@ -247,7 +249,7 @@ export default function App() {
         setStatus(summary(z, fromServer ? (performance.now() - t0) / 1000 : null));
       })
       .catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
-    api.tasks(run.id, at, ctl.signal).then((b) => setTasks(b.tasks))
+    api.tasks(run.id, at, ctl.signal).then((b) => { setTasks(b.tasks); setTasksAt(b.at); })
       .catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
     api.cases(run.id, null, at, ctl.signal).then((b) => { setCases(b.cases); setCasesAt(b.at); })
       .catch((e: Error) => { if (e.name !== 'AbortError') setError(e.message); });
@@ -346,9 +348,51 @@ export default function App() {
       },
     };
   }, []);
+  // DEV ONLY (?dev=1, Scene 2): what the scene may READ about the page now. It acts only through clicks and typing in the page itself.
+  const sceneNow = useRef<{ run: Run | null; zones: ZonesResponse | null; supply: SupplyAccess | null; needs: Needs | null; tasksAt: string | null; casesAt: string | null; ranked: ReturnType<typeof rankAttention>; selected: string | null; ticks: string[]; tick: number }>(
+    { run: null, zones: null, supply: null, needs: null, tasksAt: null, casesAt: null, ranked: [], selected: null, ticks: [], tick: 0 });
+  if (DEV_ON) sceneNow.current = { run, zones, supply, needs, tasksAt, casesAt, ranked, selected: selectedZoneId, ticks, tick };
   const devHost = useMemo<DevHost | null>(() => {
     if (!DEV_ON) return null;
+    const sceneFacts = (): Scene2Facts => {
+      const n = sceneNow.current;
+      const tickAt = n.ticks[n.tick] ? Date.parse(n.ticks[n.tick]) : null;
+      const same = (iso: string | undefined | null) => iso != null && tickAt !== null && Date.parse(iso) === tickAt;
+      return {
+        ready: !!n.zones && same(n.zones.at) && same(n.casesAt) && same(n.supply?.at) && same(n.needs?.at) && same(n.tasksAt),
+        runId: n.run?.id ?? null, mode: n.run?.mode ?? null, atMs: tickAt, ticks: n.ticks.map((t) => Date.parse(t)), windowEnd: n.run?.window_end ?? null,
+        zones: (n.zones?.features ?? []).map((f) => ({ id: f.properties.zone_id, name: f.properties.name, tasks: f.properties.task_count, taskStatus: f.properties.task_count > 0 ? f.properties.task_status : null,
+                                                        access: same(n.supply?.at) ? n.supply?.zones[f.properties.zone_id]?.zone_access ?? null : null })),
+        ranked: n.ranked.map((a) => ({ zoneId: a.zoneId, name: a.name, group: a.group })),
+        selectedZoneId: n.selected, needsWritable: n.needs?.writable ?? null,
+      };
+    };
+    const mixedRun = () => runsRef.current.find((x) => x.mode === 'mixed' && x.event != null && x.peak_at) ?? runsRef.current.find((x) => x.mode === 'mixed') ?? null;
     return {
+      scene2: {
+        mixedRunId: () => mixedRun()?.id ?? null,
+        goToTick: (i) => { setPlaying(false); setTick(i); setAt(ticksRef.current[i]); },
+        facts: sceneFacts,
+        extent: () => devNow.current.run?.extent ?? null,
+        zoneGeometry: (id) => devNow.current.zones?.features.find((f) => f.properties.zone_id === id)?.geometry ?? null,
+        active: (on) => setDemo(on ? (d) => ({ ...d, active: true }) : { active: false, clockMs: null, countdownMs: null, caption: null, pinned: [], hidden: [] }),
+        // The mixed Harvey run at its recorded peak, frozen, nothing open: the scene's starting point.
+        open: async () => {
+          const r = mixedRun();
+          if (!r?.peak_at) return null;
+          const tickTimes = ticksFor(r).map((t) => Date.parse(t));
+          const want = Date.parse(r.peak_at);
+          const startMs = tickTimes.filter((t) => t <= want).at(-1);
+          if (startMs === undefined) return null;
+          chooseRun(r, ticksFor(r)[tickTimes.indexOf(startMs)]);
+          setLayer('supply');
+          setPortalOpen(false);
+          setRefit((n) => n + 1);
+          setDemo({ active: true, clockMs: null, countdownMs: null, caption: null, pinned: [], hidden: [] });
+          for (let i = 0; i < 120; i++) { await new Promise((res) => setTimeout(res, 250)); if (sceneFacts().ready && sceneFacts().atMs === startMs && sceneFacts().runId === r.id) break; }
+          return { startMs };
+        },
+      },
       snapshot: () => ({ ...snap.current!, offline: offlineView() }),
       goToTick: (i) => { setPlaying(false); setTick(i); setAt(ticksRef.current[i]); },
       setClock: (ms, second) => {

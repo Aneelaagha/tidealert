@@ -180,3 +180,45 @@ def test_concurrent_fulfilments_cannot_spend_the_same_quantity_twice():
         with SessionLocal() as db:
             events = list(db.scalars(select(NeedEvent).where(NeedEvent.run_id == w["run"])))
             assert sum(e.quantity for e in events if e.event == NeedEventKind.fulfilled) == 3
+
+
+# ---- the dev demo conductor's Reset (POST /needs/dev-reset): deletes only the rows written as "Demo Operator" / "Test Donor".
+# The router exists only when the API is started with TIDEALERT_DEV_RESET=1 (app.main), so these tests mount it on their own app.
+def test_dev_reset_route_is_not_part_of_the_normal_app():
+    paths = {(m, r.path) for r in app.routes for m in getattr(r, "methods", set())}
+    assert ("POST", "/needs/dev-reset") not in paths  # the data-policy write-route inventory stays as reviewed
+
+
+def reset_client(db):
+    from fastapi import FastAPI
+
+    from app.routes import dev_reset
+
+    dev = FastAPI()
+    dev.include_router(dev_reset.router)
+    dev.dependency_overrides[get_db] = lambda: db
+    return TestClient(dev)
+
+
+def test_dev_reset_deletes_only_the_demos_rows_and_a_second_call_deletes_nothing(tx):
+    client, db = tx
+    run = run_named(db, MIXED)
+    reset = reset_client(db)
+    zone = a_zone(client, run, "isolated", at=EARLY)
+    assert enter(client, run, zone, actor="Demo Operator", quantity=40, at=EARLY).status_code == 201
+    assert enter(client, run, zone, actor="A Human", quantity=5, at=EARLY).status_code == 201
+    pledge = {"run_id": str(run.id), "zone_id": zone, "item_type": "water", "at": LATER}
+    assert client.post("/pledges", json=pledge | {"donor": "Test Donor", "quantity": 25}).status_code == 201
+    assert client.post("/pledges", json=pledge | {"donor": "A Neighbor", "quantity": 3}).status_code == 201
+    first = reset.post("/needs/dev-reset", json={"run_id": str(run.id)}).json()
+    assert (first["need_entries_deleted"], first["pledges_deleted"]) == (1, 1)
+    board = client.get("/needs", params={"run_id": str(run.id), "at": LATER}).json()["zones"][zone]
+    assert [e["actor"] for e in board["events"]] == ["A Human"]
+    assert [p["donor"] for p in board["pledges"]] == ["A Neighbor"]
+    again = reset.post("/needs/dev-reset", json={"run_id": str(run.id)}).json()
+    assert (again["need_entries_deleted"], again["pledges_deleted"]) == (0, 0)
+
+
+def test_dev_reset_on_an_unknown_run_is_a_404(tx):
+    _, db = tx
+    assert reset_client(db).post("/needs/dev-reset", json={"run_id": str(uuid.uuid4())}).status_code == 404

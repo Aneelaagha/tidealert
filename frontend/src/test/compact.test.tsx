@@ -14,7 +14,7 @@ describe('the compact panel', () => {
   it('has Play, Pause and Restart, the read-along, and the step, time and speed row: and nothing else', () => {
     const h = html({ line: { text: 'The first line.' }, stepN: 3, elapsed: 12, total: 117 });
     for (const w of ['Play', 'Pause', 'Restart', 'The first line.', 'step 3 of 21', '0:12 / 1:57', '0.5x', '1x', '1.5x']) expect(h).toContain(w);
-    expect((h.match(/<button/g) ?? []).length).toBe(1 + 3 + 3); // the title bar, the three controls, the three speeds
+    expect((h.match(/<button/g) ?? []).length).toBe(1 + 2 + 3 + 3); // the title bar, the two timeline tabs (Beats, Scene 2), the three controls, the three speeds
     for (const gone of ['Isolation beat', 'Silence + Listening', 'Offline beat', 'Open on Harvey', 'Recover', 'Reset', 'Skip to step', '<select', '<ul', 'progressbar']) expect(h).not.toContain(gone);
   });
   it('is about 320 px wide', () => { expect(html()).toContain('w-80'); });
@@ -32,6 +32,27 @@ describe('the compact panel', () => {
     const running = html({ status: 'running' });
     expect(running).toMatch(/<button[^>]*disabled=""[^>]*>Play</);
     expect(html()).toMatch(/<button[^>]*disabled=""[^>]*>Pause</);
+  });
+});
+
+describe('the Scene 2 tab', () => {
+  it('has the two tabs, with Beats selected by default, and no Reset in the beats view', () => {
+    const h = html();
+    expect(h).toMatch(/role="tab" aria-selected="true"[^>]*>Beats</);
+    expect(h).toMatch(/role="tab" aria-selected="false"[^>]*>Scene 2</);
+    expect(h).not.toContain('>Reset<');
+  });
+  it('adds Reset and its own prompt in the Scene 2 view', () => {
+    const h = html({ scene: 'scene2' });
+    expect(h).toMatch(/role="tab" aria-selected="true"[^>]*>Scene 2</);
+    expect(h).toContain('>Reset<');
+    expect(h).toContain('Press Play to follow one coordinator through one decision.');
+    expect((h.match(/<button/g) ?? []).length).toBe(1 + 2 + 4 + 3);
+  });
+  it('disables Reset and the tabs while a timeline runs, so nothing is deleted or switched mid-play', () => {
+    const h = html({ scene: 'scene2', status: 'running' });
+    expect(h).toMatch(/<button[^>]*disabled=""[^>]*>Reset</);
+    expect(h).toMatch(/<button[^>]*disabled=""[^>]*>Beats</);
   });
 });
 

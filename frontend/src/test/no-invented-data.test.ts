@@ -57,7 +57,8 @@ describe('no invented data in src/', () => {
     // routes and donations.
     // One exception, dev only: the guided tour's timeline (dev/tour.ts) is a list of narration lines, camera moves and selectors. It holds no
     // zone, case, responder or number about the flood (tour.test.ts pins that), and it is not in the production bundle.
-    expect(offenders(/=\s*\[\s*\{/, (path) => path === 'dev/tour.ts')).toEqual([]);
+    // Same for Scene 2's step list (dev/scene2.ts): narration, selectors and actions, no records (scene2.test.ts pins that it names no zone).
+    expect(offenders(/=\s*\[\s*\{/, (path) => path === 'dev/tour.ts' || path === 'dev/scene2.ts')).toEqual([]);
   });
 
   it('depends on no outside model SDK and has no server of its own (the copilot is /copilot/ask)', () => {
@@ -75,7 +76,8 @@ describe('no invented data in src/', () => {
   it('keeps the word "donation" to the donation portal, which is backed by the API (the reference app\'s was invented)', () => {
     // The portal shows only what operators and donors typed in and the server stored (/needs, /pledges), labelled so.
     // Anywhere else the word would mean the reference app's fake donation board has come back.
-    const portal = ['App.tsx', join('components', 'DonationPortal.tsx'), join('components', 'MapToolbar.tsx')];
+    // dev/scene2.ts (dev only, not in the bundle) clicks the portal's own toolbar button, so it has to name it.
+    const portal = ['App.tsx', join('components', 'DonationPortal.tsx'), join('components', 'MapToolbar.tsx'), join('dev', 'scene2.ts')];
     expect(offenders(/donation/i, (p) => portal.includes(p))).toEqual([]);
     expect(files.find((f) => f.path === join('components', 'DonationPortal.tsx'))?.text).toMatch(/api\.offerSupplies/);
   });

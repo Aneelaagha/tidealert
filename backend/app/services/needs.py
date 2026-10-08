@@ -18,7 +18,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.models import NeedEvent, Pledge, Run, Zone
@@ -30,6 +30,11 @@ from app.services import map_state, safety
 MAX_QUANTITY = 1_000_000
 MAX_NOTE = 300
 LABEL = "Entered by an operator at the slider time. Not measured, and not checked against any other source."
+
+
+# The two names the dev demo conductor (Scene 2) writes under. Only rows carrying them are ever removed by reset_demo_rows.
+DEMO_OPERATOR = "Demo Operator"
+DEMO_DONOR = "Test Donor"
 
 
 class NeedError(Exception):
@@ -183,3 +188,12 @@ def needs_as_of(db: Session, run: Run, at: datetime, only_zones=None) -> dict:
                         "open_pledges": open_pledges_in(zones),
                         "open_pledges_in_cut_off_zones": open_pledges_in(cut_off),
                         "cut_off_zone_ids": sorted(cut_off, key=lambda z: -zones[z]["open"])[:8]}}
+
+
+def reset_demo_rows(db: Session, run: Run) -> dict:
+    """Delete the rows the dev demo conductor wrote on this run: pledges offered by DEMO_DONOR, then need entries made by
+    DEMO_OPERATOR. Nothing else is touched, so a human's entries survive; a second call finds nothing and deletes nothing.
+    The caller commits."""
+    pledges_gone = db.execute(delete(Pledge).where(Pledge.run_id == run.id, Pledge.donor == DEMO_DONOR)).rowcount
+    needs_gone = db.execute(delete(NeedEvent).where(NeedEvent.run_id == run.id, NeedEvent.actor == DEMO_OPERATOR)).rowcount
+    return {"run_id": str(run.id), "pledges_deleted": pledges_gone, "need_entries_deleted": needs_gone}

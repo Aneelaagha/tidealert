@@ -129,6 +129,12 @@ describe('the resume points', () => {
     expect(w.calls).toEqual(expect.arrayContaining(['scene.stop', 'tour.stop', 'caption off', 'openHarvey', 'tour.start']));
     expect(w.clock.time()).toBe(0); expect(w.demo.status()).toBe('running'); // it was playing: it goes on playing
   });
+  it('keeps the mode: a jump while paused leaves it paused, at the resume point, until Play', async () => {
+    const w = world(); await w.demo.prepare(); w.demo.play(); w.advance(50); w.demo.pause();
+    expect(await w.demo.jump('needs')).toBeNull();
+    expect(w.demo.status()).toBe('paused'); expect(w.clock.isPlaying).toBe(false); expect(w.clock.time()).toBe(CHECKPOINTS[3].at);
+    w.demo.play(); expect(w.demo.status()).toBe('running');
+  });
   it('Tour → Scene 2: Harvey open, the clock at 84 s, no tool started, then the run switch plays', async () => {
     const w = world(); await w.demo.prepare();
     expect(await w.demo.jump('tour-scene2')).toBeNull();

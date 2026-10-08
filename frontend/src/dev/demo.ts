@@ -179,7 +179,7 @@ export function createFullDemo({ tour, scene, clock, host }: FullDemoDeps): Full
         else if (cp.id === 'end') { resetFlags({ swap: true, scene: true }); status = 'finished'; return null; }
         else { resetFlags({ swap: true, scene: true }); scene.startFrom(cp.at - SCENE2_AT); }
         status = 'paused';
-        if (was === 'running' || was === 'paused') { clock.play(); status = 'running'; }
+        if (was === 'running') { clock.play(); status = 'running'; } // a resume point keeps the mode: playing goes on playing, paused waits for Play
         return null;
       } finally { busy = false; }
     },

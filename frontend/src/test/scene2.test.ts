@@ -163,6 +163,22 @@ describe('the runner', () => {
     for (const t of [4.5, 6.5, 8.5]) { clock.seek(t); clock.play(); scene.tick(); }
     expect(shown.filter((x) => x.length).flat()).toEqual(['a', 'b', 'c']);
   });
+  it("holds a step's highlights until its actions have finished, then runs them to the end of the step (hlAfterActs)", async () => {
+    const el = { getBoundingClientRect: () => ({ top: 10, bottom: 30 }), parentElement: null, scrollIntoView: () => {} } as unknown as Element;
+    const win = { innerHeight: 800, getComputedStyle: () => ({ overflowY: 'visible' }), scrollTo: () => {} } as never;
+    let now = 0; const clock = new PlayerClock(() => now); const shown: string[][] = [];
+    let release: () => void = () => {};
+    const host: Scene2Host = { open: async () => ({ startMs: 0 }), mixedRunId: () => 'r', goToTick: () => {}, facts: () => facts(), extent: () => null, zoneGeometry: () => null, active: () => {} };
+    const s = step({ dur: 10, hlAfterActs: true, acts: [{ at: 0, name: 'slow', run: () => new Promise<string>((r) => { release = () => r('done'); }) }], highlights: ['a', 'b'].map((label) => ({ label, find: () => [el] })) });
+    const scene = createScene2(host, { highlight: (i) => shown.push(i.map((x) => x.label)) }, clock, [s], { doc: {} as Document, win, sleep: async () => {}, log: () => {} });
+    scene.start();
+    clock.seek(2); clock.play(); scene.tick(); await Promise.resolve();
+    expect(shown).toEqual([]); // the action has not finished: no box yet
+    clock.seek(4); release(); await vi.waitFor(() => expect(scene.log()).toHaveLength(1));
+    clock.seek(4.5); scene.tick();
+    clock.seek(8); scene.tick();
+    expect(shown.filter((x) => x.length).flat()).toEqual(['a', 'b']); // both shown, whenever the action finished
+  });
   it('stop() cancels what is waiting, so an act from the last play cannot fire in the next', async () => {
     const run = vi.fn(async () => 'late');
     const w = world([step({ acts: [{ at: 3, name: 'late', run }] })]);

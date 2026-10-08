@@ -59,7 +59,7 @@ export interface Ctx {
 type Finder = (c: Ctx) => Element[];
 interface Act { at: number; name: string; run(c: Ctx): Promise<string> }
 interface Mark { label: string; find: Finder }
-export interface Step { at: number; dur: number; hlFrom?: number; id: string; narration: string; acts: Act[]; highlights: Mark[]; need?: (c: Ctx) => string | null }
+export interface Step { at: number; dur: number; hlFrom?: number; hlAfterActs?: boolean; id: string; narration: string; acts: Act[]; highlights: Mark[]; need?: (c: Ctx) => string | null }
 
 const sec = (h: RegExp): Sel => ({ css: 'section h2', match: h, closest: 'section' });
 const ATT = sec(/^Needs attention/);
@@ -195,8 +195,8 @@ export const SCENE2: Step[] = [
     acts: [],
     need: (c) => { const n = huntingIds(c.facts()).length; return n === 3 ? null : `${n} Hunting Bayou zones have an assigned task at 02:30, not three`; },
     highlights: [{ label: 'responders-panel', find: one(RESP) }] },
-  // (hlFrom: the boxes start once the slider has arrived and the warnings have loaded)
-  { at: 43, dur: 10, hlFrom: 3, id: 'warning-fires', narration: "By 3:45 it's cut off again, and the task shows a warning: isolated after assignment. A responder is told before driving in, not after.",
+  // (hlAfterActs: the boxes start once the slider has arrived and the warnings have loaded, however long that takes, so every box is shown every run)
+  { at: 43, dur: 10, hlAfterActs: true, id: 'warning-fires', narration: "By 3:45 it's cut off again, and the task shows a warning: isolated after assignment. A responder is told before driving in, not after.",
     acts: [{ at: 0, name: `slider ${HB_FROM.slice(11, 16)} to ${HB_TO.slice(11, 16)}`, run: async (c) => {
       const f = c.facts();
       const from = f.ticks.indexOf(Date.parse(HB_FROM)), to = f.ticks.indexOf(Date.parse(HB_TO));
@@ -366,6 +366,7 @@ export function createScene2(host: Scene2Host, ui: Scene2Ui, clock: Pick<PlayerC
   const skippedSteps = new Set<string>();
   const seen = new Map<string, Set<number>>();
   const reportedHl = new Set<string>();
+  const actsDoneAt = new Map<string, number>(); // when a step's actions finished (or were skipped), for steps whose highlights wait for them
   let shown = '';
   const state: Record<string, unknown> = {};
   const camera = createCamera(() => (e.win.__map as MapView | undefined) ?? null, (d) => {
@@ -397,9 +398,10 @@ export function createScene2(host: Scene2Host, ui: Scene2Ui, clock: Pick<PlayerC
       catch (err) {
         skippedSteps.add(step.id);
         record(step.id, 'act', act.name, false, err instanceof Skip ? err.message : `failed: ${err instanceof Error ? err.message : String(err)}`);
-        if (!(err instanceof Skip)) throw err;
+        if (!(err instanceof Skip)) { actsDoneAt.set(step.id, clock.time()); throw err; }
       }
     }
+    actsDoneAt.set(step.id, clock.time());
   }
 
   function showHighlights(t: number) {
@@ -407,8 +409,10 @@ export function createScene2(host: Scene2Host, ui: Scene2Ui, clock: Pick<PlayerC
     if (i < 0 || (skippedSteps.has(steps[i].id) && steps[i].need)) { if (shown) { ui.highlight([]); shown = ''; } return; }
     const s = steps[i];
     if (!s.highlights.length) { if (shown) { ui.highlight([]); shown = ''; } return; }
-    const from = s.hlFrom ?? 0;
-    if (t - s.at < from) { if (shown) { ui.highlight([]); shown = ''; } return; }
+    // The boxes run from `from` (or, for a step whose boxes wait for its actions, from when they finished) to the end of the step.
+    let from = s.hlFrom ?? 0;
+    if (s.hlAfterActs) { const done = actsDoneAt.get(s.id); from = done === undefined ? s.dur : Math.max(from, done - s.at); }
+    if (t - s.at < from || from >= s.dur) { if (shown) { ui.highlight([]); shown = ''; } return; }
     const k = Math.min(Math.floor(((t - s.at - from) / (s.dur - from)) * s.highlights.length), s.highlights.length - 1);
     const m = s.highlights[k];
     const els = m.find(ctx);
@@ -441,7 +445,7 @@ export function createScene2(host: Scene2Host, ui: Scene2Ui, clock: Pick<PlayerC
     duration: SCENE2_DURATION_S,
     startFrom(from: number) { this.start(); steps.forEach((s, i) => { if (s.at < from) { started.add(i); s.highlights.forEach((_, k) => reportedHl.add(`${s.id}:${k}`)); } }); },
     async prepare(target: PrepareTarget) { cancelled = false; return prepareState(ctx, target); },
-    start() { cancelled = false; gen += 1; started.clear(); skippedSteps.clear(); seen.clear(); reportedHl.clear(); rows.length = 0; shown = ''; for (const k of Object.keys(state)) delete state[k]; camera.clear(); },
+    start() { cancelled = false; gen += 1; started.clear(); actsDoneAt.clear(); skippedSteps.clear(); seen.clear(); reportedHl.clear(); rows.length = 0; shown = ''; for (const k of Object.keys(state)) delete state[k]; camera.clear(); },
     tick() {
       const t = clock.time();
       steps.forEach((s, i) => { if (t >= s.at && !started.has(i)) { started.add(i); void runActs(i, g0()).catch((err) => console.error('[scene2] step failed', s.id, err)); } });
